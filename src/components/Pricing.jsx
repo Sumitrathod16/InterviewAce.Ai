@@ -1,0 +1,149 @@
+import React, { useState } from 'react';
+import { Check, Info } from 'lucide-react';
+
+const PLANS = [
+  {
+    name: 'Free Plan',
+    monthlyPrice: 0,
+    yearlyPrice: 0,
+    desc: 'For individuals exploring core mock features.',
+    features: [
+      '3 AI mock interviews per day',
+      'Standard performance rating feedback',
+      'Basic coding sandbox challenges',
+      'Community forum support'
+    ],
+    cta: 'Start Free Practice',
+    highlighted: false
+  },
+  {
+    name: 'Pro Plan',
+    monthlyPrice: 29,
+    yearlyPrice: 23,
+    desc: 'For active applicants seeking thorough training.',
+    features: [
+      'Unlimited AI mock interviews',
+      'Full ATS Resume Analyzer compatibility',
+      'AI Voice interview simulations',
+      'Company-specific interview sets',
+      'Advanced coding runtime diagnostics'
+    ],
+    cta: 'Get Pro Access',
+    highlighted: true
+  },
+  {
+    name: 'Premium Plan',
+    monthlyPrice: 59,
+    yearlyPrice: 47,
+    desc: 'For career switchers wanting specialized support.',
+    features: [
+      'Everything in Pro plan',
+      '24/7 Personal AI Career Coach guidance',
+      'Granular performance reports',
+      'Priority support response',
+      '1-on-1 resume revision triggers'
+    ],
+    cta: 'Get Premium Access',
+    highlighted: false
+  }
+];
+
+export default function Pricing() {
+  const [billingPeriod, setBillingPeriod] = useState('monthly'); // monthly, yearly
+
+  return (
+    <section id="pricing" className="py-24 bg-secondaryBg/10 border-t border-white/5 relative">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        
+        {/* Header */}
+        <div className="text-center max-w-3xl mx-auto mb-16">
+          <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-white mb-4">
+            Simple, Transparent Pricing
+          </h2>
+          <p className="text-lg text-lightGray/70 mb-8">
+            Choose the level that matches your preparation intensity. Cancel or modify anytime.
+          </p>
+
+          {/* Toggle */}
+          <div className="flex items-center justify-center gap-3">
+            <span className={`text-xs font-semibold ${billingPeriod === 'monthly' ? 'text-white' : 'text-lightGray/40'}`}>Monthly</span>
+            <button
+              onClick={() => setBillingPeriod(b => b === 'monthly' ? 'yearly' : 'monthly')}
+              className="w-11 h-6 rounded-full bg-secondaryBg premium-border p-0.5 flex relative transition-all duration-300"
+            >
+              <div className={`w-4.5 h-4.5 rounded-full bg-white transition-all duration-300 ${
+                billingPeriod === 'yearly' ? 'translate-x-5' : 'translate-x-0'
+              }`} />
+            </button>
+            <span className={`text-xs font-semibold ${billingPeriod === 'yearly' ? 'text-white' : 'text-lightGray/40'} flex items-center gap-1.5`}>
+              Yearly
+              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-white text-background uppercase">Save 20%</span>
+            </span>
+          </div>
+        </div>
+
+        {/* Cards Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-stretch max-w-6xl mx-auto">
+          {PLANS.map((plan, idx) => {
+            const price = billingPeriod === 'monthly' ? plan.monthlyPrice : plan.yearlyPrice;
+            return (
+              <div 
+                key={idx} 
+                className={`p-8 rounded-xl border flex flex-col justify-between transition-all duration-300 ${
+                  plan.highlighted 
+                    ? 'bg-secondaryBg/60 border-white shadow-2xl relative' 
+                    : 'bg-secondaryBg/30 border-white/5 hover:border-white/10'
+                }`}
+              >
+                {/* Popular badge */}
+                {plan.highlighted && (
+                  <span className="absolute top-0 right-8 -translate-y-1/2 px-3 py-1 rounded bg-white text-background text-[10px] font-bold uppercase tracking-wider">
+                    Most Popular
+                  </span>
+                )}
+
+                <div>
+                  {/* Name & Desc */}
+                  <h3 className="text-lg font-bold text-white mb-2">{plan.name}</h3>
+                  <p className="text-xs text-lightGray/55 mb-6">{plan.desc}</p>
+
+                  {/* Pricing */}
+                  <div className="flex items-baseline gap-1 mb-8">
+                    <span className="text-4xl font-black text-white">${price}</span>
+                    <span className="text-xs text-lightGray/45 font-semibold">/ month</span>
+                  </div>
+
+                  {/* Divider */}
+                  <div className="w-full h-[1px] bg-white/5 mb-8" />
+
+                  {/* Features list */}
+                  <ul className="space-y-3.5 mb-8">
+                    {plan.features.map((feat, fIdx) => (
+                      <li key={fIdx} className="flex items-start gap-3">
+                        <Check size={14} className="text-white mt-0.5 flex-shrink-0 stroke-[2.5]" />
+                        <span className="text-xs text-lightGray/85 leading-relaxed">{feat}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
+                {/* CTA */}
+                <button
+                  type="button"
+                  className={`w-full py-3 rounded-lg text-xs sm:text-sm font-bold transition-all duration-300 ${
+                    plan.highlighted 
+                      ? 'bg-white text-background hover:bg-lightGray' 
+                      : 'glassmorphism text-white hover:bg-white/5 premium-border'
+                  }`}
+                >
+                  {plan.cta}
+                </button>
+              </div>
+            );
+          })}
+        </div>
+
+      </div>
+    </section>
+  );
+}

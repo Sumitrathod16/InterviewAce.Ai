@@ -1,0 +1,55 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    background-color: #0F172A;
+    color: #FFFFFF;
+    font-family: 'Inter', sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    overflow-x: hidden;
+  }
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #0F172A;
+}
+::-webkit-scrollbar-thumb {
+  background: #1E293B;
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #64748B;
+}
+
+/* Sleek Premium Borders and Glassmorphism */
+.premium-border {
+  border: 1px solid rgba(226, 232, 240, 0.08);
+}
+
+.premium-border-glow {
+  border: 1px solid rgba(226, 232, 240, 0.08);
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.2);
+}
+
+.glassmorphism {
+  background: rgba(30, 41, 59, 0.45);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(226, 232, 240, 0.08);
+}
+
+/* Custom code editor textarea styling */
+.code-textarea {
+  font-family: 'Courier New', Courier, monospace;
+  tab-size: 4;
+}

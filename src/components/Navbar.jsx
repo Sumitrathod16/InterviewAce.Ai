@@ -1,0 +1,183 @@
+import React, { useState, useEffect } from 'react';
+import { Menu, X, Terminal, ArrowRight, LayoutDashboard, Home } from 'lucide-react';
+
+export default function Navbar({ currentView, onViewChange }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setScrolled(window.scrollY > 20);
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  const navLinks = [
+    { name: 'Features', href: '#features' },
+    { name: 'How It Works', href: '#how-it-works' },
+    { name: 'Interview Demo', href: '#demo' },
+    { name: 'Resume Analyzer', href: '#resume' },
+    { name: 'Coding Sandbox', href: '#coding' },
+    { name: 'Pricing', href: '#pricing' },
+  ];
+
+  const handleLinkClick = (e, href) => {
+    e.preventDefault();
+    setIsOpen(false);
+    
+    if (currentView !== 'landing') {
+      onViewChange('landing');
+      // Delay scrolling slightly to allow the view render transition
+      setTimeout(() => {
+        const element = document.querySelector(href);
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }, 100);
+    } else {
+      const element = document.querySelector(href);
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }
+  };
+
+  return (
+    <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
+      scrolled || currentView !== 'landing' ? 'glassmorphism py-4 shadow-xl' : 'bg-transparent py-6'
+    }`}>
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex items-center justify-between">
+          {/* Logo */}
+          <button
+            onClick={() => { onViewChange('landing'); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+            className="flex items-center space-x-2 group text-left focus:outline-none"
+          >
+            <div className="p-2 bg-white text-background rounded-lg transition-transform duration-300 group-hover:scale-105">
+              <Terminal size={20} className="stroke-[2.5]" />
+            </div>
+            <span className="text-xl font-bold tracking-tight text-white">
+              InterviewAce<span className="text-accent">.AI</span>
+            </span>
+          </button>
+
+          {/* Desktop Navigation */}
+          <div className="hidden md:flex items-center space-x-8">
+            {navLinks.map((link) => (
+              <a
+                key={link.name}
+                href={link.href}
+                onClick={(e) => handleLinkClick(e, link.href)}
+                className={`text-sm font-medium transition-colors duration-200 ${
+                  currentView === 'landing' 
+                    ? 'text-lightGray/80 hover:text-white' 
+                    : 'text-lightGray/40 hover:text-white'
+                }`}
+              >
+                {link.name}
+              </a>
+            ))}
+          </div>
+
+          {/* Desktop CTA & View Toggle */}
+          <div className="hidden md:flex items-center space-x-4">
+            {currentView === 'landing' ? (
+              <>
+                <button
+                  onClick={() => onViewChange('dashboard-portal')}
+                  className="px-4 py-2 text-sm font-semibold text-lightGray hover:text-white transition-colors flex items-center gap-1.5"
+                >
+                  <LayoutDashboard size={15} />
+                  Workspace Dashboard
+                </button>
+                <button
+                  onClick={() => onViewChange('dashboard-portal')}
+                  className="px-4 py-2 text-sm font-medium bg-white text-background rounded-lg hover:bg-lightGray transition-all duration-200 flex items-center gap-1 font-semibold premium-border"
+                >
+                  Start Free Portal
+                  <ArrowRight size={14} />
+                </button>
+              </>
+            ) : (
+              <>
+                <button
+                  onClick={() => onViewChange('landing')}
+                  className="px-4 py-2 text-sm font-semibold text-lightGray hover:text-white transition-colors flex items-center gap-1.5"
+                >
+                  <Home size={15} />
+                  Home Tour
+                </button>
+                <span className="h-4 w-[1px] bg-white/10" />
+                <span className="text-xs font-bold font-mono text-emerald-400 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-950/40 border border-emerald-900">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                  Workspace Active
+                </span>
+              </>
+            )}
+          </div>
+
+          {/* Mobile Menu Button */}
+          <div className="md:hidden">
+            <button
+              onClick={() => setIsOpen(!isOpen)}
+              className="p-2 text-lightGray hover:text-white focus:outline-none"
+              aria-label="Toggle navigation menu"
+            >
+              {isOpen ? <X size={24} /> : <Menu size={24} />}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* Mobile Drawer */}
+      {isOpen && (
+        <div className="md:hidden glassmorphism border-t border-white/5 py-4 px-4 space-y-3 absolute top-full left-0 right-0 shadow-2xl animate-in fade-in slide-in-from-top-5 duration-200">
+          {navLinks.map((link) => (
+            <a
+              key={link.name}
+              href={link.href}
+              onClick={(e) => handleLinkClick(e, link.href)}
+              className="block px-3 py-2 text-base font-medium text-lightGray/90 hover:text-white hover:bg-white/5 rounded-lg transition-all duration-200"
+            >
+              {link.name}
+            </a>
+          ))}
+          <div className="pt-4 border-t border-white/5 flex flex-col space-y-3 px-3">
+            {currentView === 'landing' ? (
+              <>
+                <button
+                  onClick={() => { setIsOpen(false); onViewChange('dashboard-portal'); }}
+                  className="w-full text-center py-2 text-sm font-semibold text-lightGray hover:text-white flex items-center justify-center gap-1.5"
+                >
+                  <LayoutDashboard size={15} />
+                  Workspace Dashboard
+                </button>
+                <button
+                  onClick={() => { setIsOpen(false); onViewChange('dashboard-portal'); }}
+                  className="text-center py-2.5 text-sm font-semibold bg-white text-background rounded-lg hover:bg-lightGray transition-all"
+                >
+                  Start Free Portal
+                </button>
+              </>
+            ) : (
+              <>
+                <button
+                  onClick={() => { setIsOpen(false); onViewChange('landing'); }}
+                  className="w-full text-center py-2 text-sm font-semibold text-lightGray hover:text-white flex items-center justify-center gap-1.5"
+                >
+                  <Home size={15} />
+                  Home Tour
+                </button>
+                <div className="py-2.5 text-center text-xs font-bold font-mono text-emerald-400 rounded-lg bg-emerald-950/40 border border-emerald-900 flex items-center justify-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                  Workspace Active
+                </div>
+              </>
+            )}
+          </div>
+        </div>
+      )}
+    </nav>
+  );
+}
