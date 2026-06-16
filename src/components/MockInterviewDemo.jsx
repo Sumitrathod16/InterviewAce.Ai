@@ -1,54 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Send, User, Cpu, Award, ThumbsUp, HelpCircle, ArrowRight, RefreshCw, AlertCircle, Mic, MicOff } from 'lucide-react';
+import { Send, User, Cpu, Award, ThumbsUp, HelpCircle, ArrowRight, RefreshCw, AlertCircle, Mic, MicOff, Volume2 } from 'lucide-react';
 import confetti from 'canvas-confetti';
-
-const QUESTIONS_DATA = {
-  hr: [
-    {
-      id: 1,
-      question: "Tell me about a time you had a conflict with a teammate and how you resolved it.",
-      ideal: "A strong response uses the STAR method (Situation, Task, Action, Result). It focuses on open communication, active listening, separating personality from technical problems, and reaching a win-win compromise.",
-      keywords: ["conflict", "communication", "listen", "compromise", "star method"]
-    },
-    {
-      id: 2,
-      question: "Why do you want to join our company, and where do you see your career heading in the next 5 years?",
-      ideal: "A strong response links the company's mission and product space to the candidate's personal growth goals. Focus on technical skill acquisition, taking ownership of initiatives, and long-term impact.",
-      keywords: ["mission", "growth", "career", "ownership", "align"]
-    }
-  ],
-  frontend: [
-    {
-      id: 1,
-      question: "Explain the React Component Lifecycle (or React Hooks dependencies) and how you optimize rendering performance in a heavy UI application.",
-      ideal: "Focus on preventing unnecessary re-renders using React.memo, useMemo, and useCallback. Discuss virtualization for long lists, debouncing event listeners, and code-splitting with React.lazy.",
-      keywords: ["memo", "useMemo", "useCallback", "render", "virtualization"]
-    },
-    {
-      id: 2,
-      question: "Explain client-side rendering (CSR) vs. server-side rendering (SSR). What are the SEO and performance tradeoffs?",
-      ideal: "CSR loads a minimal HTML file and downloads a large JS bundle, resulting in slower First Contentful Paint (FCP) but faster transitions. SSR renders HTML on the server, resulting in faster FCP and better SEO indexing, but higher server load.",
-      keywords: ["csr", "ssr", "seo", "first contentful paint", "server load"]
-    }
-  ],
-  backend: [
-    {
-      id: 1,
-      question: "How would you design a rate limiter for a public API that receives 100,000 requests per minute? Which algorithm and data store would you use?",
-      ideal: "Propose Token Bucket or Leaky Bucket. Recommend Redis for low-latency key value storage. Utilize Redis sorted sets or transaction blocks to handle concurrency and sliding window limits.",
-      keywords: ["redis", "token bucket", "rate limiter", "latency", "sliding window"]
-    },
-    {
-      id: 2,
-      question: "What is database normalization, and when would you choose to denormalize your database schema?",
-      ideal: "Normalization reduces data redundancy and ensures integrity (up to 3NF). Denormalization is chosen to optimize read performance in read-heavy applications, preventing expensive JOIN operations.",
-      keywords: ["redundancy", "normalization", "denormalize", "join", "read performance"]
-    }
-  ]
-};
+import API from '../services/api';
+import { useAuth } from '../context/AuthContext';
 
 export default function MockInterviewDemo({ onInterviewComplete }) {
+  const { userProfile } = useAuth();
+  
   const [selectedTrack, setSelectedTrack] = useState('hr');
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [chatHistory, setChatHistory] = useState([]);
@@ -56,10 +15,12 @@ export default function MockInterviewDemo({ onInterviewComplete }) {
   const [isThinking, setIsThinking] = useState(false);
   const [isCompleted, setIsCompleted] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
+  const [activeInterview, setActiveInterview] = useState(null);
   
   // Feedback panel states
   const [showFeedback, setShowFeedback] = useState(false);
   const [currentFeedback, setCurrentFeedback] = useState(null);
+  const [errorMsg, setErrorMsg] = useState('');
 
   const messagesEndRef = useRef(null);
 
@@ -69,10 +30,6 @@ export default function MockInterviewDemo({ onInterviewComplete }) {
     { id: 'backend', name: 'Backend Technical' }
   ];
 
-  const questions = QUESTIONS_DATA[selectedTrack];
-  const activeQuestion = questions[currentQuestionIndex];
-
-  // Initialize first question
   useEffect(() => {
     resetInterview(selectedTrack);
   }, [selectedTrack]);
@@ -81,126 +38,201 @@ export default function MockInterviewDemo({ onInterviewComplete }) {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [chatHistory, isThinking]);
 
-  const resetInterview = (track) => {
-    const initialQuestions = QUESTIONS_DATA[track];
-    setChatHistory([
-      {
-        sender: 'ai',
-        text: `Welcome to your mock interview session. I will be your interviewer today. Let's begin. Here is your first question:`,
-        isSystem: true
-      },
-      {
-        sender: 'ai',
-        text: initialQuestions[0].question,
-        isQuestion: true
-      }
-    ]);
-    setCurrentQuestionIndex(0);
-    setInputValue('');
+  // Audio Playback: Browser SpeechSynthesis
+  const speakText = (text) => {
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.cancel();
+      // Clean up text format
+      const clean = text.replace(/[^a-zA-Z0-9\s.,?]/g, '');
+      const utterance = new SpeechSynthesisUtterance(clean);
+      utterance.rate = 1.0;
+      utterance.pitch = 1.0;
+      window.speechSynthesis.speak(utterance);
+    }
+  };
+
+  const resetInterview = async (track) => {
+    setErrorMsg('');
     setIsThinking(false);
     setIsCompleted(false);
     setShowFeedback(false);
     setCurrentFeedback(null);
     setIsRecording(false);
+    setActiveInterview(null);
+    setInputValue('');
+
+    setChatHistory([
+      {
+        sender: 'ai',
+        text: `Initializing AI Interview Simulator for ${track.toUpperCase()} round. Connecting to Gemini evaluation server...`,
+        isSystem: true
+      }
+    ]);
   };
 
-  const handleSend = () => {
+  const startInterviewSession = async () => {
+    if (!userProfile) {
+      setErrorMsg('Please sign in to take a mock interview.');
+      return;
+    }
+
+    setIsThinking(true);
+    setErrorMsg('');
+
+    try {
+      const response = await API.post('/interviews/start', {
+        type: selectedTrack === 'hr' ? 'HR Behavioral' : 'Technical',
+        track: selectedTrack === 'hr' ? 'HR Behavioral' : `${selectedTrack.charAt(0).toUpperCase() + selectedTrack.slice(1)} Technical`,
+        count: 3
+      });
+
+      const session = response.data;
+      setActiveInterview(session);
+      setCurrentQuestionIndex(0);
+
+      const firstQuestion = session.questions[0];
+
+      setChatHistory([
+        {
+          sender: 'ai',
+          text: `Welcome, ${userProfile.name}. I am your AI interviewer today. Let's begin the evaluation.`,
+          isSystem: true
+        },
+        {
+          sender: 'ai',
+          text: firstQuestion,
+          isQuestion: true
+        }
+      ]);
+
+      // Automatically speak first question
+      speakText(firstQuestion);
+    } catch (err) {
+      console.error('Error starting interview session:', err);
+      setErrorMsg(err.response?.data?.message || 'Failed to start interview session. Ensure backend is running.');
+      
+      // Local offline fallback questions
+      const localQs = {
+        hr: [
+          "Tell me about a time you had a conflict with a teammate and how you resolved it.",
+          "Why do you want to join our company, and where do you see your career heading in 5 years?"
+        ],
+        frontend: [
+          "Explain the React Component Lifecycle and how you optimize rendering speed.",
+          "Explain CSR vs SSR. What are SEO and performance trade-offs?"
+        ],
+        backend: [
+          "How would you design a rate limiter for an API receiving 100k requests/min?",
+          "What is database normalization, and when would you denormalize?"
+        ]
+      };
+      
+      const qList = localQs[selectedTrack];
+      setChatHistory([
+        { sender: 'ai', text: 'Running in developer fallback mode.', isSystem: true },
+        { sender: 'ai', text: qList[0], isQuestion: true }
+      ]);
+      speakText(qList[0]);
+    } finally {
+      setIsThinking(false);
+    }
+  };
+
+  const handleSend = async () => {
     if (!inputValue.trim() || isThinking || isCompleted) return;
 
     const userText = inputValue;
     setInputValue('');
 
-    // Append candidate response
+    // Append candidate response to chat
     setChatHistory(prev => [...prev, { sender: 'candidate', text: userText }]);
     setIsThinking(true);
     setShowFeedback(false);
+    setErrorMsg('');
 
-    // Simulate AI feedback review
-    setTimeout(() => {
-      // Simple review heuristics based on response length and keyword matching
-      const score = Math.min(60 + Math.floor(Math.random() * 25) + (userText.length > 120 ? 10 : 0), 98);
-      const matchedKeywords = activeQuestion.keywords.filter(kw => userText.toLowerCase().includes(kw));
-      
-      const strengths = [];
-      const improvements = [];
+    // 1. Local offline mock evaluations if active session is missing
+    if (!activeInterview) {
+      setTimeout(() => {
+        setIsThinking(false);
+        const matched = ['communication', 'performance', 'star', 'conflict'].filter(k => userText.toLowerCase().includes(k));
+        const score = Math.min(65 + Math.floor(Math.random() * 20) + (userText.length > 100 ? 10 : 0), 98);
+        const mockEval = {
+          score,
+          communicationScore: score + 2,
+          contentScore: score - 3,
+          strengths: ['Direct communication style.', 'Good examples provided.'],
+          improvements: ['Incorporate more structured metrics.', 'Try using the STAR format.'],
+          idealAnswer: 'Ideally, explain the technical variables and list optimization results.'
+        };
+        setCurrentFeedback(mockEval);
+        setShowFeedback(true);
+        setChatHistory(prev => [...prev, { sender: 'ai', text: 'Response analyzed. Scorecard updated.', isFeedbackTrigger: true }]);
+      }, 1000);
+      return;
+    }
 
-      if (userText.length > 150) {
-        strengths.push("Good descriptive depth and detail in your answer.");
-      } else {
-        improvements.push("Elaborate further with structured scenarios (try the STAR format).");
-      }
+    // 2. Real API answer evaluation
+    try {
+      const response = await API.post(`/interviews/${activeInterview._id}/submit-answer`, {
+        answer: userText
+      });
 
-      if (matchedKeywords.length >= 2) {
-        strengths.push(`Excellent usage of core technical terms: ${matchedKeywords.join(', ')}.`);
-      } else {
-        improvements.push(`Incorporate more domain terms like: ${activeQuestion.keywords.slice(0, 2).join(', ')}.`);
-      }
-
-      if (userText.length > 50 && strengths.length === 0) {
-        strengths.push("Clear vocabulary and structure.");
-      }
-
-      if (strengths.length === 0) strengths.push("Polite and prompt response.");
-      if (improvements.length === 0) improvements.push("Provide concrete numerical results of your action.");
-
-      const feedback = {
-        score,
-        communicationScore: Math.min(score + 3, 100),
-        contentScore: Math.min(score - 4, 100),
-        strengths,
-        improvements,
-        idealAnswer: activeQuestion.ideal
-      };
-
-      setCurrentFeedback(feedback);
-      setIsThinking(false);
+      const { evaluation, completed, overallScore } = response.data;
+      setCurrentFeedback(evaluation);
       setShowFeedback(true);
 
-      // Append AI review response
       setChatHistory(prev => [
         ...prev,
         {
           sender: 'ai',
-          text: `Thank you for your answer. I have analyzed your response. Review the scorecard panel for details.`,
+          text: `Thank you. I have analyzed your response. Review the scorecard on the right for feedback.`,
           isFeedbackTrigger: true
         }
       ]);
-    }, 1500);
+    } catch (err) {
+      console.error('Error submitting answer:', err);
+      setErrorMsg('Failed to verify answer with server.');
+      setIsThinking(false);
+    }
   };
 
   const handleNextQuestion = () => {
     setShowFeedback(false);
     setCurrentFeedback(null);
 
-    if (currentQuestionIndex + 1 < questions.length) {
-      const nextIndex = currentQuestionIndex + 1;
+    const nextIndex = currentQuestionIndex + 1;
+    const questionsList = activeInterview ? activeInterview.questions : [];
+    
+    // Fallback counts if offline
+    const totalQs = activeInterview ? questionsList.length : 2;
+
+    if (nextIndex < totalQs) {
       setCurrentQuestionIndex(nextIndex);
+      const nextQ = activeInterview ? questionsList[nextIndex] : "Provide another explanation of your technical stack.";
+      
       setChatHistory(prev => [
         ...prev,
         {
           sender: 'ai',
-          text: questions[nextIndex].question,
+          text: nextQ,
           isQuestion: true
         }
       ]);
+      
+      speakText(nextQ);
     } else {
       setIsCompleted(true);
       confetti({
         particleCount: 80,
         spread: 60,
         origin: { y: 0.8 },
-        colors: ['#FFFFFF', '#64748B', '#1E293B']
+        colors: ['#FFFFFF', '#38BDF8', '#0F172A']
       });
 
-      // Fire callback if present
       if (onInterviewComplete && currentFeedback) {
-        let typeStr = 'HR Behavioral';
-        if (selectedTrack === 'frontend') typeStr = 'Frontend Technical';
-        if (selectedTrack === 'backend') typeStr = 'Backend Technical';
-        
         onInterviewComplete({
-          type: typeStr,
-          title: `Practice Round (${selectedTrack.toUpperCase()})`,
+          type: selectedTrack === 'hr' ? 'HR Behavioral' : 'Technical',
+          title: `${selectedTrack.toUpperCase()} Practice`,
           score: currentFeedback.score
         });
       }
@@ -209,7 +241,7 @@ export default function MockInterviewDemo({ onInterviewComplete }) {
         ...prev,
         {
           sender: 'ai',
-          text: `Congratulations! You have completed the mock interview. You can view your final analysis on the dashboard preview below.`,
+          text: `Congratulations! You have completed the mock interview. You can view your final analysis reports in your profile workspace dashboard.`,
           isCompleted: true
         }
       ]);
@@ -251,7 +283,7 @@ export default function MockInterviewDemo({ onInterviewComplete }) {
         setIsRecording(false);
       }
     } else {
-      // Offline Simulated Speech-to-Text Fallback
+      // offline/simulated fallback voice dictation
       setIsRecording(true);
       setInputValue('Recording dictation...');
       setTimeout(() => {
@@ -265,6 +297,10 @@ export default function MockInterviewDemo({ onInterviewComplete }) {
       }, 3000);
     }
   };
+
+  const activeQuestion = activeInterview 
+    ? activeInterview.questions[currentQuestionIndex] 
+    : chatHistory.filter(c => c.isQuestion).pop()?.text || "Click 'Start Interview' to load first question.";
 
   return (
     <section id="demo" className="py-24 bg-background border-t border-white/5 relative">
@@ -285,17 +321,25 @@ export default function MockInterviewDemo({ onInterviewComplete }) {
           {tracks.map(t => (
             <button
               key={t.id}
+              disabled={activeInterview !== null}
               onClick={() => setSelectedTrack(t.id)}
               className={`px-4 py-2 text-xs sm:text-sm font-semibold rounded-lg border transition-all duration-300 ${
                 selectedTrack === t.id 
                   ? 'bg-white text-background border-white' 
-                  : 'bg-secondaryBg/40 text-lightGray border-white/5 hover:border-white/20'
+                  : 'bg-secondaryBg/40 text-lightGray border-white/5 hover:border-white/20 disabled:opacity-40'
               }`}
             >
               {t.name}
             </button>
           ))}
         </div>
+
+        {errorMsg && (
+          <div className="max-w-3xl mx-auto p-4 mb-6 bg-red-950/40 border border-red-900/50 rounded-xl text-xs text-red-300 text-center flex items-center justify-center gap-2">
+            <AlertCircle size={16} />
+            {errorMsg}
+          </div>
+        )}
 
         {/* Interface Layout */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch">
@@ -308,13 +352,25 @@ export default function MockInterviewDemo({ onInterviewComplete }) {
                 <div className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
                 <span className="text-sm font-bold text-white uppercase tracking-wider">AI Interviewer</span>
               </div>
-              <button 
-                onClick={() => resetInterview(selectedTrack)}
-                className="text-xs text-lightGray/60 hover:text-white flex items-center gap-1.5 transition-colors"
-              >
-                <RefreshCw size={12} />
-                Restart
-              </button>
+              <div className="flex items-center gap-4">
+                {activeQuestion && (
+                  <button
+                    onClick={() => speakText(activeQuestion)}
+                    className="text-xs text-lightGray/60 hover:text-white flex items-center gap-1 transition-colors"
+                    title="Play audio query"
+                  >
+                    <Volume2 size={13} />
+                    Speak
+                  </button>
+                )}
+                <button 
+                  onClick={() => resetInterview(selectedTrack)}
+                  className="text-xs text-lightGray/60 hover:text-white flex items-center gap-1.5 transition-colors"
+                >
+                  <RefreshCw size={12} />
+                  Restart
+                </button>
+              </div>
             </div>
 
             {/* Message Thread */}
@@ -357,62 +413,71 @@ export default function MockInterviewDemo({ onInterviewComplete }) {
               <div ref={messagesEndRef} />
             </div>
 
-            {/* Input Form */}
+            {/* Input Form or Start Button */}
             <div className="p-4 border-t border-white/5 bg-secondaryBg/20">
-              <form 
-                onSubmit={(e) => { e.preventDefault(); handleSend(); }}
-                className="flex items-center gap-3"
-              >
-                {/* Audio wave indicator overlay */}
-                {isRecording ? (
-                  <div className="flex-1 bg-white/5 rounded-lg px-4 py-3 text-xs text-white flex items-center justify-between border border-white/10 font-mono">
-                    <div className="flex items-center gap-2">
-                      <span className="w-2 h-2 rounded-full bg-red-500 animate-ping" />
-                      Listening to your voice dictation...
+              {activeInterview === null && !isCompleted ? (
+                <button
+                  onClick={startInterviewSession}
+                  className="w-full py-3 bg-white text-background hover:bg-lightGray font-black text-xs uppercase tracking-wider rounded-lg transition-all text-center"
+                >
+                  Start Practice Round
+                </button>
+              ) : (
+                <form 
+                  onSubmit={(e) => { e.preventDefault(); handleSend(); }}
+                  className="flex items-center gap-3"
+                >
+                  {/* Audio wave indicator overlay */}
+                  {isRecording ? (
+                    <div className="flex-1 bg-white/5 rounded-lg px-4 py-3 text-xs text-white flex items-center justify-between border border-white/10 font-mono">
+                      <div className="flex items-center gap-2">
+                        <span className="w-2 h-2 rounded-full bg-red-500 animate-ping" />
+                        Listening to your voice dictation...
+                      </div>
+                      {/* CSS Audio Wave */}
+                      <div className="flex items-end gap-0.5 h-4">
+                        <span className="w-0.5 h-2.5 bg-white rounded-full animate-bounce [animation-duration:0.6s]" />
+                        <span className="w-0.5 h-4 bg-white rounded-full animate-bounce [animation-duration:0.4s]" />
+                        <span className="w-0.5 h-3 bg-white rounded-full animate-bounce [animation-duration:0.5s]" />
+                        <span className="w-0.5 h-1 bg-white rounded-full animate-bounce [animation-duration:0.3s]" />
+                      </div>
                     </div>
-                    {/* CSS Audio Wave */}
-                    <div className="flex items-end gap-0.5 h-4">
-                      <span className="w-0.5 h-2.5 bg-white rounded-full animate-bounce [animation-duration:0.6s]" />
-                      <span className="w-0.5 h-4 bg-white rounded-full animate-bounce [animation-duration:0.4s]" />
-                      <span className="w-0.5 h-3 bg-white rounded-full animate-bounce [animation-duration:0.5s]" />
-                      <span className="w-0.5 h-1 bg-white rounded-full animate-bounce [animation-duration:0.3s]" />
-                    </div>
-                  </div>
-                ) : (
-                  <input
-                    type="text"
-                    value={inputValue}
-                    onChange={(e) => setInputValue(e.target.value)}
-                    placeholder={isCompleted ? "Interview completed" : "Type response or click mic to dictate..."}
+                  ) : (
+                    <input
+                      type="text"
+                      value={inputValue}
+                      onChange={(e) => setInputValue(e.target.value)}
+                      placeholder={isCompleted ? "Interview completed" : "Type response or click mic to dictate..."}
+                      disabled={isThinking || isCompleted}
+                      className="flex-1 bg-background/60 text-white rounded-lg px-4 py-3 text-sm border border-white/5 focus:outline-none focus:border-white/30 transition-all font-sans placeholder-lightGray/40 disabled:opacity-50"
+                    />
+                  )}
+
+                  {/* Mic Toggle Button */}
+                  <button
+                    type="button"
+                    onClick={toggleVoiceDictation}
                     disabled={isThinking || isCompleted}
-                    className="flex-1 bg-background/60 text-white rounded-lg px-4 py-3 text-sm border border-white/5 focus:outline-none focus:border-white/30 transition-all font-sans placeholder-lightGray/40 disabled:opacity-50"
-                  />
-                )}
+                    className={`p-3 rounded-lg border transition-all ${
+                      isRecording 
+                        ? 'bg-red-950/45 text-red-400 border-red-900/60' 
+                        : 'bg-white/5 text-lightGray border-white/5 hover:text-white hover:bg-white/10'
+                    }`}
+                    title="Speech-to-text dictation"
+                  >
+                    {isRecording ? <MicOff size={16} className="animate-pulse" /> : <Mic size={16} />}
+                  </button>
 
-                {/* Mic Toggle Button */}
-                <button
-                  type="button"
-                  onClick={toggleVoiceDictation}
-                  disabled={isThinking || isCompleted}
-                  className={`p-3 rounded-lg border transition-all ${
-                    isRecording 
-                      ? 'bg-red-950/45 text-red-400 border-red-900/60' 
-                      : 'bg-white/5 text-lightGray border-white/5 hover:text-white hover:bg-white/10'
-                  }`}
-                  title="Speech-to-text dictation"
-                >
-                  {isRecording ? <MicOff size={16} className="animate-pulse" /> : <Mic size={16} />}
-                </button>
-
-                {/* Send Button */}
-                <button
-                  type="submit"
-                  disabled={!inputValue.trim() || isThinking || isCompleted || isRecording}
-                  className="p-3 bg-white text-background hover:bg-lightGray rounded-lg disabled:opacity-50 transition-all"
-                >
-                  <Send size={16} />
-                </button>
-              </form>
+                  {/* Send Button */}
+                  <button
+                    type="submit"
+                    disabled={!inputValue.trim() || isThinking || isCompleted || isRecording}
+                    className="p-3 bg-white text-background hover:bg-lightGray rounded-lg disabled:opacity-50 transition-all"
+                  >
+                    <Send size={16} />
+                  </button>
+                </form>
+              )}
             </div>
           </div>
 
@@ -424,7 +489,7 @@ export default function MockInterviewDemo({ onInterviewComplete }) {
                   initial={{ opacity: 0, x: 20 }}
                   animate={{ opacity: 1, x: 0 }}
                   exit={{ opacity: 0, x: 20 }}
-                  className="bg-secondaryBg/40 border border-white/5 rounded-xl p-6 h-full flex flex-col justify-between space-y-6"
+                  className="bg-secondaryBg/40 border border-white/5 rounded-xl p-6 h-full flex flex-col justify-between space-y-6 animate-in fade-in duration-200"
                 >
                   {/* Scores Heading */}
                   <div>
@@ -459,17 +524,17 @@ export default function MockInterviewDemo({ onInterviewComplete }) {
                     </div>
 
                     {/* Strengths & Improvements */}
-                    <div className="space-y-4">
+                    <div className="space-y-4 overflow-y-auto max-h-52 pr-1">
                       {/* Strengths */}
                       <div>
-                        <h4 className="text-xs font-bold text-white uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                        <h4 className="text-xs font-bold text-white uppercase tracking-wider mb-1 flex items-center gap-1.5">
                           <ThumbsUp size={12} /> Key Strengths
                         </h4>
-                        <ul className="space-y-1.5">
+                        <ul className="space-y-1">
                           {currentFeedback.strengths.map((str, idx) => (
-                            <li key={idx} className="text-xs text-lightGray/70 flex items-start gap-1.5">
-                              <span className="text-white mt-0.5">•</span>
-                              {str}
+                            <li key={idx} className="text-[11px] text-lightGray/70 flex items-start gap-1">
+                              <span className="text-white">•</span>
+                              <span>{str}</span>
                             </li>
                           ))}
                         </ul>
@@ -477,14 +542,14 @@ export default function MockInterviewDemo({ onInterviewComplete }) {
 
                       {/* Improvements */}
                       <div>
-                        <h4 className="text-xs font-bold text-white uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                        <h4 className="text-xs font-bold text-white uppercase tracking-wider mb-1 flex items-center gap-1.5">
                           <AlertCircle size={12} /> Improvement Areas
                         </h4>
-                        <ul className="space-y-1.5">
+                        <ul className="space-y-1">
                           {currentFeedback.improvements.map((imp, idx) => (
-                            <li key={idx} className="text-xs text-lightGray/70 flex items-start gap-1.5">
-                              <span className="text-white mt-0.5">•</span>
-                              {imp}
+                            <li key={idx} className="text-[11px] text-lightGray/70 flex items-start gap-1">
+                              <span className="text-white">•</span>
+                              <span>{imp}</span>
                             </li>
                           ))}
                         </ul>
@@ -497,7 +562,9 @@ export default function MockInterviewDemo({ onInterviewComplete }) {
                     onClick={handleNextQuestion}
                     className="w-full py-3 bg-white text-background hover:bg-lightGray rounded-lg font-bold text-sm transition-all flex items-center justify-center gap-2"
                   >
-                    {currentQuestionIndex + 1 < questions.length ? 'Next Question' : 'Complete Interview'}
+                    {((activeInterview && currentQuestionIndex + 1 < activeInterview.questions.length) || (!activeInterview && currentQuestionIndex < 1)) 
+                      ? 'Next Question' 
+                      : 'Complete Interview'}
                     <ArrowRight size={16} />
                   </button>
                 </motion.div>
@@ -508,7 +575,7 @@ export default function MockInterviewDemo({ onInterviewComplete }) {
                   </div>
                   <h3 className="text-lg font-bold text-white">Awaiting Candidate Answer</h3>
                   <p className="text-sm text-lightGray/50 max-w-xs leading-relaxed">
-                    Type your response to the question in the chat interface and click submit to trigger AI analysis and scorecard reports.
+                    Start a practice round and enter your response to the question in the chat interface to trigger AI evaluations.
                   </p>
                 </div>
               )}

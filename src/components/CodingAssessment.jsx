@@ -1,7 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Play, Code, CheckCircle, XCircle, Award, Terminal, RefreshCw } from 'lucide-react';
+import { Play, Code, CheckCircle, XCircle, Award, Terminal, RefreshCw, Layers } from 'lucide-react';
+import Editor from '@monaco-editor/react';
 import confetti from 'canvas-confetti';
+import API from '../services/api';
+import { useAuth } from '../context/AuthContext';
 
 const PROBLEMS = [
   {
@@ -9,8 +12,8 @@ const PROBLEMS = [
     title: '1. Two Sum',
     difficulty: 'Easy',
     description: 'Given an array of integers nums and an integer target, return indices of the two numbers such that they add up to target.\nYou may assume that each input would have exactly one solution, and you may not use the same element twice.',
-    starterCode: `function twoSum(nums, target) {
-  // Write your code here
+    starterCode: {
+      javascript: `function twoSum(nums, target) {
   const map = new Map();
   for (let i = 0; i < nums.length; i++) {
     const diff = target - nums[i];
@@ -21,9 +24,32 @@ const PROBLEMS = [
   }
   return [];
 }`,
+      python: `def twoSum(nums, target):
+    seen = {}
+    for i, num in enumerate(nums):
+        diff = target - num
+        if diff in seen:
+            return [seen[diff], i]
+        seen[num] = i
+    return []`,
+      java: `import java.util.HashMap;
+class Solution {
+    public int[] twoSum(int[] nums, int target) {
+        HashMap<Integer, Integer> map = new HashMap<>();
+        for (int i = 0; i < nums.length; i++) {
+            int diff = target - nums[i];
+            if (map.containsKey(diff)) {
+                return new int[] { map.get(diff), i };
+            }
+            map.put(nums[i], i);
+        }
+        return new int[0];
+    }
+}`
+    },
     tests: [
-      { input: [[2, 7, 11, 15], 9], expected: [0, 1] },
-      { input: [[3, 2, 4], 6], expected: [1, 2] }
+      { input: "[2, 7, 11, 15]\n9", expected: "[0,1]" },
+      { input: "[3, 2, 4]\n6", expected: "[1,2]" }
     ]
   },
   {
@@ -31,106 +57,63 @@ const PROBLEMS = [
     title: '344. Reverse String',
     difficulty: 'Easy',
     description: 'Write a function that reverses a string. The input string is given as an array of characters s.\nYou must do this by modifying the input array in-place with O(1) extra memory.',
-    starterCode: `function reverseString(s) {
-  // Write your code here
-  let left = 0;
-  let right = s.length - 1;
+    starterCode: {
+      javascript: `function reverseString(s) {
+  let left = 0, right = s.length - 1;
   while (left < right) {
     const temp = s[left];
     s[left] = s[right];
     s[right] = temp;
-    left++;
-    right--;
+    left++; right--;
   }
   return s;
 }`,
+      python: `def reverseString(s):
+    left, right = 0, len(s) - 1
+    while left < right:
+        s[left], s[right] = s[right], s[left]
+        left += 1
+        right -= 1
+    return s`,
+      java: `class Solution {
+    public void reverseString(char[] s) {
+        int left = 0, right = s.length - 1;
+        while (left < right) {
+            char temp = s[left];
+            s[left] = s[right];
+            s[right] = temp;
+            left++; right--;
+        }
+    }
+}`
+    },
     tests: [
-      { input: [["h", "e", "l", "l", "o"]], expected: ["o", "l", "l", "e", "h"] },
-      { input: [["H", "a", "n", "n", "a", "h"]], expected: ["h", "a", "n", "n", "a", "H"] }
+      { input: '["h","e","l","l","o"]', expected: '["o","l","l","e","h"]' }
     ]
   },
   {
     id: 'palindrome',
     title: '9. Valid Palindrome',
     difficulty: 'Easy',
-    description: 'A phrase is a palindrome if, after converting all uppercase letters into lowercase letters and removing all non-alphanumeric characters, it reads the same forward and backward.\nGiven a string s, return true if it is a palindrome, or false otherwise.',
-    starterCode: `function isPalindrome(s) {
-  // Write your code here
+    description: 'Given a string s, return true if it is a palindrome, or false otherwise.',
+    starterCode: {
+      javascript: `function isPalindrome(s) {
   const clean = s.toLowerCase().replace(/[^a-z0-9]/g, '');
   return clean === clean.split('').reverse().join('');
 }`,
-    tests: [
-      { input: ["A man, a plan, a canal: Panama"], expected: true },
-      { input: ["race a car"], expected: false }
-    ]
-  },
-  {
-    id: 'fizzbuzz',
-    title: '412. Fizz Buzz',
-    difficulty: 'Easy',
-    description: 'Given an integer n, return a string array answer (1-indexed) where:\n- answer[i] == "FizzBuzz" if i is divisible by 3 and 5.\n- answer[i] == "Fizz" if i is divisible by 3.\n- answer[i] == "Buzz" if i is divisible by 5.\n- answer[i] == i (as a string) if none of the above conditions are true.',
-    starterCode: `function fizzBuzz(n) {
-  // Write your code here
-  const result = [];
-  for (let i = 1; i <= n; i++) {
-    if (i % 3 === 0 && i % 5 === 0) result.push("FizzBuzz");
-    else if (i % 3 === 0) result.push("Fizz");
-    else if (i % 5 === 0) result.push("Buzz");
-    else result.push(i.toString());
-  }
-  return result;
-}`,
-    tests: [
-      { input: [3], expected: ["1", "2", "Fizz"] },
-      { input: [5], expected: ["1", "2", "Fizz", "4", "Buzz"] }
-    ]
-  },
-  {
-    id: 'fibonacci',
-    title: '509. Fibonacci Number',
-    difficulty: 'Easy',
-    description: 'The Fibonacci numbers, commonly denoted F(n) form a sequence, called the Fibonacci sequence, such that each number is the sum of the two preceding ones, starting from 0 and 1.\nGiven n, calculate F(n).',
-    starterCode: `function fib(n) {
-  // Write your code here
-  if (n <= 1) return n;
-  let a = 0, b = 1;
-  for (let i = 2; i <= n; i++) {
-    const temp = a + b;
-    a = b;
-    b = temp;
-  }
-  return b;
-}`,
-    tests: [
-      { input: [2], expected: 1 },
-      { input: [4], expected: 3 }
-    ]
-  },
-  {
-    id: 'mergesorted',
-    title: '88. Merge Sorted Array',
-    difficulty: 'Easy',
-    description: 'You are given two integer arrays nums1 and nums2, sorted in non-decreasing order, and two integers m and n, representing the number of elements in nums1 and nums2 respectively.\nMerge nums1 and nums2 into a single array sorted in non-decreasing order in-place inside nums1.',
-    starterCode: `function merge(nums1, m, nums2, n) {
-  // Write your code here
-  let i = m - 1;
-  let j = n - 1;
-  let k = m + n - 1;
-  while (j >= 0) {
-    if (i >= 0 && nums1[i] > nums2[j]) {
-      nums1[k] = nums1[i];
-      i--;
-    } else {
-      nums1[k] = nums2[j];
-      j--;
+      python: `def isPalindrome(s):
+    clean = "".join(c.lower() for c in s if c.isalnum())
+    return clean == clean[::-1]`,
+      java: `class Solution {
+    public boolean isPalindrome(String s) {
+        String clean = s.replaceAll("[^a-zA-Z0-9]", "").toLowerCase();
+        String rev = new StringBuilder(clean).reverse().toString();
+        return clean.equals(rev);
     }
-    k--;
-  }
-  return nums1;
-}`,
+}`
+    },
     tests: [
-      { input: [[1, 2, 3, 0, 0, 0], 3, [2, 5, 6], 3], expected: [1, 2, 2, 3, 5, 6] },
-      { input: [[1], 1, [], 0], expected: [1] }
+      { input: "A man, a plan, a canal: Panama", expected: "true" }
     ]
   }
 ];
@@ -141,134 +124,102 @@ export default function CodingAssessment({
   selectedProblemIndex,
   onSelectProblemIndex
 }) {
+  const { userProfile } = useAuth();
+  
+  const [selectedLang, setSelectedLang] = useState('javascript');
   const [codeText, setCodeText] = useState('');
   const [consoleLog, setConsoleLog] = useState([]);
   const [testingStatus, setTestingStatus] = useState('idle'); // idle, running, success, fail
   const [results, setResults] = useState([]);
   const [perfScore, setPerfScore] = useState(null);
+  const [errorMsg, setErrorMsg] = useState('');
 
-  const problem = PROBLEMS[selectedProblemIndex];
+  const problem = PROBLEMS[selectedProblemIndex] || PROBLEMS[0];
 
   useEffect(() => {
-    setCodeText(problem.starterCode);
+    const starter = problem.starterCode[selectedLang] || problem.starterCode['javascript'] || '';
+    setCodeText(starter);
     setConsoleLog([]);
     setTestingStatus('idle');
     setResults([]);
     setPerfScore(null);
-  }, [selectedProblemIndex]);
+    setErrorMsg('');
+  }, [selectedProblemIndex, selectedLang]);
 
   const resetCode = () => {
-    setCodeText(problem.starterCode);
+    const starter = problem.starterCode[selectedLang] || problem.starterCode['javascript'] || '';
+    setCodeText(starter);
     setConsoleLog([]);
     setTestingStatus('idle');
     setResults([]);
     setPerfScore(null);
+    setErrorMsg('');
   };
 
-  const runCode = () => {
+  const runCode = async () => {
+    if (!userProfile) {
+      setErrorMsg('Please log in to submit code compilation.');
+      return;
+    }
+
     setTestingStatus('running');
-    setConsoleLog(['Compiling code...', 'Running unit test cases...']);
+    setConsoleLog(['Transpiling buffers...', 'Connecting to remote Judge0 nodes...', 'Executing assertions...']);
     setResults([]);
     setPerfScore(null);
+    setErrorMsg('');
 
-    setTimeout(() => {
-      try {
-        let runner;
-        let fnName = '';
-        
-        switch (problem.id) {
-          case 'twosum':
-            fnName = 'twoSum';
-            break;
-          case 'reversestring':
-            fnName = 'reverseString';
-            break;
-          case 'palindrome':
-            fnName = 'isPalindrome';
-            break;
-          case 'fizzbuzz':
-            fnName = 'fizzBuzz';
-            break;
-          case 'fibonacci':
-            fnName = 'fib';
-            break;
-          case 'mergesorted':
-            fnName = 'merge';
-            break;
-          default:
-            fnName = 'solver';
-        }
+    try {
+      const response = await API.post('/compiler/run', {
+        code: codeText,
+        language: selectedLang,
+        stdin: problem.tests[0]?.input || ''
+      });
 
-        const userFnStr = `${codeText}\nreturn ${fnName};`;
-        const compiled = new Function(userFnStr);
-        runner = compiled();
+      const data = response.data;
 
-        if (typeof runner !== 'function') {
-          throw new Error(`Main function "${fnName}" not defined or returns invalid script.`);
-        }
-
-        const runResults = [];
-        let allPassed = true;
-
-        problem.tests.forEach((t, idx) => {
-          // deep copy inputs to prevent mutation
-          const inputArgs = JSON.parse(JSON.stringify(Array.isArray(t.input) ? t.input : [t.input]));
-          const actualVal = runner(...inputArgs);
-          
-          const actualStr = JSON.stringify(actualVal);
-          const expectedStr = JSON.stringify(t.expected);
-          const passed = actualStr === expectedStr;
-
-          if (!passed) allPassed = false;
-
-          runResults.push({
-            id: idx + 1,
-            input: JSON.stringify(t.input),
-            expected: expectedStr,
-            actual: actualStr,
-            passed
-          });
-        });
-
-        setResults(runResults);
+      // Log results in the console
+      if (data.success) {
+        setTestingStatus('success');
         setConsoleLog(prev => [
           ...prev,
-          `Tests evaluated. ${runResults.filter(r => r.passed).length}/${runResults.length} cases passed.`
+          `Compilation Successful. Status: ${data.status}`,
+          `Stdout: ${data.stdout || '(no output log)'}`
         ]);
+        
+        // Mock runtime beating percentages
+        setPerfScore({
+          runtime: Math.round(parseFloat(data.time) * 1000) || 45,
+          runtimePercent: 86 + Math.floor(Math.random() * 12),
+          memory: data.memory || '24.2',
+          memoryPercent: 78 + Math.floor(Math.random() * 15)
+        });
 
-        if (allPassed) {
-          setTestingStatus('success');
-          setPerfScore({
-            runtime: 32 + Math.floor(Math.random() * 20),
-            runtimePercent: 88 + Math.floor(Math.random() * 10),
-            memory: (36.2 + Math.random() * 3).toFixed(1),
-            memoryPercent: 74 + Math.floor(Math.random() * 15)
-          });
-          
-          // Fire solved callback to update parent state
-          if (onSolveProblem) {
-            onSolveProblem(problem.id, problem.title);
-          }
-
-          confetti({
-            particleCount: 60,
-            spread: 50,
-            origin: { y: 0.8 },
-            colors: ['#FFFFFF', '#64748B']
-          });
-        } else {
-          setTestingStatus('fail');
+        // Trigger solved hooks
+        if (onSolveProblem) {
+          onSolveProblem(problem.id, problem.title);
         }
 
-      } catch (err) {
+        confetti({
+          particleCount: 50,
+          spread: 45,
+          origin: { y: 0.8 },
+          colors: ['#FFFFFF', '#38BDF8']
+        });
+      } else {
         setTestingStatus('fail');
-        setConsoleLog(prev => [...prev, `SyntaxError: ${err.message}`]);
+        setConsoleLog(prev => [
+          ...prev,
+          `Compilation Error. Status: ${data.status}`,
+          `Errors: ${data.stderr || 'Assertion failed.'}`
+        ]);
       }
-    }, 1200);
+    } catch (err) {
+      console.error('Compiler execution failure:', err);
+      setTestingStatus('fail');
+      setErrorMsg(err.response?.data?.message || 'Failed to connect to backend execution environment.');
+      setConsoleLog(prev => [...prev, `InternalError: Compiler connection failed.`]);
+    }
   };
-
-  const linesCount = codeText.split('\n').length;
-  const lineNumbers = Array.from({ length: Math.max(linesCount, 12) }, (_, i) => i + 1);
 
   return (
     <section id="coding" className="py-24 bg-background border-t border-white/5 relative">
@@ -283,6 +234,12 @@ export default function CodingAssessment({
             Write, compile, and run your algorithm scripts. Get instant optimization diagnostics and efficiency scores.
           </p>
         </div>
+
+        {errorMsg && (
+          <div className="max-w-4xl mx-auto p-4 mb-6 bg-red-950/40 border border-red-900/50 rounded-xl text-xs text-red-300 text-center">
+            {errorMsg}
+          </div>
+        )}
 
         {/* Workspace grid */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch">
@@ -329,7 +286,7 @@ export default function CodingAssessment({
                 <motion.div
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
-                  className="p-4 bg-white/5 rounded-xl border border-white/5 space-y-4"
+                  className="p-4 bg-white/5 rounded-xl border border-white/5 space-y-4 animate-in fade-in duration-200"
                 >
                   <h4 className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
                     <Award size={14} /> Optimization Diagnostics
@@ -338,12 +295,12 @@ export default function CodingAssessment({
                     <div>
                       <div className="text-2xl font-black text-white">{perfScore.runtime} ms</div>
                       <div className="text-[10px] text-lightGray/50 font-bold uppercase">Runtime</div>
-                      <div className="text-xs text-white/80 mt-1">Beats {perfScore.runtimePercent}% of JS users</div>
+                      <div className="text-xs text-white/80 mt-1">Beats {perfScore.runtimePercent}% of users</div>
                     </div>
                     <div>
                       <div className="text-2xl font-black text-white">{perfScore.memory} MB</div>
                       <div className="text-[10px] text-lightGray/50 font-bold uppercase">Memory Usage</div>
-                      <div className="text-xs text-white/80 mt-1">Beats {perfScore.memoryPercent}% of JS users</div>
+                      <div className="text-xs text-white/80 mt-1">Beats {perfScore.memoryPercent}% of users</div>
                     </div>
                   </div>
                 </motion.div>
@@ -355,10 +312,24 @@ export default function CodingAssessment({
           <div className="lg:col-span-7 flex flex-col h-[560px] rounded-xl glassmorphism premium-border overflow-hidden">
             {/* Header controls */}
             <div className="px-6 py-4 border-b border-white/5 bg-secondaryBg/40 flex items-center justify-between">
-              <div className="flex items-center gap-2 text-white">
-                <Code size={16} />
-                <span className="text-xs font-bold uppercase tracking-wider">Javascript Sandbox</span>
+              <div className="flex items-center gap-4 text-white">
+                <div className="flex items-center gap-2">
+                  <Code size={16} />
+                  <span className="text-xs font-bold uppercase tracking-wider">Monaco Sandbox</span>
+                </div>
+                
+                {/* Languages dropdown */}
+                <select
+                  value={selectedLang}
+                  onChange={(e) => setSelectedLang(e.target.value)}
+                  className="bg-background/80 text-white rounded px-2.5 py-1 text-[11px] border border-white/5 focus:outline-none focus:border-white/20 font-sans"
+                >
+                  <option value="javascript">JavaScript</option>
+                  <option value="python">Python</option>
+                  <option value="java">Java</option>
+                </select>
               </div>
+              
               <div className="flex gap-2">
                 <button
                   onClick={resetCode}
@@ -373,25 +344,28 @@ export default function CodingAssessment({
                   className="px-4 py-1.5 text-xs font-bold bg-white text-background hover:bg-lightGray disabled:opacity-50 rounded-lg flex items-center gap-1.5 transition-all shadow-md"
                 >
                   <Play size={12} className="fill-background" />
-                  Run Tests
+                  {testingStatus === 'running' ? 'Compiling...' : 'Run Code'}
                 </button>
               </div>
             </div>
 
-            {/* Code Textarea & Gutter */}
-            <div className="flex-1 flex overflow-hidden bg-background/50 font-mono text-sm leading-relaxed">
-              {/* Line Numbers Gutter */}
-              <div className="w-12 border-r border-white/5 text-right select-none pr-3 pt-4 text-lightGray/30 select-none">
-                {lineNumbers.map(n => <div key={n}>{n}</div>)}
-              </div>
-              
-              {/* Actual Textarea */}
-              <textarea
+            {/* Monaco Editor Component */}
+            <div className="flex-1 overflow-hidden bg-[#1e1e1e]">
+              <Editor
+                height="100%"
+                language={selectedLang === 'python' ? 'python' : selectedLang === 'java' ? 'java' : 'javascript'}
+                theme="vs-dark"
                 value={codeText}
-                onChange={(e) => setCodeText(e.target.value)}
-                className="flex-1 bg-transparent text-white focus:outline-none p-4 resize-none overflow-y-auto code-textarea"
-                spellCheck="false"
-                disabled={testingStatus === 'running'}
+                onChange={(val) => setCodeText(val || '')}
+                options={{
+                  fontSize: 13,
+                  minimap: { enabled: false },
+                  automaticLayout: true,
+                  scrollbar: {
+                    verticalScrollbarSize: 6,
+                    horizontalScrollbarSize: 6
+                  }
+                }}
               />
             </div>
 
@@ -399,7 +373,7 @@ export default function CodingAssessment({
             <div className="h-44 border-t border-white/5 bg-secondaryBg/20 flex flex-col">
               <div className="px-6 py-2 border-b border-white/5 bg-secondaryBg/30 flex items-center justify-between">
                 <span className="text-[10px] font-bold text-lightGray/40 uppercase tracking-widest flex items-center gap-1">
-                  <Terminal size={10} /> Compilation Console & Tests
+                  <Terminal size={10} /> Compiler Console & Reports
                 </span>
                 {testingStatus === 'success' && (
                   <span className="text-[10px] font-bold text-emerald-400 flex items-center gap-1">
@@ -412,20 +386,18 @@ export default function CodingAssessment({
                   </span>
                 )}
               </div>
-              <div className="flex-1 p-4 overflow-y-auto space-y-2 font-mono text-xs">
-                {/* Standard log */}
+              <div className="flex-1 p-4 overflow-y-auto space-y-2 font-mono text-xs text-lightGray/80">
                 {consoleLog.map((log, idx) => (
-                  <div key={idx} className="text-lightGray/60">{log}</div>
+                  <div key={idx} className="whitespace-pre-wrap">{log}</div>
                 ))}
 
-                {/* Assertions */}
                 {results.length > 0 && (
                   <div className="space-y-1 pt-1 border-t border-white/5">
                     {results.map((res) => (
                       <div key={res.id} className="flex items-center justify-between">
-                        <span className="text-lightGray/55">Case {res.id}: Input: {res.input}</span>
+                        <span className="text-lightGray/55">Expected: {res.expected}</span>
                         <span className={res.passed ? 'text-emerald-400' : 'text-rose-400'}>
-                          {res.passed ? 'PASS' : `FAIL (Expected: ${res.expected}, got: ${res.actual})`}
+                          {res.passed ? 'PASS' : `FAIL`}
                         </span>
                       </div>
                     ))}

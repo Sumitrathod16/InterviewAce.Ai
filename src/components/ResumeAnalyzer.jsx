@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { UploadCloud, CheckCircle2, AlertCircle, FileText, Sparkles, Square } from 'lucide-react';
+import { UploadCloud, CheckCircle2, AlertCircle, FileText, Sparkles, Square, Info } from 'lucide-react';
 import confetti from 'canvas-confetti';
+import API from '../services/api';
+import { useAuth } from '../context/AuthContext';
 
 const SAMPLE_RESUME_TEXT = `Sumit Rathod
 Software Engineer | Frontend Specialist
@@ -22,80 +24,117 @@ EDUCATION:
 B.S. in Computer Science (Graduated 2024)`;
 
 export default function ResumeAnalyzer({ atsScore, onAtsScoreChange }) {
+  const { userProfile } = useAuth();
+  
   const [file, setFile] = useState(null);
   const [pasteText, setPasteText] = useState('');
   const [analyzing, setAnalyzing] = useState(false);
   const [hasResult, setHasResult] = useState(false);
-  const [baseScore, setBaseScore] = useState(atsScore || 65);
-  const [suggestions, setSuggestions] = useState([
-    { id: 1, text: "Replace weak verbs ('Worked', 'Helped') with strong action verbs like 'Engineered', 'Spearheaded'.", solved: false, value: 8 },
-    { id: 2, text: "Quantify your impact (e.g., 'optimized web speed' -> 'reduced loading latency by 45%').", solved: false, value: 12 },
-    { id: 3, text: "Add missing critical tech stack keywords: Redux, TailwindCSS, TypeScript.", solved: false, value: 7 },
-    { id: 4, text: "Convert multi-column tables to a clean single-column structure to support ATS parsing.", solved: false, value: 5 },
-    { id: 5, text: "Add a dedicated skills summary section below the header details.", solved: false, value: 4 }
-  ]);
+  const [baseScore, setBaseScore] = useState(atsScore || 78);
+  const [suggestions, setSuggestions] = useState([]);
+  const [missingKeywords, setMissingKeywords] = useState([]);
+  const [errorMsg, setErrorMsg] = useState('');
 
   const handleUpload = (e) => {
     e.preventDefault();
     const uploadedFile = e.target.files?.[0];
     if (uploadedFile) {
       setFile(uploadedFile);
-      triggerAnalysis();
+      setErrorMsg('');
     }
   };
 
   const useSample = () => {
     setPasteText(SAMPLE_RESUME_TEXT);
-    triggerAnalysis();
+    setFile(null);
+    setErrorMsg('');
   };
 
-  const triggerAnalysis = () => {
-    setAnalyzing(true);
-    setHasResult(false);
-    setSuggestions(prev => prev.map(s => ({ ...s, solved: false })));
-    const newBase = 62 + Math.floor(Math.random() * 8);
-    setBaseScore(newBase);
-    
-    if (onAtsScoreChange) {
-      onAtsScoreChange(newBase, "Scan ATS Resume Report");
+  const triggerAnalysis = async () => {
+    if (!userProfile) {
+      setErrorMsg('Please log in to analyze your resume.');
+      return;
     }
 
-    setTimeout(() => {
-      setAnalyzing(false);
+    setAnalyzing(true);
+    setHasResult(false);
+    setErrorMsg('');
+
+    try {
+      const formData = new FormData();
+      if (file) {
+        formData.append('resumeFile', file);
+      } else if (pasteText.trim()) {
+        formData.append('pasteText', pasteText);
+      } else {
+        setErrorMsg('Please upload a resume file or paste resume details.');
+        setAnalyzing(false);
+        return;
+      }
+
+      const response = await API.post('/resumes/analyze', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data'
+        }
+      });
+
+      const data = response.data;
+      setBaseScore(data.atsScore);
+      setSuggestions(data.suggestions || []);
+      setMissingKeywords(data.missingKeywords || []);
       setHasResult(true);
-    }, 2000);
+
+      if (onAtsScoreChange) {
+        onAtsScoreChange(data.atsScore, "ATS Resume Scan Complete");
+      }
+
+      if (data.atsScore >= 80) {
+        confetti({
+          particleCount: 50,
+          spread: 45,
+          origin: { y: 0.8 },
+          colors: ['#FFFFFF', '#64748B']
+        });
+      }
+    } catch (error) {
+      console.error('Resume scanning error:', error);
+      setErrorMsg(
+        error.response?.data?.message || 
+        'An error occurred during resume scanning. Please try again.'
+      );
+    } finally {
+      setAnalyzing(false);
+    }
   };
 
   const toggleSuggestion = (id) => {
-    let updatedScore = 0;
+    let scoreAddition = 0;
     setSuggestions(prev => {
       const next = prev.map(item => {
-        if (item.id === id) {
+        if (item.id === id || item._id === id) {
           const newStatus = !item.solved;
-          if (newStatus) {
-            updatedScore = item.value;
-          } else {
-            updatedScore = -item.value;
-          }
+          scoreAddition = newStatus ? item.value : -item.value;
           return { ...item, solved: newStatus };
         }
         return item;
       });
+
       setBaseScore(b => {
-        const final = Math.min(Math.max(b + updatedScore, 0), 100);
+        const final = Math.min(Math.max(b + scoreAddition, 0), 100);
         if (onAtsScoreChange) {
-          onAtsScoreChange(final, "Checked resume suggestion");
+          onAtsScoreChange(final, "Checked resume suggestions checklist");
         }
         if (final === 100) {
           confetti({
-            particleCount: 50,
-            spread: 45,
+            particleCount: 40,
+            spread: 40,
             origin: { y: 0.8 },
-            colors: ['#FFFFFF', '#64748B']
+            colors: ['#FFFFFF', '#38BDF8']
           });
         }
         return final;
       });
+
       return next;
     });
   };
@@ -124,6 +163,13 @@ export default function ResumeAnalyzer({ atsScore, onAtsScoreChange }) {
               <h3 className="text-lg font-bold text-white mb-4 flex items-center gap-2">
                 <FileText size={18} /> Upload Resume Document
               </h3>
+
+              {errorMsg && (
+                <div className="p-3 mb-4 bg-red-950/40 border border-red-900/50 rounded-lg text-xs text-red-300 flex items-start gap-2">
+                  <AlertCircle size={16} className="text-red-400 mt-0.5 flex-shrink-0" />
+                  <span>{errorMsg}</span>
+                </div>
+              )}
               
               {/* Drag Drop Area */}
               <label className="border-2 border-dashed border-white/10 hover:border-white/20 rounded-xl p-8 flex flex-col items-center justify-center cursor-pointer transition-all bg-background/30 group">
@@ -146,7 +192,7 @@ export default function ResumeAnalyzer({ atsScore, onAtsScoreChange }) {
                 <label className="block text-xs font-bold text-lightGray/60 uppercase mb-2">Or paste resume text details</label>
                 <textarea
                   value={pasteText}
-                  onChange={(e) => setPasteText(e.target.value)}
+                  onChange={(e) => { setPasteText(e.target.value); setFile(null); }}
                   placeholder="Paste your professional experience and skills here..."
                   className="w-full h-32 bg-background/50 text-white rounded-lg p-3 text-xs border border-white/5 focus:outline-none focus:border-white/30 resize-none font-sans"
                   disabled={analyzing}
@@ -170,7 +216,7 @@ export default function ResumeAnalyzer({ atsScore, onAtsScoreChange }) {
                 disabled={analyzing || (!file && !pasteText.trim())}
                 className="flex-1 py-3 bg-white text-background hover:bg-lightGray disabled:opacity-45 rounded-lg text-xs sm:text-sm font-bold transition-all"
               >
-                Scan ATS Score
+                {analyzing ? 'Scanning...' : 'Scan ATS Score'}
               </button>
             </div>
           </div>
@@ -199,7 +245,7 @@ export default function ResumeAnalyzer({ atsScore, onAtsScoreChange }) {
                 <motion.div
                   initial={{ opacity: 0, scale: 0.98 }}
                   animate={{ opacity: 1, scale: 1 }}
-                  className="bg-secondaryBg/40 border border-white/5 rounded-xl p-6 h-full flex flex-col justify-between space-y-6"
+                  className="bg-secondaryBg/40 border border-white/5 rounded-xl p-6 h-full flex flex-col justify-between space-y-6 animate-in fade-in duration-200"
                 >
                   {/* Results Header */}
                   <div className="flex flex-col sm:flex-row items-center sm:justify-between gap-6 pb-6 border-b border-white/5">
@@ -251,35 +297,60 @@ export default function ResumeAnalyzer({ atsScore, onAtsScoreChange }) {
                     </div>
                   </div>
 
-                  {/* Suggestion checklist */}
-                  <div>
-                    <div className="flex items-center justify-between mb-3.5">
-                      <h4 className="text-xs font-bold text-white uppercase tracking-wider">Improvement Checklist</h4>
-                      <span className="text-xs text-lightGray/60 font-medium">{activeSuggestionsLeft} remaining</span>
-                    </div>
-                    <div className="space-y-3 max-h-56 overflow-y-auto pr-1">
-                      {suggestions.map((item) => (
-                        <div
-                          key={item.id}
-                          onClick={() => toggleSuggestion(item.id)}
-                          className={`flex items-start gap-3 p-3 rounded-lg border transition-all duration-200 cursor-pointer ${
-                            item.solved
-                              ? 'bg-white/5 border-white/10 opacity-60'
-                              : 'bg-background/40 border-white/5 hover:border-white/15'
-                          }`}
-                        >
-                          <div className="mt-0.5 text-white flex-shrink-0">
-                            {item.solved ? (
-                              <CheckCircle2 size={16} className="text-white stroke-[2.5]" />
-                            ) : (
-                              <Square size={16} className="text-lightGray/40 stroke-[2]" />
-                            )}
+                  {/* Suggestion checklist & Missing Keywords */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* Suggestions */}
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <h4 className="text-[10px] font-bold text-lightGray/50 uppercase tracking-wider">Improvement Checklist</h4>
+                        <span className="text-[10px] text-lightGray/40 font-semibold">{activeSuggestionsLeft} left</span>
+                      </div>
+                      <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+                        {suggestions.map((item) => (
+                          <div
+                            key={item._id || item.id}
+                            onClick={() => toggleSuggestion(item._id || item.id)}
+                            className={`flex items-start gap-2 p-2 rounded-lg border transition-all duration-150 cursor-pointer text-[11px] ${
+                              item.solved
+                                ? 'bg-white/5 border-white/10 opacity-60'
+                                : 'bg-background/40 border-white/5 hover:border-white/15'
+                            }`}
+                          >
+                            <div className="mt-0.5 text-white flex-shrink-0">
+                              {item.solved ? (
+                                <CheckCircle2 size={13} className="text-white stroke-[2.5]" />
+                              ) : (
+                                <Square size={13} className="text-lightGray/40 stroke-[2]" />
+                              )}
+                            </div>
+                            <span className={item.solved ? 'line-through text-lightGray/50' : 'text-lightGray/90'}>
+                              {item.text}
+                            </span>
                           </div>
-                          <span className={`text-xs leading-relaxed ${item.solved ? 'line-through text-lightGray/50' : 'text-lightGray/90'}`}>
-                            {item.text}
-                          </span>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Missing Keywords */}
+                    <div className="p-4 bg-white/5 rounded-xl border border-white/5 flex flex-col justify-between">
+                      <div>
+                        <h4 className="text-[10px] font-bold text-lightGray/50 uppercase tracking-wider mb-2 flex items-center gap-1">
+                          <Info size={11} /> Missing Core Keywords
+                        </h4>
+                        <p className="text-[10px] text-lightGray/60 leading-relaxed mb-3">
+                          Add these skills to align your document with standard ATS filters for a {req.userProfile?.targetRole || 'Developer'} target.
+                        </p>
+                        <div className="flex flex-wrap gap-1.5">
+                          {missingKeywords.map((kw, i) => (
+                            <span 
+                              key={i} 
+                              className="px-2 py-0.5 rounded bg-white/5 border border-white/5 text-[10px] text-lightGray/80"
+                            >
+                              {kw}
+                            </span>
+                          ))}
                         </div>
-                      ))}
+                      </div>
                     </div>
                   </div>
 

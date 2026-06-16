@@ -1,6 +1,11 @@
-import React from 'react';
-import { motion } from 'framer-motion';
-import { Award, FileText, CheckSquare, Calendar, ChevronRight, Activity, Code, UserCheck, AlertCircle, ArrowRight, LogOut, Award as XpIcon } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { 
+  Award, FileText, CheckSquare, Calendar, ChevronRight, Activity, 
+  Code, UserCheck, AlertCircle, ArrowRight, LogOut, Shield,
+  CreditCard, User, Sparkles, Building, Compass, Check, Info, Settings, Clock
+} from 'lucide-react';
+import API from '../services/api';
 
 export default function DashboardPortal({ 
   solvedProblems, 
@@ -12,93 +17,197 @@ export default function DashboardPortal({
   userProfile,
   onLogout
 }) {
+  const [activeTab, setActiveTab] = useState('overview'); // 'overview' | 'coach' | 'company' | 'billing' | 'profile'
   
-  // Calculate average interview score
-  const avgInterviewScore = completedInterviews.length > 0
-    ? Math.round(completedInterviews.reduce((acc, curr) => acc + curr.score, 0) / completedInterviews.length)
+  // AI Career Coach states
+  const [coachData, setCoachData] = useState(null);
+  const [loadingCoach, setLoadingCoach] = useState(false);
+  const [coachError, setCoachError] = useState('');
+
+  // Company prep states
+  const [selectedCompany, setSelectedCompany] = useState('tcs');
+  const [companyPrepData, setCompanyPrepData] = useState(null);
+  const [loadingCompany, setLoadingCompany] = useState(false);
+
+  // Billing states
+  const [billingInfo, setBillingInfo] = useState({ subscription: { plan: 'Free', status: 'none' }, history: [] });
+  const [upgrading, setUpgrading] = useState(false);
+
+  // Profile edit states
+  const [name, setName] = useState(userProfile?.name || '');
+  const [targetRole, setTargetRole] = useState(userProfile?.targetRole || 'Frontend Engineer');
+  const [education, setEducation] = useState(userProfile?.education || '');
+  const [skillsText, setSkillsText] = useState(userProfile?.skills?.join(', ') || '');
+  const [updatingProfile, setUpdatingProfile] = useState(false);
+  const [profileMsg, setProfileMsg] = useState('');
+
+  // History logs fetched from DB
+  const [dbInterviews, setDbInterviews] = useState([]);
+  const [dbResumes, setDbResumes] = useState([]);
+
+  // Fetch candidate history datasets
+  const fetchDashboardData = async () => {
+    try {
+      const interviewRes = await API.get('/interviews/history');
+      setDbInterviews(interviewRes.data);
+    } catch (err) {
+      console.warn('Backend history load failed, utilizing client props fallback.');
+    }
+
+    try {
+      const resumeRes = await API.get('/resumes/history');
+      setDbResumes(resumeRes.data);
+    } catch (err) {
+      console.warn('Backend resume history load failed.');
+    }
+  };
+
+  useEffect(() => {
+    fetchDashboardData();
+  }, [userProfile]);
+
+  // Load Billing details
+  useEffect(() => {
+    if (activeTab === 'billing') {
+      const fetchBilling = async () => {
+        try {
+          const response = await API.get('/payments/billing-info');
+          setBillingInfo(response.data);
+        } catch (err) {
+          console.warn('Billing fetch failed.');
+        }
+      };
+      fetchBilling();
+    }
+  }, [activeTab]);
+
+  // Fetch company specific preparation questions
+  useEffect(() => {
+    if (activeTab === 'company' && selectedCompany) {
+      const fetchCompanyPrep = async () => {
+        setLoadingCompany(true);
+        try {
+          const response = await API.get(`/coach/company/${selectedCompany}`);
+          setCompanyPrepData(response.data);
+        } catch (err) {
+          console.warn('Company details failed, loading locally.');
+        } finally {
+          setLoadingCompany(false);
+        }
+      };
+      fetchCompanyPrep();
+    }
+  }, [activeTab, selectedCompany]);
+
+  // Trigger Career Coach roadmap generation
+  const handleGenerateRoadmap = async () => {
+    setLoadingCoach(true);
+    setCoachError('');
+    try {
+      const skillsArray = skillsText.split(',').map(s => s.trim()).filter(Boolean);
+      const response = await API.post('/coach/roadmap', {
+        skills: skillsArray,
+        targetRole,
+        education
+      });
+      setCoachData(response.data);
+    } catch (err) {
+      console.error(err);
+      setCoachError(err.response?.data?.message || 'Failed to connect to AI Career Advisor.');
+    } finally {
+      setLoadingCoach(false);
+    }
+  };
+
+  // Profile Form submissions
+  const handleProfileSubmit = async (e) => {
+    e.preventDefault();
+    setUpdatingProfile(true);
+    setProfileMsg('');
+    try {
+      const skillsArray = skillsText.split(',').map(s => s.trim()).filter(Boolean);
+      await API.put('/auth/profile', {
+        name,
+        targetRole,
+        education,
+        skills: skillsArray
+      });
+      
+      // Update local storage user profile sync
+      const savedUser = JSON.parse(localStorage.getItem('interviewace_user') || '{}');
+      const updatedUser = { ...savedUser, name, targetRole, education, skills: skillsArray };
+      localStorage.setItem('interviewace_user', JSON.stringify(updatedUser));
+      
+      setProfileMsg('Profile updated successfully!');
+    } catch (err) {
+      setProfileMsg('Failed to sync profile changes.');
+    } finally {
+      setUpdatingProfile(false);
+    }
+  };
+
+  // Trigger Stripe checkout redirections
+  const handleSubscribe = async (tierName, billingPeriod = 'monthly') => {
+    setUpgrading(true);
+    try {
+      const response = await API.post('/payments/checkout', {
+        planName: tierName,
+        billingPeriod
+      });
+      // Redirect to Stripe checkout URL or local success fallback
+      window.location.href = response.data.url;
+    } catch (err) {
+      alert('Checkout initiation failed.');
+    } finally {
+      setUpgrading(false);
+    }
+  };
+
+  const handleCancelSub = async () => {
+    if (confirm('Are you sure you want to cancel your active premium subscription?')) {
+      try {
+        await API.post('/payments/mock-activate', { planName: 'Free' });
+        alert('Subscription canceled. Downgraded to Free tier.');
+        window.location.reload();
+      } catch (err) {
+        alert('Cancellation failed.');
+      }
+    }
+  };
+
+  // Compile calculations
+  const interviewsList = dbInterviews.length > 0 ? dbInterviews : completedInterviews;
+  const avgInterviewScore = interviewsList.length > 0
+    ? Math.round(interviewsList.reduce((acc, curr) => acc + curr.score, 0) / interviewsList.length)
     : 84;
 
-  const totalXp = (solvedProblems.size * 100) + (completedInterviews.length * 200);
-  const practiceStreak = solvedProblems.size > 0 || completedInterviews.length > 0 ? 1 : 0;
+  const totalXp = (solvedProblems.size * 100) + (interviewsList.length * 200);
+  const practiceStreak = solvedProblems.size > 0 || interviewsList.length > 0 ? 1 : 0;
 
   const stats = [
-    {
-      title: 'Interview Rating',
-      value: `${avgInterviewScore}%`,
-      desc: completedInterviews.length > 0 ? `Based on ${completedInterviews.length} rounds` : 'Starting baseline',
-      icon: Award
-    },
-    {
-      title: 'ATS Resume Rating',
-      value: `${atsScore}/100`,
-      desc: atsScore >= 80 ? 'ATS Compatible' : 'Needs Optimization',
-      icon: FileText
-    },
-    {
-      title: 'Algorithm Challenges',
-      value: `${solvedProblems.size} / 6`,
-      desc: `${6 - solvedProblems.size} remaining`,
-      icon: CheckSquare
-    },
-    {
-      title: 'Practice Streak',
-      value: `${practiceStreak} Day${practiceStreak !== 1 ? 's' : ''}`,
-      desc: 'Active streak',
-      icon: Calendar
-    }
+    { title: 'Interview Rating', value: `${avgInterviewScore}%`, desc: interviewsList.length > 0 ? `Based on ${interviewsList.length} rounds` : 'Starting baseline', icon: Award },
+    { title: 'ATS Resume Rating', value: `${atsScore}/100`, desc: atsScore >= 80 ? 'ATS Compatible' : 'Needs Optimization', icon: FileText },
+    { title: 'Algorithm Challenges', value: `${solvedProblems.size} / 6`, desc: `${6 - solvedProblems.size} remaining`, icon: CheckSquare },
+    { title: 'Practice Streak', value: `${practiceStreak} Day${practiceStreak !== 1 ? 's' : ''}`, desc: 'Active streak', icon: Calendar }
   ];
 
   const CHALLENGES = [
     { id: 'twosum', title: '1. Two Sum', difficulty: 'Easy', index: 0 },
     { id: 'reversestring', title: '344. Reverse String', difficulty: 'Easy', index: 1 },
-    { id: 'palindrome', title: '9. Valid Palindrome', difficulty: 'Easy', index: 2 },
-    { id: 'fizzbuzz', title: '412. Fizz Buzz', difficulty: 'Easy', index: 3 },
-    { id: 'fibonacci', title: '509. Fibonacci Number', difficulty: 'Easy', index: 4 },
-    { id: 'mergesorted', title: '88. Merge Sorted Array', difficulty: 'Easy', index: 5 }
+    { id: 'palindrome', title: '9. Valid Palindrome', difficulty: 'Easy', index: 2 }
   ];
-
-  // Generate 28-day daily contribution calendar details
-  const getContributionDays = () => {
-    const days = [];
-    const now = new Date();
-    for (let i = 27; i >= 0; i--) {
-      const d = new Date();
-      d.setDate(now.getDate() - i);
-      const dateStr = d.toISOString().split('T')[0];
-      
-      // Calculate fake mock contribution weight
-      let count = 0;
-      if (dateStr === now.toISOString().split('T')[0]) {
-        count = solvedProblems.size + completedInterviews.length;
-      } else if (i === 4 || i === 8 || i === 12 || i === 18) {
-        count = 1 + (i % 2); // default historical activity
-      }
-      
-      days.push({
-        date: dateStr,
-        count,
-        label: d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
-      });
-    }
-    return days;
-  };
-
-  const contributionDays = getContributionDays();
-
-  const handleChallengeClick = (index) => {
-    onSelectProblem(index);
-    onViewChange('landing');
-    setTimeout(() => {
-      const element = document.querySelector('#coding');
-      if (element) {
-        element.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }
-    }, 150);
-  };
 
   const nameInitials = userProfile?.name
     ? userProfile.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase()
     : 'US';
+
+  const companiesList = [
+    { id: 'tcs', name: 'TCS' },
+    { id: 'infosys', name: 'Infosys' },
+    { id: 'wipro', name: 'Wipro' },
+    { id: 'accenture', name: 'Accenture' },
+    { id: 'deloitte', name: 'Deloitte' }
+  ];
 
   return (
     <div className="pt-28 pb-20 bg-background min-h-screen">
@@ -111,172 +220,651 @@ export default function DashboardPortal({
               {nameInitials}
             </div>
             <div>
-              <h2 className="text-xl font-bold text-white">Welcome back, {userProfile?.name || 'Candidate'}!</h2>
-              <p className="text-sm text-lightGray/60 mt-0.5">{userProfile?.role || 'Technical Preparation Track'}</p>
+              <div className="flex items-center gap-2 justify-center sm:justify-start">
+                <h2 className="text-xl font-bold text-white">Welcome back, {userProfile?.name || 'Candidate'}!</h2>
+                
+                {/* Admin dashboard indicator shortcut */}
+                {userProfile?.role === 'Admin' && (
+                  <button 
+                    onClick={() => onViewChange('admin')}
+                    className="flex items-center gap-1 px-2 py-0.5 rounded bg-white text-background text-[9px] font-bold uppercase transition-colors"
+                  >
+                    <Shield size={10} />
+                    Admin
+                  </button>
+                )}
+              </div>
+              <p className="text-sm text-lightGray/60 mt-0.5">{userProfile?.targetRole || 'Technical Preparation Track'}</p>
               <div className="flex flex-wrap items-center gap-3 mt-2 text-xs text-lightGray/40">
                 <span className="flex items-center gap-1">
-                  <XpIcon size={12} className="text-white" />
+                  <Award size={12} className="text-white" />
                   {totalXp} XP Earned
                 </span>
                 <span>•</span>
-                <span>Streak: {practiceStreak} day{practiceStreak !== 1 ? 's' : ''}</span>
+                <span>Tier: <strong className="text-white">{userProfile?.subscription || 'Free'}</strong></span>
               </div>
             </div>
           </div>
           
-          <button
-            onClick={onLogout}
-            className="px-4 py-2 text-xs font-semibold text-lightGray/70 hover:text-white border border-white/5 rounded-lg flex items-center gap-2 transition-colors hover:bg-white/5"
-          >
-            <LogOut size={13} />
-            Sign Out
-          </button>
+          <div className="flex flex-wrap gap-2.5">
+            <button
+              onClick={() => setActiveTab('profile')}
+              className={`px-4 py-2 text-xs font-semibold rounded-lg flex items-center gap-1.5 border transition-all ${
+                activeTab === 'profile' ? 'bg-white text-background border-white' : 'text-lightGray/70 border-white/5 hover:bg-white/5'
+              }`}
+            >
+              <Settings size={13} />
+              Profile
+            </button>
+            <button
+              onClick={onLogout}
+              className="px-4 py-2 text-xs font-semibold text-lightGray/70 hover:text-white border border-white/5 rounded-lg flex items-center gap-2 transition-colors hover:bg-white/5"
+            >
+              <LogOut size={13} />
+              Sign Out
+            </button>
+          </div>
         </div>
 
-        {/* Stats Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {stats.map((stat, idx) => {
-            const Icon = stat.icon;
+        {/* Dashboard Navigation Tabs */}
+        <div className="flex border-b border-white/5 overflow-x-auto gap-2 pb-1">
+          {[
+            { id: 'overview', name: 'Workspace Overview', icon: Activity },
+            { id: 'coach', name: 'AI Career Coach', icon: Compass },
+            { id: 'company', name: 'Company-Specific Prep', icon: Building },
+            { id: 'billing', name: 'Billing & Tiers', icon: CreditCard }
+          ].map((tab) => {
+            const Icon = tab.icon;
             return (
-              <div key={idx} className="p-5 bg-secondaryBg/40 border border-white/5 rounded-xl flex items-center justify-between">
-                <div className="space-y-1">
-                  <span className="text-xs font-semibold text-lightGray/50 uppercase">{stat.title}</span>
-                  <div className="text-2xl font-extrabold text-white">{stat.value}</div>
-                  <div className="text-[10px] text-lightGray/40">{stat.desc}</div>
-                </div>
-                <div className="p-3 bg-white/5 rounded-lg text-white">
-                  <Icon size={18} />
-                </div>
-              </div>
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`flex items-center gap-2 px-4 py-3 text-xs font-bold uppercase tracking-wider border-b-2 whitespace-nowrap transition-all ${
+                  activeTab === tab.id
+                    ? 'border-white text-white'
+                    : 'border-transparent text-lightGray/40 hover:text-lightGray'
+                }`}
+              >
+                <Icon size={14} />
+                {tab.name}
+              </button>
             );
           })}
         </div>
 
-        {/* Heatmap & Logs Row */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-          
-          {/* Everyday Activity Heatmap */}
-          <div className="lg:col-span-8 p-6 bg-secondaryBg/30 border border-white/5 rounded-xl space-y-6">
-            <div>
-              <h3 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
-                <Activity size={16} /> Everyday Practice Calendar
-              </h3>
-              <p className="text-xs text-lightGray/55 mt-0.5">Your coding & interview activities across the last 28 days</p>
-            </div>
-
-            {/* Heatmap grid */}
-            <div className="flex flex-col items-center sm:items-start space-y-3">
-              <div className="grid grid-cols-7 gap-2.5">
-                {contributionDays.map((day, idx) => {
-                  let colorClass = 'bg-slate-900/60 border-white/[0.03]';
-                  if (day.count === 1) colorClass = 'bg-slate-700 border-white/5';
-                  if (day.count === 2) colorClass = 'bg-slate-500 border-white/5';
-                  if (day.count >= 3) colorClass = 'bg-white text-background font-black border-white';
-
-                  return (
-                    <div
-                      key={idx}
-                      title={`${day.label}: ${day.count} activity`}
-                      className={`w-8 h-8 rounded-md flex items-center justify-center text-[10px] border transition-all duration-300 ${colorClass}`}
-                    >
-                      {day.count > 0 && day.count}
-                    </div>
-                  );
-                })}
-              </div>
-              
-              {/* Legend */}
-              <div className="flex gap-4 items-center text-[10px] text-lightGray/40 font-mono">
-                <span>Less</span>
-                <div className="flex gap-1">
-                  <span className="w-3.5 h-3.5 rounded bg-slate-900/60 border border-white/[0.03]" />
-                  <span className="w-3.5 h-3.5 rounded bg-slate-700 border border-white/5" />
-                  <span className="w-3.5 h-3.5 rounded bg-slate-500 border border-white/5" />
-                  <span className="w-3.5 h-3.5 rounded bg-white border border-white" />
+        {/* TAB WORKSPACES CONTAINER */}
+        <div>
+          <AnimatePresence mode="wait">
+            
+            {/* OVERVIEW TAB */}
+            {activeTab === 'overview' && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                className="space-y-8"
+              >
+                {/* Stats Grid */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                  {stats.map((stat, idx) => {
+                    const Icon = stat.icon;
+                    return (
+                      <div key={idx} className="p-5 bg-secondaryBg/40 border border-white/5 rounded-xl flex items-center justify-between">
+                        <div className="space-y-1">
+                          <span className="text-xs font-semibold text-lightGray/50 uppercase">{stat.title}</span>
+                          <div className="text-2xl font-extrabold text-white">{stat.value}</div>
+                          <div className="text-[10px] text-lightGray/40">{stat.desc}</div>
+                        </div>
+                        <div className="p-3 bg-white/5 rounded-lg text-white">
+                          <Icon size={18} />
+                        </div>
+                      </div>
+                    );
+                  })}
                 </div>
-                <span>More</span>
-              </div>
-            </div>
-          </div>
 
-          {/* Activity Logs */}
-          <div className="lg:col-span-4 p-6 bg-secondaryBg/30 border border-white/5 rounded-xl flex flex-col justify-between">
-            <div>
-              <h3 className="text-sm font-bold text-white uppercase tracking-wider mb-4 flex items-center gap-2">
-                <Activity size={16} /> Activity History
-              </h3>
-              <div className="space-y-3.5 max-h-48 overflow-y-auto pr-1">
-                {recentActivity.length > 0 ? (
-                  recentActivity.map((act, index) => (
-                    <div key={index} className="flex gap-3 items-start text-xs border-b border-white/5 pb-2.5 last:border-0 last:pb-0">
-                      <div className="p-1 rounded bg-white/5 text-white mt-0.5">
-                        {act.type === 'code' ? <Code size={12} /> : <UserCheck size={12} />}
-                      </div>
-                      <div>
-                        <div className="font-semibold text-white">{act.title}</div>
-                        <div className="text-[10px] text-lightGray/40 mt-0.5">{act.time}</div>
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+                  {/* Contribution heat activity log */}
+                  <div className="lg:col-span-8 p-6 bg-secondaryBg/30 border border-white/5 rounded-xl space-y-4">
+                    <div>
+                      <h3 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
+                        <Activity size={16} /> Completed Interview Rounds Log
+                      </h3>
+                      <p className="text-xs text-lightGray/55 mt-0.5">Logs of AI evaluations performed on your account</p>
+                    </div>
+
+                    <div className="space-y-3.5 max-h-72 overflow-y-auto pr-1">
+                      {interviewsList.length > 0 ? (
+                        interviewsList.map((int, idx) => (
+                          <div key={int._id || idx} className="p-4 bg-background/50 border border-white/5 rounded-lg flex items-center justify-between">
+                            <div>
+                              <div className="text-xs font-bold text-white">{int.track || int.type} Round</div>
+                              <div className="text-[10px] text-lightGray/40 mt-1">Date: {new Date(int.createdAt).toLocaleDateString()} • {int.questions.length} questions</div>
+                            </div>
+                            <div className="flex items-center gap-4">
+                              <div className="text-right">
+                                <span className="text-xs font-bold text-white/90">Score: {int.score}%</span>
+                              </div>
+                              <span className="px-2 py-0.5 rounded bg-white text-background text-[9px] font-black uppercase">Completed</span>
+                            </div>
+                          </div>
+                        ))
+                      ) : (
+                        <div className="text-center py-12 text-lightGray/40">
+                          No mock interviews logged. Select track on landing page to begin.
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Sidebar activities */}
+                  <div className="lg:col-span-4 p-6 bg-secondaryBg/30 border border-white/5 rounded-xl flex flex-col justify-between">
+                    <div>
+                      <h3 className="text-sm font-bold text-white uppercase tracking-wider mb-4 flex items-center gap-2">
+                        <UserCheck size={16} /> Resume Audits Log
+                      </h3>
+                      
+                      <div className="space-y-3 max-h-52 overflow-y-auto pr-1">
+                        {dbResumes.length > 0 ? (
+                          dbResumes.map((rep, idx) => (
+                            <div key={rep._id || idx} className="p-3 bg-background/40 border border-white/5 rounded-lg flex items-center justify-between text-xs">
+                              <div>
+                                <div className="font-semibold text-white">ATS Scanned Report</div>
+                                <div className="text-[9px] text-lightGray/40 mt-0.5">{new Date(rep.createdAt).toLocaleDateString()}</div>
+                              </div>
+                              <span className="px-2 py-0.5 bg-white text-background text-[9px] font-black rounded">{rep.atsScore}/100</span>
+                            </div>
+                          ))
+                        ) : (
+                          <div className="text-center py-8 text-lightGray/40">
+                            No resume audits recorded.
+                          </div>
+                        )}
                       </div>
                     </div>
-                  ))
+
+                    <button
+                      onClick={() => {
+                        const el = document.querySelector('#resume');
+                        if (el) el.scrollIntoView({ behavior: 'smooth' });
+                      }}
+                      className="w-full mt-6 py-2 text-xs font-bold glassmorphism text-white rounded-lg hover:bg-white/5 transition-all text-center"
+                    >
+                      Audit Resume Now
+                    </button>
+                  </div>
+                </div>
+
+                {/* Challenges listing */}
+                <div className="p-6 bg-secondaryBg/30 border border-white/5 rounded-xl space-y-6">
+                  <div>
+                    <h3 className="text-sm font-bold text-white uppercase tracking-wider">Algorithmic Sandbox Selection</h3>
+                    <p className="text-xs text-lightGray/55 mt-0.5">Select a challenge below and run inside the compiler sandbox</p>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    {CHALLENGES.map((ch) => (
+                      <div
+                        key={ch.id}
+                        onClick={() => {
+                          onSelectProblem(ch.index);
+                          const el = document.querySelector('#coding');
+                          if (el) el.scrollIntoView({ behavior: 'smooth' });
+                        }}
+                        className="p-4 bg-background/40 border border-white/5 rounded-xl flex items-center justify-between hover:bg-background/80 hover:border-white/20 transition-all cursor-pointer group"
+                      >
+                        <div className="text-xs font-bold text-white group-hover:text-white transition-colors">{ch.title}</div>
+                        <ChevronRight size={14} className="text-lightGray/20 group-hover:text-white group-hover:translate-x-0.5 transition-all" />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </motion.div>
+            )}
+
+            {/* AI CAREER COACH TAB */}
+            {activeTab === 'coach' && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                className="p-6 bg-secondaryBg/30 border border-white/5 rounded-xl space-y-6"
+              >
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/5 pb-4">
+                  <div>
+                    <h3 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
+                      <Compass size={16} /> AI Career Coach Roadmap
+                    </h3>
+                    <p className="text-xs text-lightGray/55 mt-0.5">Personalized skill gap analyses and entry/mid-level salary expectations</p>
+                  </div>
+                  {userProfile?.subscription === 'Premium' && (
+                    <button
+                      onClick={handleGenerateRoadmap}
+                      disabled={loadingCoach}
+                      className="px-4 py-2 text-xs font-bold bg-white text-background hover:bg-lightGray rounded-lg disabled:opacity-40 transition-colors"
+                    >
+                      {loadingCoach ? 'Analyzing Profile...' : 'Generate AI Roadmap'}
+                    </button>
+                  )}
+                </div>
+
+                {userProfile?.subscription !== 'Premium' ? (
+                  <div className="text-center py-16 space-y-4">
+                    <Sparkles className="mx-auto text-lightGray/40 animate-pulse" size={42} />
+                    <h4 className="text-sm font-bold text-white">AI Career Coach is a Premium Tier Feature</h4>
+                    <p className="text-xs text-lightGray/60 max-w-sm mx-auto">
+                      Upgrade to unlock personalized career paths, technical roadmap benchmarks, and salary data charts.
+                    </p>
+                    <button
+                      onClick={() => setActiveTab('billing')}
+                      className="px-6 py-2.5 text-xs font-bold bg-white text-background hover:bg-lightGray rounded-lg transition-colors"
+                    >
+                      View Premium Plans
+                    </button>
+                  </div>
+                ) : coachData ? (
+                  <div className="space-y-6 animate-in fade-in duration-200">
+                    {/* Roadmap Timelines */}
+                    <div>
+                      <h4 className="text-xs font-bold text-white uppercase mb-3.5 flex items-center gap-1.5"><Calendar size={13} /> Target Timeline Checklist</h4>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        {coachData.roadmap.map((phase, idx) => (
+                          <div key={idx} className="p-4 bg-background/50 border border-white/5 rounded-xl space-y-2">
+                            <div className="flex justify-between items-center text-xs">
+                              <span className="font-bold text-white">{phase.phase}</span>
+                              <span className="px-2 py-0.5 bg-white/5 rounded text-[9px] font-mono text-lightGray/70">{phase.duration}</span>
+                            </div>
+                            <ul className="space-y-1.5 text-[11px] text-lightGray/70">
+                              {phase.goals.map((g, i) => (
+                                <li key={i} className="flex gap-1.5 items-start">
+                                  <Check size={11} className="text-white mt-0.5 flex-shrink-0" />
+                                  <span>{g}</span>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Skill Gaps & Salary */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-white/5">
+                      {/* Skill Gap Analysis */}
+                      <div className="space-y-3">
+                        <h4 className="text-xs font-bold text-white uppercase flex items-center gap-1.5"><Info size={13} /> Skill Gap Analysis</h4>
+                        <div className="p-4 bg-background/40 border border-white/5 rounded-xl space-y-3">
+                          <div>
+                            <span className="text-[10px] text-lightGray/50 font-bold uppercase">Identified Strengths</span>
+                            <div className="flex flex-wrap gap-1 mt-1.5">
+                              {coachData.skillGapAnalysis.strengths.map((str, i) => (
+                                <span key={i} className="px-2 py-0.5 rounded bg-emerald-950/25 border border-emerald-800/40 text-[10px] text-emerald-400 font-medium">{str}</span>
+                              ))}
+                            </div>
+                          </div>
+                          <div>
+                            <span className="text-[10px] text-lightGray/50 font-bold uppercase">Gaps to Address</span>
+                            <div className="flex flex-wrap gap-1 mt-1.5">
+                              {coachData.skillGapAnalysis.gaps.map((gap, i) => (
+                                <span key={i} className="px-2 py-0.5 rounded bg-rose-950/25 border border-rose-800/40 text-[10px] text-rose-400 font-medium">{gap}</span>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Salary Benchmarks */}
+                      <div className="space-y-3">
+                        <h4 className="text-xs font-bold text-white uppercase flex items-center gap-1.5"><CreditCard size={13} /> Salary & Market Outlook</h4>
+                        <div className="p-4 bg-background/40 border border-white/5 rounded-xl text-xs space-y-2.5">
+                          <div className="flex justify-between border-b border-white/5 pb-2">
+                            <span className="text-lightGray/60">Entry-Level Range</span>
+                            <span className="font-bold text-white">{coachData.salaryInsights.entryLevel}</span>
+                          </div>
+                          <div className="flex justify-between border-b border-white/5 pb-2">
+                            <span className="text-lightGray/60">Mid-Level Range</span>
+                            <span className="font-bold text-white">{coachData.salaryInsights.midLevel}</span>
+                          </div>
+                          <div className="flex justify-between border-b border-white/5 pb-2">
+                            <span className="text-lightGray/60">Senior-Level Range</span>
+                            <span className="font-bold text-white">{coachData.salaryInsights.seniorLevel}</span>
+                          </div>
+                          <div className="flex justify-between items-center pt-1">
+                            <span className="text-lightGray/60">Global Market Demand</span>
+                            <span className="px-2.5 py-0.5 bg-white text-background text-[9px] font-black rounded uppercase">{coachData.salaryInsights.marketDemand}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 ) : (
-                  <div className="text-center py-8 text-lightGray/40 space-y-2">
-                    <AlertCircle size={24} className="mx-auto stroke-[1.5]" />
-                    <p className="text-xs">No activity logged today.</p>
+                  <div className="text-center py-16 text-lightGray/40 space-y-3">
+                    <Sparkles className="mx-auto" size={24} />
+                    <p className="text-xs">Your career blueprint is ready. Click build above to generate personalized roadmap files.</p>
                   </div>
                 )}
-              </div>
-            </div>
-            {recentActivity.length === 0 && (
-              <button
-                onClick={() => onViewChange('landing')}
-                className="w-full mt-4 py-2 text-xs font-bold glassmorphism text-white rounded-lg hover:bg-white/5 transition-all flex items-center justify-center gap-1.5 premium-border"
-              >
-                Go Prepare Now
-                <ArrowRight size={12} />
-              </button>
+              </motion.div>
             )}
-          </div>
 
-        </div>
-
-        {/* Coding Challenges grid */}
-        <div className="p-6 bg-secondaryBg/30 border border-white/5 rounded-xl space-y-6">
-          <div>
-            <h3 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
-              <Code size={16} /> Codebox Problem Catalogue
-            </h3>
-            <p className="text-xs text-lightGray/55 mt-0.5">Select and compile any challenge inside the sandbox</p>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {CHALLENGES.map((ch) => {
-              const isSolved = solvedProblems.has(ch.id);
-              return (
-                <div 
-                  key={ch.id}
-                  onClick={() => handleChallengeClick(ch.index)}
-                  className="p-4 bg-background/40 hover:bg-background/80 border border-white/5 hover:border-white/15 rounded-xl flex items-center justify-between transition-all group cursor-pointer"
-                >
-                  <div className="space-y-0.5">
-                    <div className="text-xs font-semibold text-white group-hover:text-white transition-colors">{ch.title}</div>
-                    <div className="text-[10px] font-bold text-lightGray/40 uppercase">{ch.difficulty}</div>
+            {/* COMPANY SPECIFIC PREPARATION TAB */}
+            {activeTab === 'company' && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                className="p-6 bg-secondaryBg/30 border border-white/5 rounded-xl space-y-6"
+              >
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/5 pb-4">
+                  <div>
+                    <h3 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
+                      <Building size={16} /> Company-Specific Preparation Tracks
+                    </h3>
+                    <p className="text-xs text-lightGray/55 mt-0.5">Explore standard interviewer sets, questions, and aptitude outlines</p>
                   </div>
-                  <div className="flex items-center gap-2">
-                    {isSolved ? (
-                      <span className="px-2.5 py-0.5 rounded-full text-[9px] font-bold bg-white text-background uppercase">
-                        Solved
-                      </span>
-                    ) : (
-                      <span className="px-2.5 py-0.5 rounded-full text-[9px] font-bold bg-secondaryBg text-lightGray/40 border border-white/5 uppercase">
-                        Unsolved
-                      </span>
-                    )}
-                    <ChevronRight size={14} className="text-lightGray/20 group-hover:text-white group-hover:translate-x-0.5 transition-all" />
+
+                  {userProfile?.subscription !== 'Free' && (
+                    <div className="flex gap-1.5 flex-wrap">
+                      {companiesList.map(c => (
+                        <button
+                          key={c.id}
+                          onClick={() => setSelectedCompany(c.id)}
+                          className={`px-3 py-1.5 text-xs font-bold rounded ${
+                            selectedCompany === c.id 
+                              ? 'bg-white text-background' 
+                              : 'bg-background/50 text-lightGray border border-white/5 hover:bg-white/5'
+                          }`}
+                        >
+                          {c.name}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {userProfile?.subscription === 'Free' ? (
+                  <div className="text-center py-16 space-y-4">
+                    <Building className="mx-auto text-lightGray/40" size={40} />
+                    <h4 className="text-sm font-bold text-white">Company preparations require Pro or Premium Plans</h4>
+                    <p className="text-xs text-lightGray/60 max-w-sm mx-auto">
+                      Unlock tailored portfolios detailing quantitative patterns, previous technical puzzles, and HR round expectations for top tech companies.
+                    </p>
+                    <button
+                      onClick={() => setActiveTab('billing')}
+                      className="px-6 py-2.5 text-xs font-bold bg-white text-background hover:bg-lightGray rounded-lg transition-colors"
+                    >
+                      View Billing Options
+                    </button>
+                  </div>
+                ) : loadingCompany ? (
+                  <div className="text-center py-16 text-lightGray/50 text-xs">
+                    Loading company portfolio files...
+                  </div>
+                ) : companyPrepData ? (
+                  <div className="space-y-6 animate-in fade-in duration-200">
+                    <div className="flex justify-between items-center p-4 bg-background/50 border border-white/5 rounded-xl text-xs">
+                      <div>
+                        <div className="font-bold text-white text-sm">{companyPrepData.name} Modules</div>
+                        <div className="text-lightGray/60 mt-1">{companyPrepData.roundDetails}</div>
+                      </div>
+                      <span className="px-2.5 py-0.5 bg-white text-background text-[9px] font-black rounded uppercase">Difficulty: {companyPrepData.difficulty}</span>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-xs">
+                      {/* Aptitude */}
+                      <div className="p-4 bg-background/40 border border-white/5 rounded-xl space-y-3">
+                        <h4 className="font-bold text-white uppercase tracking-wider pb-2 border-b border-white/5">1. Quantitative Aptitude</h4>
+                        <ul className="space-y-2 text-lightGray/70">
+                          {companyPrepData.aptitudePrep.map((a, i) => <li key={i} className="leading-relaxed">• {a}</li>)}
+                        </ul>
+                      </div>
+
+                      {/* Technical */}
+                      <div className="p-4 bg-background/40 border border-white/5 rounded-xl space-y-3">
+                        <h4 className="font-bold text-white uppercase tracking-wider pb-2 border-b border-white/5">2. Tech Round Questions</h4>
+                        <ul className="space-y-2 text-lightGray/70">
+                          {companyPrepData.technicalQuestions.map((t, i) => <li key={i} className="leading-relaxed">• {t}</li>)}
+                        </ul>
+                      </div>
+
+                      {/* HR */}
+                      <div className="p-4 bg-background/40 border border-white/5 rounded-xl space-y-3">
+                        <h4 className="font-bold text-white uppercase tracking-wider pb-2 border-b border-white/5">3. HR Behavioral Puzzles</h4>
+                        <ul className="space-y-2 text-lightGray/70">
+                          {companyPrepData.hrQuestions.map((h, i) => <li key={i} className="leading-relaxed">• {h}</li>)}
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+                ) : null}
+              </motion.div>
+            )}
+
+            {/* BILLING & SUBSCRIPTIONS TAB */}
+            {activeTab === 'billing' && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                className="grid grid-cols-1 lg:grid-cols-12 gap-8"
+              >
+                {/* Stripe Plan Matrices */}
+                <div className="lg:col-span-8 p-6 bg-secondaryBg/30 border border-white/5 rounded-xl space-y-6">
+                  <div>
+                    <h3 className="text-sm font-bold text-white uppercase tracking-wider">SaaS Premium Billing Matrix</h3>
+                    <p className="text-xs text-lightGray/55 mt-0.5">Select and unlock advanced AI configurations</p>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 items-stretch">
+                    {/* Free */}
+                    <div className="p-5 bg-background/50 border border-white/5 rounded-xl flex flex-col justify-between text-xs">
+                      <div className="space-y-4">
+                        <div>
+                          <div className="font-bold text-white">Free Plan</div>
+                          <div className="text-[10px] text-lightGray/40">Core access checks</div>
+                        </div>
+                        <div className="text-2xl font-black text-white">₹0</div>
+                        <ul className="space-y-1.5 text-lightGray/60 text-[10px]">
+                          <li>• 3 mock interviews / day</li>
+                          <li>• 1 resume analysis / day</li>
+                          <li>• Limited coding problem sets</li>
+                        </ul>
+                      </div>
+                      <button 
+                        disabled 
+                        className="w-full mt-6 py-2 bg-secondaryBg text-lightGray/40 font-bold rounded border border-white/5 cursor-not-allowed"
+                      >
+                        Active Tier
+                      </button>
+                    </div>
+
+                    {/* Pro */}
+                    <div className={`p-5 bg-background/60 border rounded-xl flex flex-col justify-between text-xs relative ${
+                      userProfile?.subscription === 'Pro' ? 'border-white' : 'border-white/5'
+                    }`}>
+                      {userProfile?.subscription === 'Pro' && (
+                        <span className="absolute top-0 right-4 -translate-y-1/2 px-2 py-0.5 rounded bg-white text-background text-[8px] font-black uppercase tracking-wider">Active</span>
+                      )}
+                      <div className="space-y-4">
+                        <div>
+                          <div className="font-bold text-white">Pro Plan</div>
+                          <div className="text-[10px] text-lightGray/40">Thorough training track</div>
+                        </div>
+                        <div className="text-2xl font-black text-white">₹199<span className="text-[10px] text-lightGray/40">/month</span></div>
+                        <ul className="space-y-1.5 text-lightGray/60 text-[10px]">
+                          <li>• Unlimited interviews</li>
+                          <li>• Voice interview formats</li>
+                          <li>• Full ATS Resume checks</li>
+                          <li>• Company prep files</li>
+                        </ul>
+                      </div>
+                      <button
+                        onClick={() => handleSubscribe('Pro')}
+                        disabled={upgrading || userProfile?.subscription === 'Pro' || userProfile?.subscription === 'Premium'}
+                        className="w-full mt-6 py-2 bg-white text-background hover:bg-lightGray font-bold rounded transition-colors disabled:opacity-40"
+                      >
+                        {userProfile?.subscription === 'Pro' ? 'Current Active' : userProfile?.subscription === 'Premium' ? 'Downgrade Access' : 'Upgrade to Pro'}
+                      </button>
+                    </div>
+
+                    {/* Premium */}
+                    <div className={`p-5 bg-background/60 border rounded-xl flex flex-col justify-between text-xs relative ${
+                      userProfile?.subscription === 'Premium' ? 'border-white' : 'border-white/5'
+                    }`}>
+                      {userProfile?.subscription === 'Premium' && (
+                        <span className="absolute top-0 right-4 -translate-y-1/2 px-2 py-0.5 rounded bg-white text-background text-[8px] font-black uppercase tracking-wider">Active</span>
+                      )}
+                      <div className="space-y-4">
+                        <div>
+                          <div className="font-bold text-white">Premium Plan</div>
+                          <div className="text-[10px] text-lightGray/40">AI career placement sets</div>
+                        </div>
+                        <div className="text-2xl font-black text-white">₹499<span className="text-[10px] text-lightGray/40">/month</span></div>
+                        <ul className="space-y-1.5 text-lightGray/60 text-[10px]">
+                          <li>• Everything in Pro tier</li>
+                          <li>• 24/7 AI Career Coach</li>
+                          <li>• Priority code sandbox</li>
+                          <li>• Deep progress charts</li>
+                        </ul>
+                      </div>
+                      <button
+                        onClick={() => handleSubscribe('Premium')}
+                        disabled={upgrading || userProfile?.subscription === 'Premium'}
+                        className="w-full mt-6 py-2 bg-white text-background hover:bg-lightGray font-bold rounded transition-colors disabled:opacity-40"
+                      >
+                        {userProfile?.subscription === 'Premium' ? 'Current Active' : 'Upgrade Premium'}
+                      </button>
+                    </div>
+                  </div>
+
+                  {userProfile?.subscription !== 'Free' && (
+                    <div className="pt-4 border-t border-white/5 flex justify-end">
+                      <button
+                        onClick={handleCancelSub}
+                        className="text-xs text-rose-400/80 hover:text-rose-400 font-medium transition-colors"
+                      >
+                        Cancel Active Subscription Tier
+                      </button>
+                    </div>
+                  )}
+                </div>
+
+                {/* Billing invoice history logs */}
+                <div className="lg:col-span-4 p-6 bg-secondaryBg/30 border border-white/5 rounded-xl flex flex-col justify-between">
+                  <div>
+                    <h3 className="text-sm font-bold text-white uppercase tracking-wider mb-4 flex items-center gap-2">
+                      <Clock size={16} /> Invoices History
+                    </h3>
+
+                    <div className="space-y-3.5 text-xs max-h-56 overflow-y-auto pr-1">
+                      {billingInfo.history.length > 0 ? (
+                        billingInfo.history.map((inv) => (
+                          <div key={inv.id} className="p-3 bg-background/50 border border-white/5 rounded-lg flex items-center justify-between">
+                            <div>
+                              <div className="font-bold text-white/90">{inv.plan}</div>
+                              <div className="text-[9px] text-lightGray/40 mt-1">Date: {inv.date}</div>
+                            </div>
+                            <div className="text-right">
+                              <div className="font-bold text-white">{inv.amount}</div>
+                              <span className="text-[9px] text-emerald-400 font-semibold uppercase">Paid</span>
+                            </div>
+                          </div>
+                        ))
+                      ) : (
+                        <div className="text-center py-12 text-lightGray/40">
+                          No paid invoices logged. Available on subscription activations.
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="pt-4 text-[10px] text-lightGray/40 leading-relaxed font-mono flex items-start gap-1.5">
+                    <Info size={12} className="flex-shrink-0" />
+                    <span>Invoices will dynamically synchronize to your mail inbox upon card authorizations.</span>
                   </div>
                 </div>
-              );
-            })}
-          </div>
+              </motion.div>
+            )}
+
+            {/* PROFILE TAB */}
+            {activeTab === 'profile' && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                className="max-w-xl mx-auto p-6 bg-secondaryBg/30 border border-white/5 rounded-xl"
+              >
+                <div className="border-b border-white/5 pb-4 mb-6">
+                  <h3 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
+                    <User size={16} /> Edit Profile Credentials
+                  </h3>
+                  <p className="text-xs text-lightGray/55 mt-0.5">Customize target roles, education structures, and skill stacks</p>
+                </div>
+
+                <form onSubmit={handleProfileSubmit} className="space-y-4 text-xs">
+                  {profileMsg && (
+                    <div className="p-3 bg-white/5 border border-white/10 rounded-lg text-center font-semibold text-white">
+                      {profileMsg}
+                    </div>
+                  )}
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold text-lightGray/50 uppercase">Professional Name</label>
+                      <input
+                        type="text"
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        className="w-full bg-background/50 text-white rounded-lg p-3 border border-white/5 focus:outline-none focus:border-white/30"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[10px] font-bold text-lightGray/50 uppercase">Target Career Role</label>
+                      <select
+                        value={targetRole}
+                        onChange={(e) => setTargetRole(e.target.value)}
+                        className="w-full bg-background/50 text-white rounded-lg p-3 border border-white/5 focus:outline-none focus:border-white/30 appearance-none font-sans"
+                      >
+                        <option value="Frontend Engineer">Frontend Engineer</option>
+                        <option value="Backend Engineer">Backend Engineer</option>
+                        <option value="Fullstack Developer">Fullstack Developer</option>
+                        <option value="System Design Architect">System Design Architect</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-lightGray/50 uppercase">Education background</label>
+                    <input
+                      type="text"
+                      value={education}
+                      onChange={(e) => setEducation(e.target.value)}
+                      placeholder="e.g. B.S. in Computer Science from Stanford (Graduated 2024)"
+                      className="w-full bg-background/50 text-white rounded-lg p-3 border border-white/5 focus:outline-none focus:border-white/30"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[10px] font-bold text-lightGray/50 uppercase">Current Skill Stacks (comma separated)</label>
+                    <textarea
+                      value={skillsText}
+                      onChange={(e) => setSkillsText(e.target.value)}
+                      placeholder="React, JavaScript, TypeScript, Redux, TailwindCSS, Django"
+                      className="w-full h-24 bg-background/50 text-white rounded-lg p-3 border border-white/5 focus:outline-none focus:border-white/30 resize-none font-sans"
+                    />
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={updatingProfile}
+                    className="w-full py-3 bg-white text-background hover:bg-lightGray font-black uppercase text-[11px] rounded-lg transition-all text-center flex items-center justify-center gap-1.5"
+                  >
+                    {updatingProfile && <span className="w-3.5 h-3.5 rounded-full border-2 border-background border-t-transparent animate-spin" />}
+                    Save Profile Synchronization
+                  </button>
+                </form>
+              </motion.div>
+            )}
+
+          </AnimatePresence>
         </div>
 
       </div>

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import Navbar from './components/Navbar';
 import Hero from './components/Hero';
 import Features from './components/Features';
@@ -13,157 +14,52 @@ import FAQ from './components/FAQ';
 import Footer from './components/Footer';
 import DashboardPortal from './components/DashboardPortal';
 import AuthScreen from './components/AuthScreen';
+import AdminDashboard from './components/AdminDashboard';
+import { PaymentSuccess, PaymentCancel } from './components/CheckoutStatus';
+import { useAuth } from './context/AuthContext';
 
-export default function App() {
-  // Authentication & session state
-  const [userProfile, setUserProfile] = useState(() => {
-    const saved = localStorage.getItem('interviewace_user');
-    return saved ? JSON.parse(saved) : null;
-  });
-  
-  const [showAuthModal, setShowAuthModal] = useState(false);
-  const [currentView, setCurrentView] = useState('landing'); // 'landing' or 'dashboard-portal'
-  
-  // Stats states loaded from localStorage
-  const [solvedProblems, setSolvedProblems] = useState(() => {
-    const saved = localStorage.getItem('interviewace_solved');
-    return saved ? new Set(JSON.parse(saved)) : new Set();
-  });
+function MainAppLayout({
+  solvedProblems,
+  handleSolveProblem,
+  atsScore,
+  handleAtsScoreChange,
+  handleInterviewComplete,
+  selectedProblemIndex,
+  setSelectedProblemIndex,
+  currentView,
+  setCurrentView,
+  showAuthModal,
+  setShowAuthModal,
+  handleAuthSuccess
+}) {
+  const { userProfile, logout } = useAuth();
+  const navigate = useNavigate();
 
-  const [atsScore, setAtsScore] = useState(() => {
-    const saved = localStorage.getItem('interviewace_ats');
-    return saved ? Number(saved) : 78;
-  });
+  // Stats states loaded from localStorage fallback
+  const nameInitials = userProfile?.name
+    ? userProfile.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase()
+    : 'US';
 
-  const [completedInterviews, setCompletedInterviews] = useState(() => {
-    const saved = localStorage.getItem('interviewace_interviews');
-    return saved ? JSON.parse(saved) : [];
-  });
-
-  const [recentActivity, setRecentActivity] = useState(() => {
-    const saved = localStorage.getItem('interviewace_activity');
-    return saved ? JSON.parse(saved) : [];
-  });
-
-  const [selectedProblemIndex, setSelectedProblemIndex] = useState(0);
-
-  // Sync to localStorage
-  useEffect(() => {
-    if (userProfile) {
-      localStorage.setItem('interviewace_user', JSON.stringify(userProfile));
-    } else {
-      localStorage.removeItem('interviewace_user');
-    }
-  }, [userProfile]);
-
-  useEffect(() => {
-    localStorage.setItem('interviewace_solved', JSON.stringify(Array.from(solvedProblems)));
-  }, [solvedProblems]);
-
-  useEffect(() => {
-    localStorage.setItem('interviewace_ats', atsScore.toString());
-  }, [atsScore]);
-
-  useEffect(() => {
-    localStorage.setItem('interviewace_interviews', JSON.stringify(completedInterviews));
-  }, [completedInterviews]);
-
-  useEffect(() => {
-    localStorage.setItem('interviewace_activity', JSON.stringify(recentActivity));
-  }, [recentActivity]);
-
-  // Auth actions
-  const handleAuthSuccess = (profile) => {
-    setUserProfile(profile);
-    setShowAuthModal(false);
-    setCurrentView('dashboard-portal');
-    
-    const timestamp = new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
-    setRecentActivity(logs => [
-      {
-        type: 'auth',
-        title: `Signed in as ${profile.name}`,
-        time: `Today at ${timestamp}`
-      },
-      ...logs
-    ]);
-  };
-
-  const handleLogout = () => {
-    localStorage.clear();
-    setUserProfile(null);
-    setSolvedProblems(new Set());
-    setAtsScore(78);
-    setCompletedInterviews([]);
-    setRecentActivity([]);
+  const handleLogout = async () => {
+    await logout();
     setCurrentView('landing');
-  };
-
-  // View switches
-  const handleViewChange = (view) => {
-    if (view === 'dashboard-portal' && !userProfile) {
-      setShowAuthModal(true);
-    } else {
-      setCurrentView(view);
-    }
-  };
-
-  // Sync callbacks
-  const handleSolveProblem = (id, title) => {
-    setSolvedProblems(prev => {
-      const next = new Set(prev);
-      if (!next.has(id)) {
-        next.add(id);
-        
-        // Log activity history
-        const timestamp = new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
-        setRecentActivity(logs => [
-          {
-            type: 'code',
-            title: `Solved challenge: ${title.replace(/^\d+\.\s*/, '')}`,
-            time: `Today at ${timestamp}`
-          },
-          ...logs
-        ]);
-      }
-      return next;
-    });
-  };
-
-  const handleAtsScoreChange = (newScore, reason) => {
-    setAtsScore(newScore);
-    
-    // Log activity history
-    const timestamp = new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
-    setRecentActivity(logs => [
-      {
-        type: 'resume',
-        title: `${reason} (ATS: ${newScore}/100)`,
-        time: `Today at ${timestamp}`
-      },
-      ...logs
-    ]);
-  };
-
-  const handleInterviewComplete = (data) => {
-    setCompletedInterviews(prev => [...prev, data]);
-
-    // Log activity history
-    const timestamp = new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
-    setRecentActivity(logs => [
-      {
-        type: 'interview',
-        title: `Completed ${data.type} (Score: ${data.score}%)`,
-        time: `Today at ${timestamp}`
-      },
-      ...logs
-    ]);
+    navigate('/');
   };
 
   return (
     <div className="bg-background min-h-screen text-white selection:bg-white selection:text-background overflow-hidden">
       {/* Navigation Bar */}
-      <Navbar currentView={currentView} onViewChange={handleViewChange} />
+      <Navbar 
+        currentView={currentView} 
+        onViewChange={(view) => {
+          if (view === 'dashboard-portal' && !userProfile) {
+            setShowAuthModal(true);
+          } else {
+            setCurrentView(view);
+            navigate('/');
+          }
+        }} 
+      />
 
       {currentView === 'landing' ? (
         <main>
@@ -173,7 +69,7 @@ export default function App() {
           {/* Core Product Features */}
           <Features />
 
-          {/* Multi-step preparation walkthrough */}
+          {/* Multi-step walkthrough */}
           <HowItWorks />
 
           {/* Live Mock Interview Simulator */}
@@ -190,16 +86,16 @@ export default function App() {
             onSelectProblemIndex={setSelectedProblemIndex}
           />
 
-          {/* Integrated Candidate Progress Dashboard Showcase */}
+          {/* candidate progress preview */}
           <DashboardPreview />
 
-          {/* Student Testimonials Success Showcase */}
+          {/* testimonials success show */}
           <Testimonials />
 
-          {/* Premium Subscription Pricing Matrices */}
+          {/* pricing matrix */}
           <Pricing />
 
-          {/* Collapsible FAQ Panels */}
+          {/* FAQ panels */}
           <FAQ />
         </main>
       ) : (
@@ -207,11 +103,17 @@ export default function App() {
           {/* User's Dedicated Active Dashboard Workspace */}
           <DashboardPortal 
             solvedProblems={solvedProblems}
-            recentActivity={recentActivity}
+            recentActivity={[]}
             atsScore={atsScore}
-            completedInterviews={completedInterviews}
+            completedInterviews={[]}
             onSelectProblem={setSelectedProblemIndex}
-            onViewChange={handleViewChange}
+            onViewChange={(view) => {
+              if (view === 'admin') {
+                navigate('/admin');
+              } else {
+                setCurrentView(view);
+              }
+            }}
             userProfile={userProfile}
             onLogout={handleLogout}
           />
@@ -226,8 +128,116 @@ export default function App() {
         />
       )}
 
-      {/* Corporate Footnotes and Links */}
       <Footer />
     </div>
+  );
+}
+
+export default function App() {
+  const { userProfile, loading } = useAuth();
+  const navigate = useNavigate();
+
+  const [currentView, setCurrentView] = useState('landing');
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [selectedProblemIndex, setSelectedProblemIndex] = useState(0);
+
+  // States synchronized dynamically
+  const [solvedProblems, setSolvedProblems] = useState(() => {
+    const saved = localStorage.getItem('interviewace_solved');
+    return saved ? new Set(JSON.parse(saved)) : new Set();
+  });
+
+  const [atsScore, setAtsScore] = useState(() => {
+    const saved = localStorage.getItem('interviewace_ats');
+    return saved ? Number(saved) : 78;
+  });
+
+  // Sync back to local storage
+  useEffect(() => {
+    localStorage.setItem('interviewace_solved', JSON.stringify(Array.from(solvedProblems)));
+  }, [solvedProblems]);
+
+  useEffect(() => {
+    localStorage.setItem('interviewace_ats', atsScore.toString());
+  }, [atsScore]);
+
+  // Handle redirects on login trigger
+  useEffect(() => {
+    if (userProfile && currentView === 'landing') {
+      setCurrentView('dashboard-portal');
+    }
+  }, [userProfile]);
+
+  const handleSolveProblem = (id, title) => {
+    setSolvedProblems(prev => {
+      const next = new Set(prev);
+      next.add(id);
+      return next;
+    });
+  };
+
+  const handleAtsScoreChange = (newScore) => {
+    setAtsScore(newScore);
+  };
+
+  const handleInterviewComplete = () => {
+    // Reload metrics logs
+  };
+
+  const handleAuthSuccess = (profile) => {
+    setShowAuthModal(false);
+    setCurrentView('dashboard-portal');
+    navigate('/');
+  };
+
+  const handleLogout = async () => {
+    setCurrentView('landing');
+    navigate('/');
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex flex-col items-center justify-center text-white font-mono text-xs gap-3">
+        <div className="w-8 h-8 rounded-full border-2 border-white/5 border-t-white animate-spin" />
+        Loading candidate workspace session...
+      </div>
+    );
+  }
+
+  return (
+    <Routes>
+      <Route 
+        path="/" 
+        element={
+          <MainAppLayout
+            solvedProblems={solvedProblems}
+            handleSolveProblem={handleSolveProblem}
+            atsScore={atsScore}
+            handleAtsScoreChange={handleAtsScoreChange}
+            handleInterviewComplete={handleInterviewComplete}
+            selectedProblemIndex={selectedProblemIndex}
+            setSelectedProblemIndex={setSelectedProblemIndex}
+            currentView={currentView}
+            setCurrentView={setCurrentView}
+            showAuthModal={showAuthModal}
+            setShowAuthModal={setShowAuthModal}
+            handleAuthSuccess={handleAuthSuccess}
+          />
+        } 
+      />
+      <Route path="/checkout/success" element={<PaymentSuccess />} />
+      <Route path="/checkout/cancel" element={<PaymentCancel />} />
+      <Route 
+        path="/admin" 
+        element={
+          userProfile && userProfile.role === 'Admin' ? (
+            <AdminDashboard onLogout={handleLogout} />
+          ) : (
+            <Navigate to="/" replace />
+          )
+        } 
+      />
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
   );
 }

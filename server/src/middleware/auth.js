@@ -1,0 +1,94 @@
+import jwt from 'jsonwebtoken';
+import { admin, firebaseAdmin } from '../config/firebase.js';
+import User from '../models/User.js';
+
+export const protect = async (req, res, next) => {
+  let token;
+
+  if (
+    req.headers.authorization &&
+    req.headers.authorization.startsWith('Bearer')
+  ) {
+    try {
+      token = req.headers.authorization.split(' ')[1];
+
+      // 1. Mock Authentication Fallback for local development/testing
+      if (token.startsWith('mock-token')) {
+        const parts = token.split(':');
+        const email = parts[1] || 'student@interviewace.ai';
+        const name = parts[2] || 'Student Candidate';
+        const role = parts[3] || 'Student';
+        const targetRole = parts[4] || 'Frontend Engineer';
+        const firebaseId = `firebase-mock-id-${email}`;
+
+        let user = await User.findOne({ firebaseId });
+        if (!user) {
+          user = await User.create({
+            firebaseId,
+            email,
+            name,
+            role,
+            targetRole,
+            subscription: 'Free'
+          });
+        }
+        req.user = user;
+        return next();
+      }
+
+      // 2. Custom signed JWT (issued by backend when Firebase Admin is not configured)
+      try {
+        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'local_dev_jwt_secret_interviewace_2026');
+        const user = await User.findById(decoded.id);
+        if (user) {
+          req.user = user;
+          return next();
+        }
+      } catch (jwtErr) {
+        // Token might be a Firebase ID token instead, continue to Firebase verify
+      }
+
+      // 3. Firebase ID Token Verification
+      if (firebaseAdmin) {
+        try {
+          const decodedToken = await admin.auth().verifyIdToken(token);
+          const { uid, email, name, picture } = decodedToken;
+
+          // Find or create user in DB
+          let user = await User.findOne({ firebaseId: uid });
+          if (!user) {
+            user = await User.create({
+              firebaseId: uid,
+              email: email || `${uid}@interviewace.ai`,
+              name: name || email?.split('@')[0] || 'Candidate',
+              role: 'Student', // Default role
+              subscription: 'Free'
+            });
+          }
+          req.user = user;
+          return next();
+        } catch (fbErr) {
+          return res.status(401).json({ message: 'Not authorized, Firebase token verification failed' });
+        }
+      }
+
+      return res.status(401).json({ message: 'Not authorized, token verification failed' });
+    } catch (error) {
+      console.error('Auth protection middleware error:', error.message);
+      return res.status(401).json({ message: 'Not authorized, token failed' });
+    }
+  }
+
+  if (!token) {
+    return res.status(401).json({ message: 'Not authorized, no token provided' });
+  }
+};
+
+// Admin protection middleware
+export const adminOnly = (req, res, next) => {
+  if (req.user && req.user.role === 'Admin') {
+    next();
+  } else {
+    res.status(403).json({ message: 'Not authorized as an admin' });
+  }
+};

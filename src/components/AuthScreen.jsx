@@ -1,13 +1,20 @@
 import React, { useState } from 'react';
-import { Terminal, Mail, Lock, User, Briefcase, Github, Globe } from 'lucide-react';
+import { Terminal, Mail, Lock, User, Briefcase, Github, Globe, AlertCircle } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
+import { isFirebaseConfigured } from '../config/firebase';
 
 export default function AuthScreen({ onAuthSuccess, onClose }) {
+  const { login, signup, loginWithGoogle, resetPassword } = useAuth();
+  
   const [isSignUp, setIsSignUp] = useState(false);
+  const [isForgotPassword, setIsForgotPassword] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [name, setName] = useState('');
   const [role, setRole] = useState('Frontend Engineer');
   const [errorMsg, setErrorMsg] = useState('');
+  const [successMsg, setSuccessMsg] = useState('');
+  const [loading, setLoading] = useState(false);
 
   const roles = [
     'Frontend Engineer',
@@ -18,17 +25,36 @@ export default function AuthScreen({ onAuthSuccess, onClose }) {
     'HR & Talent Manager'
   ];
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setErrorMsg('');
+    setSuccessMsg('');
 
-    if (!email.trim() || !password.trim()) {
-      setErrorMsg('Please fill in all credentials fields.');
+    if (!email.trim()) {
+      setErrorMsg('Please enter your email address.');
+      return;
+    }
+
+    if (isForgotPassword) {
+      setLoading(true);
+      try {
+        await resetPassword(email);
+        setSuccessMsg('A password reset link has been dispatched to your email address.');
+      } catch (err) {
+        setErrorMsg(err.message || 'Failed to dispatch reset email.');
+      } finally {
+        setLoading(false);
+      }
+      return;
+    }
+
+    if (!password.trim()) {
+      setErrorMsg('Please enter your password.');
       return;
     }
 
     if (password.length < 6) {
-      setErrorMsg('Password must be at least 6 characters.');
+      setErrorMsg('Password must be at least 6 characters long.');
       return;
     }
 
@@ -37,19 +63,39 @@ export default function AuthScreen({ onAuthSuccess, onClose }) {
       return;
     }
 
-    onAuthSuccess({
-      email,
-      name: isSignUp ? name : email.split('@')[0],
-      role: isSignUp ? role : 'Technical Specialist'
-    });
+    setLoading(true);
+    try {
+      let profile;
+      if (isSignUp) {
+        profile = await signup(email, password, name, role);
+      } else {
+        profile = await login(email, password);
+      }
+      
+      if (onAuthSuccess) {
+        onAuthSuccess(profile);
+      }
+    } catch (err) {
+      setErrorMsg(err.response?.data?.message || err.message || 'Authentication failed. Please verify credentials.');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleSocialMock = (provider) => {
-    onAuthSuccess({
-      email: `${provider.toLowerCase()}User@example.com`,
-      name: `${provider} Candidate`,
-      role: 'Frontend Engineer'
-    });
+  const handleGoogleSignIn = async () => {
+    setErrorMsg('');
+    setSuccessMsg('');
+    setLoading(true);
+    try {
+      const profile = await loginWithGoogle();
+      if (onAuthSuccess) {
+        onAuthSuccess(profile);
+      }
+    } catch (err) {
+      setErrorMsg(err.message || 'Google Auth Connection failed.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -67,17 +113,31 @@ export default function AuthScreen({ onAuthSuccess, onClose }) {
         )}
 
         {/* Branding Logo */}
-        <div className="flex flex-col items-center mb-8">
+        <div className="flex flex-col items-center mb-6">
           <div className="p-3 bg-white text-background rounded-xl mb-3">
             <Terminal size={22} className="stroke-[2.5]" />
           </div>
           <h2 className="text-xl font-bold tracking-tight text-white">
             InterviewAce<span className="text-accent">.AI</span>
           </h2>
-          <p className="text-xs text-lightGray/55 mt-1">
-            {isSignUp ? "Create your workspace account" : "Log in to your workspace"}
+          <p className="text-xs text-lightGray/55 mt-1 text-center">
+            {isForgotPassword 
+              ? "Recover access to your credentials" 
+              : isSignUp 
+                ? "Create your professional preparation workspace" 
+                : "Log in to your candidate workspace"}
           </p>
         </div>
+
+        {/* Local Developer mock warning */}
+        {!isFirebaseConfigured && (
+          <div className="p-3 mb-4 bg-white/5 border border-white/10 rounded-lg text-[10px] text-lightGray/70 flex items-start gap-2">
+            <AlertCircle size={14} className="text-white mt-0.5 flex-shrink-0" />
+            <div>
+              <span className="font-bold text-white">Developer Sandbox Mode:</span> Firebase Config is empty. Local credentials will automatically generate local DB test sync logins.
+            </div>
+          </div>
+        )}
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -87,7 +147,13 @@ export default function AuthScreen({ onAuthSuccess, onClose }) {
             </div>
           )}
 
-          {isSignUp && (
+          {successMsg && (
+            <div className="p-3 bg-emerald-950/40 border border-emerald-900/50 rounded-lg text-xs text-emerald-300 leading-relaxed text-center">
+              {successMsg}
+            </div>
+          )}
+
+          {isSignUp && !isForgotPassword && (
             <>
               {/* Name */}
               <div>
@@ -96,6 +162,7 @@ export default function AuthScreen({ onAuthSuccess, onClose }) {
                   <User size={14} className="absolute left-3 top-3.5 text-lightGray/40" />
                   <input
                     type="text"
+                    required
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     placeholder="Sarah Chen"
@@ -128,6 +195,7 @@ export default function AuthScreen({ onAuthSuccess, onClose }) {
               <Mail size={14} className="absolute left-3 top-3.5 text-lightGray/40" />
               <input
                 type="email"
+                required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="name@example.com"
@@ -137,62 +205,87 @@ export default function AuthScreen({ onAuthSuccess, onClose }) {
           </div>
 
           {/* Password */}
-          <div>
-            <label className="block text-[10px] font-bold text-lightGray/50 uppercase mb-1.5">Password</label>
-            <div className="relative">
-              <Lock size={14} className="absolute left-3 top-3.5 text-lightGray/40" />
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
-                className="w-full bg-background/50 text-white rounded-lg pl-9 pr-3 py-3 text-xs border border-white/5 focus:outline-none focus:border-white/30 font-sans"
-              />
+          {!isForgotPassword && (
+            <div>
+              <div className="flex justify-between items-center mb-1.5">
+                <label className="block text-[10px] font-bold text-lightGray/50 uppercase">Password</label>
+                <button
+                  type="button"
+                  onClick={() => { setIsForgotPassword(true); setErrorMsg(''); setSuccessMsg(''); }}
+                  className="text-[10px] text-lightGray/40 hover:text-white transition-colors"
+                >
+                  Forgot Password?
+                </button>
+              </div>
+              <div className="relative">
+                <Lock size={14} className="absolute left-3 top-3.5 text-lightGray/40" />
+                <input
+                  type="password"
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  className="w-full bg-background/50 text-white rounded-lg pl-9 pr-3 py-3 text-xs border border-white/5 focus:outline-none focus:border-white/30 font-sans"
+                />
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Submit */}
           <button
             type="submit"
-            className="w-full py-3 bg-white text-background hover:bg-lightGray font-bold text-xs rounded-lg transition-all"
+            disabled={loading}
+            className="w-full py-3 bg-white text-background hover:bg-lightGray font-bold text-xs rounded-lg transition-all disabled:opacity-50 flex items-center justify-center gap-2"
           >
-            {isSignUp ? "Create Account" : "Access Workspace"}
+            {loading && <span className="w-3.5 h-3.5 rounded-full border-2 border-background border-t-transparent animate-spin" />}
+            {isForgotPassword 
+              ? "Send Reset Link" 
+              : isSignUp 
+                ? "Create Account" 
+                : "Access Workspace"}
           </button>
         </form>
 
         {/* Divider */}
-        <div className="flex items-center my-6">
-          <div className="flex-1 h-[1px] bg-white/5" />
-          <span className="px-3 text-[10px] text-lightGray/30 uppercase font-mono font-bold">Or connect via</span>
-          <div className="flex-1 h-[1px] bg-white/5" />
-        </div>
+        {!isForgotPassword && (
+          <>
+            <div className="flex items-center my-5">
+              <div className="flex-1 h-[1px] bg-white/5" />
+              <span className="px-3 text-[9px] text-lightGray/30 uppercase font-mono font-bold">Or connect via</span>
+              <div className="flex-1 h-[1px] bg-white/5" />
+            </div>
 
-        {/* Social Mock Connection */}
-        <div className="grid grid-cols-2 gap-3 mb-6">
-          <button
-            onClick={() => handleSocialMock('GitHub')}
-            className="flex items-center justify-center gap-2 py-2.5 glassmorphism border border-white/5 rounded-lg text-xs font-semibold text-white hover:bg-white/5 transition-all"
-          >
-            <Github size={14} />
-            GitHub
-          </button>
-          <button
-            onClick={() => handleSocialMock('Google')}
-            className="flex items-center justify-center gap-2 py-2.5 glassmorphism border border-white/5 rounded-lg text-xs font-semibold text-white hover:bg-white/5 transition-all"
-          >
-            <Globe size={14} />
-            Google
-          </button>
-        </div>
+            {/* Google Authentication */}
+            <button
+              onClick={handleGoogleSignIn}
+              disabled={loading}
+              className="w-full flex items-center justify-center gap-2 py-2.5 glassmorphism border border-white/5 rounded-lg text-xs font-semibold text-white hover:bg-white/5 transition-all disabled:opacity-50"
+            >
+              <Globe size={14} />
+              Continue with Google Account
+            </button>
+          </>
+        )}
 
-        {/* Swap Toggle */}
-        <div className="text-center pt-2 border-t border-white/5">
-          <button
-            onClick={() => { setIsSignUp(!isSignUp); setErrorMsg(''); }}
-            className="text-[11px] text-lightGray/50 hover:text-white font-medium transition-colors"
-          >
-            {isSignUp ? "Already have an account? Log In" : "Don't have an account? Sign Up"}
-          </button>
+        {/* Swap Toggles */}
+        <div className="text-center pt-4 mt-6 border-t border-white/5 flex flex-col gap-2">
+          {isForgotPassword ? (
+            <button
+              type="button"
+              onClick={() => { setIsForgotPassword(false); setErrorMsg(''); setSuccessMsg(''); }}
+              className="text-[11px] text-lightGray/50 hover:text-white font-medium transition-colors"
+            >
+              Return to Login Page
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => { setIsSignUp(!isSignUp); setErrorMsg(''); setSuccessMsg(''); }}
+              className="text-[11px] text-lightGray/50 hover:text-white font-medium transition-colors"
+            >
+              {isSignUp ? "Already have an account? Log In" : "Don't have an account? Sign Up"}
+            </button>
+          )}
         </div>
 
       </div>

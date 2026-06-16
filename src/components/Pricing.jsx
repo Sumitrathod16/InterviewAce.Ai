@@ -1,8 +1,11 @@
 import React, { useState } from 'react';
 import { Check, Info } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
+import API from '../services/api';
 
 const PLANS = [
   {
+    id: 'Free',
     name: 'Free Plan',
     monthlyPrice: 0,
     yearlyPrice: 0,
@@ -11,37 +14,39 @@ const PLANS = [
       '3 AI mock interviews per day',
       'Standard performance rating feedback',
       'Basic coding sandbox challenges',
-      'Community forum support'
+      '1 ATS Resume Analysis per day'
     ],
     cta: 'Start Free Practice',
     highlighted: false
   },
   {
+    id: 'Pro',
     name: 'Pro Plan',
-    monthlyPrice: 29,
-    yearlyPrice: 23,
+    monthlyPrice: 199,
+    yearlyPrice: 159,
     desc: 'For active applicants seeking thorough training.',
     features: [
       'Unlimited AI mock interviews',
       'Full ATS Resume Analyzer compatibility',
       'AI Voice interview simulations',
-      'Company-specific interview sets',
+      'Company-specific preparation tracks',
       'Advanced coding runtime diagnostics'
     ],
     cta: 'Get Pro Access',
     highlighted: true
   },
   {
+    id: 'Premium',
     name: 'Premium Plan',
-    monthlyPrice: 59,
-    yearlyPrice: 47,
+    monthlyPrice: 499,
+    yearlyPrice: 399,
     desc: 'For career switchers wanting specialized support.',
     features: [
       'Everything in Pro plan',
       '24/7 Personal AI Career Coach guidance',
       'Granular performance reports',
       'Priority support response',
-      '1-on-1 resume revision triggers'
+      'Unlimited resume revision scans'
     ],
     cta: 'Get Premium Access',
     highlighted: false
@@ -49,7 +54,42 @@ const PLANS = [
 ];
 
 export default function Pricing() {
+  const { userProfile } = useAuth();
   const [billingPeriod, setBillingPeriod] = useState('monthly'); // monthly, yearly
+  const [loadingPlan, setLoadingPlan] = useState('');
+
+  const handlePlanSelect = async (planId) => {
+    if (planId === 'Free') {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      return;
+    }
+
+    if (!userProfile) {
+      // Prompt sign-in modal
+      const navbarDashboardBtn = document.querySelector('[title="Workspace Active"]') || document.querySelector('button:has(svg)');
+      if (navbarDashboardBtn) {
+        navbarDashboardBtn.click();
+      } else {
+        alert('Please log in from the top dashboard portal to purchase subscriptions.');
+      }
+      return;
+    }
+
+    setLoadingPlan(planId);
+    try {
+      const response = await API.post('/payments/checkout', {
+        planName: planId,
+        billingPeriod
+      });
+      // Redirect to Stripe checkout URL or local mock success fallback
+      window.location.href = response.data.url;
+    } catch (err) {
+      console.error(err);
+      alert('Checkout redirect failed. Ensure backend service is listening.');
+    } finally {
+      setLoadingPlan('');
+    }
+  };
 
   return (
     <section id="pricing" className="py-24 bg-secondaryBg/10 border-t border-white/5 relative">
@@ -84,11 +124,13 @@ export default function Pricing() {
 
         {/* Cards Grid */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-stretch max-w-6xl mx-auto">
-          {PLANS.map((plan, idx) => {
+          {PLANS.map((plan) => {
             const price = billingPeriod === 'monthly' ? plan.monthlyPrice : plan.yearlyPrice;
+            const isCurrent = userProfile?.subscription === plan.id;
+            
             return (
               <div 
-                key={idx} 
+                key={plan.id} 
                 className={`p-8 rounded-xl border flex flex-col justify-between transition-all duration-300 ${
                   plan.highlighted 
                     ? 'bg-secondaryBg/60 border-white shadow-2xl relative' 
@@ -109,7 +151,7 @@ export default function Pricing() {
 
                   {/* Pricing */}
                   <div className="flex items-baseline gap-1 mb-8">
-                    <span className="text-4xl font-black text-white">${price}</span>
+                    <span className="text-4xl font-black text-white">₹{price}</span>
                     <span className="text-xs text-lightGray/45 font-semibold">/ month</span>
                   </div>
 
@@ -130,13 +172,17 @@ export default function Pricing() {
                 {/* CTA */}
                 <button
                   type="button"
+                  onClick={() => handlePlanSelect(plan.id)}
+                  disabled={loadingPlan === plan.id || isCurrent}
                   className={`w-full py-3 rounded-lg text-xs sm:text-sm font-bold transition-all duration-300 ${
-                    plan.highlighted 
-                      ? 'bg-white text-background hover:bg-lightGray' 
-                      : 'glassmorphism text-white hover:bg-white/5 premium-border'
+                    isCurrent
+                      ? 'bg-emerald-950 text-emerald-400 border border-emerald-800 cursor-default'
+                      : plan.highlighted 
+                        ? 'bg-white text-background hover:bg-lightGray' 
+                        : 'glassmorphism text-white hover:bg-white/5 premium-border'
                   }`}
                 >
-                  {plan.cta}
+                  {loadingPlan === plan.id ? 'Redirecting...' : isCurrent ? 'Active Subscription' : plan.cta}
                 </button>
               </div>
             );
