@@ -6,26 +6,37 @@ import { generateQuestions, evaluateAnswer } from '../services/gemini.js';
 
 const router = express.Router();
 
-// Helper to check and increment daily interview usage limits
+// Helper to check and increment 15-day interview usage limits
 const checkDailyInterviewLimit = async (user) => {
   if (user.subscription === 'Pro' || user.subscription === 'Premium') {
     return { allowed: true };
   }
 
-  const todayStr = new Date().toDateString();
-  const lastDateStr = new Date(user.lastInterviewDate).toDateString();
+  const now = new Date();
+  const lastRefill = new Date(user.freeRefillDate || user.createdAt);
+  const diffTime = Math.abs(now - lastRefill);
 
-  let count = user.interviewCountToday;
-  if (todayStr !== lastDateStr) {
-    count = 0;
-    user.lastInterviewDate = new Date();
+  // If 15 days have elapsed, reset limits
+  if (diffTime >= 15 * 24 * 60 * 60 * 1000) {
+    user.interviewCountToday = 0;
+    user.resumeCountToday = 0;
+    user.freeRefillDate = now;
   }
 
-  if (count >= 3) {
-    return { allowed: false, message: 'Free tier limit reached (3 AI mock interviews per day). Please upgrade to Pro or Premium!' };
+  const count = user.interviewCountToday;
+  const maxFreeInterviews = 3;
+
+  if (count >= maxFreeInterviews) {
+    const nextRefillDate = new Date(lastRefill.getTime() + 15 * 24 * 60 * 60 * 1000);
+    const daysRemaining = Math.max(1, Math.ceil((nextRefillDate - now) / (1000 * 60 * 60 * 24)));
+    return { 
+      allowed: false, 
+      message: `Free student limit reached (3 AI mock interviews per 15 days). Your limits will refill in ${daysRemaining} day(s), or upgrade to Pro or Premium for unlimited access!` 
+    };
   }
 
   user.interviewCountToday = count + 1;
+  user.lastInterviewDate = now;
   await user.save();
   return { allowed: true };
 };

@@ -52,7 +52,7 @@ export const protect = async (req, res, next) => {
       if (firebaseAdmin) {
         try {
           const decodedToken = await admin.auth().verifyIdToken(token);
-          const { uid, email, name, picture } = decodedToken;
+          const { uid, email, name } = decodedToken;
 
           // Find or create user in DB
           let user = await User.findOne({ firebaseId: uid });
@@ -69,6 +69,32 @@ export const protect = async (req, res, next) => {
           return next();
         } catch (fbErr) {
           return res.status(401).json({ message: 'Not authorized, Firebase token verification failed' });
+        }
+      } else {
+        // Fallback: If Firebase Admin is not configured but a Firebase token is passed,
+        // decode the token directly (perfect for local developer test runs).
+        try {
+          const decodedToken = jwt.decode(token);
+          if (decodedToken && decodedToken.user_id) {
+            const uid = decodedToken.user_id;
+            const email = decodedToken.email;
+            const name = decodedToken.name;
+
+            let user = await User.findOne({ firebaseId: uid });
+            if (!user) {
+              user = await User.create({
+                firebaseId: uid,
+                email: email || `${uid}@interviewace.ai`,
+                name: name || email?.split('@')[0] || 'Candidate',
+                role: 'Student',
+                subscription: 'Free'
+              });
+            }
+            req.user = user;
+            return next();
+          }
+        } catch (decodeErr) {
+          // Fall through
         }
       }
 

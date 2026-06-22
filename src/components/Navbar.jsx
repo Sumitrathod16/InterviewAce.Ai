@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Menu, X, Terminal, ArrowRight, LayoutDashboard, Home } from 'lucide-react';
 
-export default function Navbar({ currentView, onViewChange }) {
+export default function Navbar({ currentView, onViewChange, onTabChange, hasUser }) {
   const [isOpen, setIsOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
 
@@ -26,6 +26,32 @@ export default function Navbar({ currentView, onViewChange }) {
     e.preventDefault();
     setIsOpen(false);
     
+    if (hasUser) {
+      let tab = '';
+      if (href === '#demo') tab = 'interviews';
+      else if (href === '#resume') tab = 'resume';
+      else if (href === '#coding') tab = 'coding';
+      else if (href === '#pricing') tab = 'billing';
+      
+      if (tab) {
+        if (currentView !== 'dashboard-portal') {
+          onViewChange('dashboard-portal');
+        }
+        if (onTabChange) {
+          onTabChange(tab);
+        }
+        return;
+      }
+      
+      // For '#features' and '#how-it-works':
+      if (currentView === 'dashboard-portal') {
+        if (onTabChange) {
+          onTabChange('overview');
+        }
+        return;
+      }
+    }
+
     if (currentView !== 'landing') {
       onViewChange('landing');
       // Delay scrolling slightly to allow the view render transition
@@ -51,7 +77,20 @@ export default function Navbar({ currentView, onViewChange }) {
         <div className="flex items-center justify-between">
           {/* Logo */}
           <button
-            onClick={() => { onViewChange('landing'); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+            onClick={() => {
+              if (hasUser) {
+                if (currentView !== 'dashboard-portal') {
+                  onViewChange('dashboard-portal');
+                }
+                if (onTabChange) {
+                  onTabChange('overview');
+                }
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              } else {
+                onViewChange('landing');
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }
+            }}
             className="flex items-center space-x-2 group text-left focus:outline-none"
           >
             <div className="p-2 bg-white text-background rounded-lg transition-transform duration-300 group-hover:scale-105">
@@ -101,14 +140,6 @@ export default function Navbar({ currentView, onViewChange }) {
               </>
             ) : (
               <>
-                <button
-                  onClick={() => onViewChange('landing')}
-                  className="px-4 py-2 text-sm font-semibold text-lightGray hover:text-white transition-colors flex items-center gap-1.5"
-                >
-                  <Home size={15} />
-                  Home Tour
-                </button>
-                <span className="h-4 w-[1px] bg-white/10" />
                 <span className="text-xs font-bold font-mono text-emerald-400 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-950/40 border border-emerald-900">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
                   Workspace Active
@@ -162,13 +193,6 @@ export default function Navbar({ currentView, onViewChange }) {
               </>
             ) : (
               <>
-                <button
-                  onClick={() => { setIsOpen(false); onViewChange('landing'); }}
-                  className="w-full text-center py-2 text-sm font-semibold text-lightGray hover:text-white flex items-center justify-center gap-1.5"
-                >
-                  <Home size={15} />
-                  Home Tour
-                </button>
                 <div className="py-2.5 text-center text-xs font-bold font-mono text-emerald-400 rounded-lg bg-emerald-950/40 border border-emerald-900 flex items-center justify-center gap-1.5">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
                   Workspace Active

@@ -1,13 +1,10 @@
+import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
-import dotenv from 'dotenv';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import fs from 'fs';
-
-// Load config
-dotenv.config();
 
 // Imports
 import { connectDB } from './config/db.js';
@@ -58,15 +55,7 @@ app.use(cors({
   credentials: true
 }));
 
-// Parse payloads (Except for Stripe checkout webhook which needs raw formatting)
-// Stripe webhook route checks express.raw() locally in its route, so we exclude it here
-app.use((req, res, next) => {
-  if (req.originalUrl === '/api/payments/webhook') {
-    next();
-  } else {
-    express.json()(req, res, next);
-  }
-});
+app.use(express.json());
 
 app.use(express.urlencoded({ extended: true }));
 

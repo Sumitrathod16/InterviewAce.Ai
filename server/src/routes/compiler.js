@@ -1,7 +1,7 @@
 import express from 'express';
 import { protect } from '../middleware/auth.js';
 import { strictLimiter } from '../middleware/rateLimiter.js';
-import { executeCode } from '../services/judge0.js';
+import { executeCode } from '../services/compiler.js';
 
 const router = express.Router();
 

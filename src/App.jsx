@@ -30,7 +30,9 @@ function MainAppLayout({
   setCurrentView,
   showAuthModal,
   setShowAuthModal,
-  handleAuthSuccess
+  handleAuthSuccess,
+  activeTab,
+  setActiveTab
 }) {
   const { userProfile, logout } = useAuth();
   const navigate = useNavigate();
@@ -58,7 +60,9 @@ function MainAppLayout({
             setCurrentView(view);
             navigate('/');
           }
-        }} 
+        }}
+        onTabChange={setActiveTab}
+        hasUser={!!userProfile}
       />
 
       {currentView === 'landing' ? (
@@ -71,23 +75,6 @@ function MainAppLayout({
 
           {/* Multi-step walkthrough */}
           <HowItWorks />
-
-          {/* Live Mock Interview Simulator */}
-          <MockInterviewDemo onInterviewComplete={handleInterviewComplete} />
-
-          {/* Live ATS Resume Parser */}
-          <ResumeAnalyzer atsScore={atsScore} onAtsScoreChange={handleAtsScoreChange} />
-
-          {/* Live Code Compiler Sandbox */}
-          <CodingAssessment 
-            solvedProblems={solvedProblems} 
-            onSolveProblem={handleSolveProblem} 
-            selectedProblemIndex={selectedProblemIndex}
-            onSelectProblemIndex={setSelectedProblemIndex}
-          />
-
-          {/* candidate progress preview */}
-          <DashboardPreview />
 
           {/* testimonials success show */}
           <Testimonials />
@@ -103,10 +90,14 @@ function MainAppLayout({
           {/* User's Dedicated Active Dashboard Workspace */}
           <DashboardPortal 
             solvedProblems={solvedProblems}
-            recentActivity={[]}
+            onSolveProblem={handleSolveProblem}
+            selectedProblemIndex={selectedProblemIndex}
+            onSelectProblemIndex={setSelectedProblemIndex}
             atsScore={atsScore}
+            onAtsScoreChange={handleAtsScoreChange}
             completedInterviews={[]}
             onSelectProblem={setSelectedProblemIndex}
+            onInterviewComplete={handleInterviewComplete}
             onViewChange={(view) => {
               if (view === 'admin') {
                 navigate('/admin');
@@ -116,6 +107,8 @@ function MainAppLayout({
             }}
             userProfile={userProfile}
             onLogout={handleLogout}
+            activeTab={activeTab}
+            setActiveTab={setActiveTab}
           />
         </main>
       )}
@@ -138,6 +131,7 @@ export default function App() {
   const navigate = useNavigate();
 
   const [currentView, setCurrentView] = useState('landing');
+  const [activeTab, setActiveTab] = useState('overview');
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [selectedProblemIndex, setSelectedProblemIndex] = useState(0);
 
@@ -222,6 +216,8 @@ export default function App() {
             showAuthModal={showAuthModal}
             setShowAuthModal={setShowAuthModal}
             handleAuthSuccess={handleAuthSuccess}
+            activeTab={activeTab}
+            setActiveTab={setActiveTab}
           />
         } 
       />

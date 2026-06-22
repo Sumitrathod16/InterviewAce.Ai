@@ -1,14 +1,75 @@
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import axios from 'axios';
 
-// Initialize the client. We use google-generative-ai as standard.
-let genAI = null;
-const apiKey = process.env.GEMINI_API_KEY;
-if (apiKey) {
-  genAI = new GoogleGenerativeAI(apiKey);
-  console.log('Gemini AI Service Initialized successfully.');
+const openrouterKey = process.env.OPENROUTER_API_KEY;
+const openrouterModel = process.env.OPENROUTER_MODEL || 'google/gemini-2.5-flash';
+
+if (openrouterKey) {
+  console.log(`OpenRouter Service Initialized successfully (Model: ${openrouterModel}).`);
 } else {
-  console.warn('GEMINI_API_KEY is missing. Gemini service will run in offline Mock Fallback Mode.');
+  console.warn('OPENROUTER_API_KEY is not set. LLM service will run in offline Mock Fallback Mode.');
 }
+
+/**
+ * Robust JSON parser that handles potential markdown wrapper code blocks
+ */
+const parseJSON = (text) => {
+  const cleaned = text.trim();
+  try {
+    if (cleaned.startsWith('```')) {
+      const match = cleaned.match(/^```(?:json)?\s*([\s\S]*?)\s*```$/i);
+      if (match && match[1]) {
+        return JSON.parse(match[1].trim());
+      }
+    }
+    return JSON.parse(cleaned);
+  } catch (error) {
+    console.error('Failed to parse JSON response. Raw text:', text);
+    throw error;
+  }
+};
+
+/**
+ * Helper to call OpenRouter Chat Completion API
+ */
+const callOpenRouter = async (prompt, forceJson = false) => {
+  const headers = {
+    'Authorization': `Bearer ${openrouterKey}`,
+    'Content-Type': 'application/json',
+    'HTTP-Referer': process.env.CLIENT_URL || 'http://localhost:5173',
+    'X-Title': 'InterviewAce.AI'
+  };
+
+  const data = {
+    model: openrouterModel,
+    messages: [
+      {
+        role: 'user',
+        content: prompt
+      }
+    ]
+  };
+
+  if (forceJson) {
+    data.response_format = { type: 'json_object' };
+  }
+
+  const response = await axios.post(
+    'https://openrouter.ai/api/v1/chat/completions',
+    data,
+    { headers }
+  );
+
+  if (!response.data || !response.data.choices || response.data.choices.length === 0) {
+    throw new Error('Empty response from OpenRouter');
+  }
+
+  const content = response.data.choices[0].message.content;
+  if (!content) {
+    throw new Error('OpenRouter returned an empty message content or request was refused/rate-limited.');
+  }
+
+  return content;
+};
 
 /**
  * Generate a set of interview questions based on parameters
@@ -16,12 +77,11 @@ if (apiKey) {
 export const generateQuestions = async (params) => {
   const { track, experienceLevel, role, count = 3 } = params;
 
-  if (!genAI) {
+  if (!openrouterKey) {
     return getMockQuestions(track, role, count);
   }
 
   try {
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
     const prompt = `You are a professional technical interviewer. Generate a list of ${count} interview questions for a candidate.
     Track: ${track} (HR Behavioral or Technical)
     Target Role: ${role}
@@ -30,15 +90,10 @@ export const generateQuestions = async (params) => {
     Format your response as a JSON array of strings containing only the questions. Do not write any markdown outside the JSON. Example:
     ["Question 1", "Question 2", "Question 3"]`;
 
-    const result = await model.generateContent({
-      contents: [{ role: 'user', parts: [{ text: prompt }] }],
-      generationConfig: { responseMimeType: 'application/json' }
-    });
-
-    const text = result.response.text();
-    return JSON.parse(text);
+    const text = await callOpenRouter(prompt, false);
+    return parseJSON(text);
   } catch (error) {
-    console.error('Error in Gemini generateQuestions:', error.message);
+    console.error('Error in generateQuestions:', error.message);
     return getMockQuestions(track, role, count);
   }
 };
@@ -47,12 +102,11 @@ export const generateQuestions = async (params) => {
  * Evaluate a user answer to a specific question
  */
 export const evaluateAnswer = async (question, answer, track, role) => {
-  if (!genAI) {
+  if (!openrouterKey) {
     return getMockEvaluation(question, answer, track, role);
   }
 
   try {
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
     const prompt = `You are an AI Interviewer evaluating a candidate's answer.
     Role: ${role}
     Track: ${track}
@@ -71,15 +125,10 @@ export const evaluateAnswer = async (question, answer, track, role) => {
     }
     Format your response as a valid JSON object. Do not include any markdown format wrapper outside.`;
 
-    const result = await model.generateContent({
-      contents: [{ role: 'user', parts: [{ text: prompt }] }],
-      generationConfig: { responseMimeType: 'application/json' }
-    });
-
-    const text = result.response.text();
-    return JSON.parse(text);
+    const text = await callOpenRouter(prompt, true);
+    return parseJSON(text);
   } catch (error) {
-    console.error('Error in Gemini evaluateAnswer:', error.message);
+    console.error('Error in evaluateAnswer:', error.message);
     return getMockEvaluation(question, answer, track, role);
   }
 };
@@ -88,12 +137,11 @@ export const evaluateAnswer = async (question, answer, track, role) => {
  * Analyze a resume for ATS score and keywords
  */
 export const analyzeResume = async (resumeText, targetRole) => {
-  if (!genAI) {
+  if (!openrouterKey) {
     return getMockResumeAnalysis(resumeText, targetRole);
   }
 
   try {
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
     const prompt = `You are an expert ATS (Applicant Tracking System) scanner and career consultant.
     Target Role: ${targetRole}
     Resume Content:
@@ -112,15 +160,10 @@ export const analyzeResume = async (resumeText, targetRole) => {
     }
     Format your response as a valid JSON object. Do not include markdown code ticks.`;
 
-    const result = await model.generateContent({
-      contents: [{ role: 'user', parts: [{ text: prompt }] }],
-      generationConfig: { responseMimeType: 'application/json' }
-    });
-
-    const text = result.response.text();
-    return JSON.parse(text);
+    const text = await callOpenRouter(prompt, true);
+    return parseJSON(text);
   } catch (error) {
-    console.error('Error in Gemini analyzeResume:', error.message);
+    console.error('Error in analyzeResume:', error.message);
     return getMockResumeAnalysis(resumeText, targetRole);
   }
 };
@@ -129,12 +172,11 @@ export const analyzeResume = async (resumeText, targetRole) => {
  * Generate Career Roadmap
  */
 export const generateCareerCoachDetails = async (skills, targetRole, education) => {
-  if (!genAI) {
+  if (!openrouterKey) {
     return getMockCoachDetails(skills, targetRole, education);
   }
 
   try {
-    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
     const prompt = `You are a premium AI Career Coach. Generate a comprehensive career roadmap, skill gap analysis, learning recommendations, and salary insights for the following profile:
     Target Role: ${targetRole}
     Current Skills: ${skills.join(', ')}
@@ -161,15 +203,10 @@ export const generateCareerCoachDetails = async (skills, targetRole, education) 
     }
     Format your response as a valid JSON object.`;
 
-    const result = await model.generateContent({
-      contents: [{ role: 'user', parts: [{ text: prompt }] }],
-      generationConfig: { responseMimeType: 'application/json' }
-    });
-
-    const text = result.response.text();
-    return JSON.parse(text);
+    const text = await callOpenRouter(prompt, true);
+    return parseJSON(text);
   } catch (error) {
-    console.error('Error in Gemini generateCareerCoachDetails:', error.message);
+    console.error('Error in generateCareerCoachDetails:', error.message);
     return getMockCoachDetails(skills, targetRole, education);
   }
 };
@@ -183,7 +220,14 @@ function getMockQuestions(track, role, count) {
     return [
       `Tell me about a time you had a conflict with a teammate and how you resolved it in a professional setting.`,
       `Why do you want to join our company as a ${role}, and where do you see your career heading in the next 5 years?`,
-      `Describe a challenging project you spearheaded. What were the obstacles and how did you overcome them?`
+      `Describe a challenging project you spearheaded. What were the obstacles and how did you overcome them?`,
+      `How do you prioritize tasks and manage deadlines when handling multiple project expectations concurrently?`,
+      `Tell me about a time you made a major technical mistake. How did you identify it, mitigate it, and what did you learn?`,
+      `Describe a situation where you had to work with a very difficult stakeholder or client. How did you build trust?`,
+      `What is your preferred working style, and how do you handle collaborative decisions in a cross-functional team?`,
+      `Tell me about a time you had to adapt quickly to a major shift in project requirements or technology stack.`,
+      `How do you stay motivated during repetitive tasks, and what do you do to keep your technical skills sharp?`,
+      `Describe an instance where you went above and beyond your standard duties to deliver a critical team milestone.`
     ].slice(0, count);
   } else {
     // Technical track
@@ -191,17 +235,38 @@ function getMockQuestions(track, role, count) {
       react: [
         `Explain the React Component Lifecycle (or React Hooks dependency array details) and how you optimize rendering performance in a heavy UI application.`,
         `Explain client-side rendering (CSR) vs. server-side rendering (SSR). What are the SEO and performance tradeoffs?`,
-        `How does React's reconciliation algorithm and Virtual DOM work under the hood?`
+        `How does React's reconciliation algorithm and Virtual DOM work under the hood?`,
+        `What is React Context, and how does it compare to state management libraries like Redux or Zustand regarding re-renders?`,
+        `Describe React.memo, useMemo, and useCallback. When should you use them, and when are they unnecessary optimizations?`,
+        `How do you handle error boundaries in a React application to prevent the entire UI from crashing?`,
+        `Explain code-splitting and lazy loading in React. How do you configure it with Suspense and dynamic imports?`,
+        `How does the Virtual DOM diffing process handle arrays without stable "key" attributes?`,
+        `Describe custom hooks. What are the rules of hooks, and how do they promote code reuse?`,
+        `How do you optimize bundle size and load time in a large-scale React client application?`
       ],
       javascript: [
         `Explain the concept of closures in JavaScript and provide a practical real-world use case.`,
         `Describe the event loop in JavaScript. How do microtasks (Promises) and macrotasks (setTimeout) execute?`,
-        `What is the difference between "double equals" (==) and "triple equals" (===) in JavaScript?`
+        `What is the difference between "double equals" (==) and "triple equals" (===) in JavaScript?`,
+        `What are closures and execution contexts? How does scope chain resolution work?`,
+        `Explain hoisting in JavaScript. How do var, let, const, and function definitions differ under hoisting?`,
+        `Describe prototypal inheritance. How does the prototype chain work under ES6 classes?`,
+        `What are the differences between arrow functions and normal functions regarding the "this" keyword, arguments, and constructor properties?`,
+        `Explain the difference between synchronous code, callback patterns, Promises, and async/await syntax.`,
+        `Describe currying and debouncing/throttling. When and why would you implement debouncing in a scroll listener?`,
+        `How do you perform deep cloning of a complex nested object in JavaScript? What are the limitations of JSON.parse(JSON.stringify(obj))?`
       ],
       backend: [
         `How would you design a rate limiter for a public API that receives 100,000 requests per minute? Which algorithm and data store would you use?`,
         `What is database normalization, and when would you choose to denormalize your database schema for optimal read throughput?`,
-        `Explain horizontal vs vertical scaling of databases. When is a NoSQL database preferred over a SQL database?`
+        `Explain horizontal vs vertical scaling of databases. When is a NoSQL database preferred over a SQL database?`,
+        `What is the CAP theorem? How do databases choose between Consistency, Availability, and Partition Tolerance?`,
+        `Describe database indexing. How does a B-Tree index work under SQL query optimization, and what are the write overheads?`,
+        `Explain the difference between session-based authentication and token-based (JWT) authentication. What are the security tradeoffs?`,
+        `Describe how you would handle distributed transactions across multiple microservices (e.g. Saga pattern, 2-phase commit).`,
+        `What is connection pooling in database communication, and why is it critical for handling high concurrent connections?`,
+        `Explain how message queues (e.g. RabbitMQ, Kafka) decouple background tasks and improve server resilience.`,
+        `How do you defend your backend endpoints against SQL Injection, Cross-Site Scripting (XSS), and CSRF vulnerabilities?`
       ]
     };
 

@@ -21,6 +21,7 @@ export default function MockInterviewDemo({ onInterviewComplete }) {
   const [showFeedback, setShowFeedback] = useState(false);
   const [currentFeedback, setCurrentFeedback] = useState(null);
   const [errorMsg, setErrorMsg] = useState('');
+  const [questionCount, setQuestionCount] = useState(3);
 
   const messagesEndRef = useRef(null);
 
@@ -83,7 +84,7 @@ export default function MockInterviewDemo({ onInterviewComplete }) {
       const response = await API.post('/interviews/start', {
         type: selectedTrack === 'hr' ? 'HR Behavioral' : 'Technical',
         track: selectedTrack === 'hr' ? 'HR Behavioral' : `${selectedTrack.charAt(0).toUpperCase() + selectedTrack.slice(1)} Technical`,
-        count: 3
+        count: questionCount
       });
 
       const session = response.data;
@@ -316,22 +317,47 @@ export default function MockInterviewDemo({ onInterviewComplete }) {
           </p>
         </div>
 
-        {/* Tracks Selector */}
-        <div className="flex justify-center gap-3 mb-10">
-          {tracks.map(t => (
-            <button
-              key={t.id}
-              disabled={activeInterview !== null}
-              onClick={() => setSelectedTrack(t.id)}
-              className={`px-4 py-2 text-xs sm:text-sm font-semibold rounded-lg border transition-all duration-300 ${
-                selectedTrack === t.id 
-                  ? 'bg-white text-background border-white' 
-                  : 'bg-secondaryBg/40 text-lightGray border-white/5 hover:border-white/20 disabled:opacity-40'
-              }`}
-            >
-              {t.name}
-            </button>
-          ))}
+        {/* Tracks Selector & Question Count Selector */}
+        <div className="flex flex-col sm:flex-row justify-center items-center gap-6 mb-10">
+          <div className="flex items-center gap-2.5">
+            <span className="text-xs font-bold text-lightGray/40 uppercase tracking-wider">Select Track:</span>
+            <div className="flex gap-2">
+              {tracks.map(t => (
+                <button
+                  key={t.id}
+                  disabled={activeInterview !== null}
+                  onClick={() => setSelectedTrack(t.id)}
+                  className={`px-3 py-1.5 text-xs font-semibold rounded-lg border transition-all duration-300 ${
+                    selectedTrack === t.id 
+                      ? 'bg-white text-background border-white' 
+                      : 'bg-secondaryBg/40 text-lightGray border-white/5 hover:border-white/20 disabled:opacity-40'
+                  }`}
+                >
+                  {t.name}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2.5">
+            <span className="text-xs font-bold text-lightGray/40 uppercase tracking-wider">Questions:</span>
+            <div className="flex gap-2">
+              {[3, 5, 10].map(cnt => (
+                <button
+                  key={cnt}
+                  disabled={activeInterview !== null}
+                  onClick={() => setQuestionCount(cnt)}
+                  className={`w-8 h-8 flex items-center justify-center text-xs font-bold rounded-lg border transition-all duration-300 ${
+                    questionCount === cnt 
+                      ? 'bg-white text-background border-white' 
+                      : 'bg-secondaryBg/40 text-lightGray border-white/5 hover:border-white/20 disabled:opacity-40'
+                  }`}
+                >
+                  {cnt}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
 
         {errorMsg && (

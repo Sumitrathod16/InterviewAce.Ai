@@ -5,6 +5,27 @@ import User from '../models/User.js';
 
 const router = express.Router();
 
+// Helper to reset free limits after 15 days
+const checkAndResetFreeRefills = async (user) => {
+  if (user.subscription === 'Pro' || user.subscription === 'Premium') {
+    return user;
+  }
+  
+  const now = new Date();
+  const lastRefill = new Date(user.freeRefillDate || user.createdAt);
+  const diffTime = Math.abs(now - lastRefill);
+  
+  // 15 days = 15 * 24 * 60 * 60 * 1000 ms
+  if (diffTime >= 15 * 24 * 60 * 60 * 1000) {
+    user.interviewCountToday = 0;
+    user.resumeCountToday = 0;
+    user.freeRefillDate = now;
+    await user.save();
+    console.log(`Refilled free limits for user: ${user.email}`);
+  }
+  return user;
+};
+
 /**
  * @route   POST /api/auth/sync
  * @desc    Sync client auth state with backend MongoDB
@@ -27,7 +48,8 @@ router.post('/sync', async (req, res) => {
         name: name || email.split('@')[0],
         role: email.includes('admin@interviewace.ai') ? 'Admin' : role,
         targetRole,
-        subscription: 'Free'
+        subscription: 'Free',
+        freeRefillDate: new Date()
       });
       console.log(`Created new synced MongoDB user: ${user.email}`);
     } else {
@@ -36,6 +58,7 @@ router.post('/sync', async (req, res) => {
         user.name = name;
         await user.save();
       }
+      user = await checkAndResetFreeRefills(user);
     }
 
     // Sign a local JWT for session management fallback
@@ -57,7 +80,10 @@ router.post('/sync', async (req, res) => {
         subscription: user.subscription,
         education: user.education,
         skills: user.skills,
-        resumeUrl: user.resumeUrl
+        resumeUrl: user.resumeUrl,
+        interviewCountToday: user.interviewCountToday,
+        resumeCountToday: user.resumeCountToday,
+        freeRefillDate: user.freeRefillDate || user.createdAt
       }
     });
   } catch (error) {
@@ -73,10 +99,11 @@ router.post('/sync', async (req, res) => {
  */
 router.get('/profile', protect, async (req, res) => {
   try {
-    const user = await User.findById(req.user._id);
+    let user = await User.findById(req.user._id);
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
+    user = await checkAndResetFreeRefills(user);
     res.json(user);
   } catch (error) {
     res.status(500).json({ message: 'Server profile fetch error.' });

@@ -1,24 +1,30 @@
 import express from 'express';
-import Stripe from 'stripe';
+import Razorpay from 'razorpay';
+import crypto from 'crypto';
 import { protect } from '../middleware/auth.js';
 import User from '../models/User.js';
 import Subscription from '../models/Subscription.js';
 
 const router = express.Router();
 
-// Initialize Stripe. We parse the raw webhook body, so express needs special setup
-const stripeSecret = process.env.STRIPE_SECRET_KEY;
-let stripe = null;
-if (stripeSecret) {
-  stripe = new Stripe(stripeSecret);
-  console.log('Stripe SDK Initialized successfully.');
+// Initialize Razorpay Client
+const keyId = process.env.RAZORPAY_KEY_ID;
+const keySecret = process.env.RAZORPAY_KEY_SECRET;
+
+let razorpay = null;
+if (keyId && keySecret) {
+  razorpay = new Razorpay({
+    key_id: keyId,
+    key_secret: keySecret
+  });
+  console.log('Razorpay SDK Initialized successfully.');
 } else {
-  console.warn('STRIPE_SECRET_KEY is missing. Stripe payments will run in local Mock Purchase Mode.');
+  console.warn('RAZORPAY_KEY_ID or RAZORPAY_KEY_SECRET is missing. Payments will run in local Mock Purchase Mode.');
 }
 
 /**
  * @route   POST /api/payments/checkout
- * @desc    Create Stripe Checkout Session or trigger Mock Purchase
+ * @desc    Create Razorpay Payment Link or trigger Mock Purchase
  * @access  Private
  */
 router.post('/checkout', protect, async (req, res) => {
@@ -30,17 +36,15 @@ router.post('/checkout', protect, async (req, res) => {
 
   const clientUrl = process.env.CLIENT_URL || 'http://localhost:5173';
 
-  // 1. Mock Purchase Mode if Stripe is not configured
-  if (!stripe) {
+  // 1. Mock Purchase Mode if Razorpay is not configured
+  if (!razorpay) {
     console.log(`[MOCK CHECKOUT] Initiating mock checkout for ${planName} (${billingPeriod})`);
-    
-    // We redirect directly to success page with query params
     return res.json({
       url: `${clientUrl}/checkout/success?mock=true&plan=${planName}&period=${billingPeriod}&userId=${req.user._id}`
     });
   }
 
-  // 2. Real Stripe Checkout Session
+  // 2. Real Razorpay Payment Link
   try {
     // Determine Price values in INR (Paise)
     // Pro: ₹199/mo, ₹1990/yr. Premium: ₹499/mo, ₹4990/yr.
@@ -51,39 +55,116 @@ router.post('/checkout', protect, async (req, res) => {
       amount = billingPeriod === 'monthly' ? 49900 : 499000;
     }
 
-    const session = await stripe.checkout.sessions.create({
-      payment_method_types: ['card'],
-      line_items: [
-        {
-          price_data: {
-            currency: 'inr',
-            product_data: {
-              name: `InterviewAce AI - ${planName} Plan (${billingPeriod === 'monthly' ? 'Monthly' : 'Annual'})`,
-              description: `Unlimited AI mock interviews, detailed ATS reviews, and technical sandbox compilations.`
-            },
-            unit_amount: amount,
-            recurring: {
-              interval: billingPeriod === 'monthly' ? 'month' : 'year'
-            }
-          },
-          quantity: 1
-        }
-      ],
-      mode: 'subscription',
-      success_url: `${clientUrl}/checkout/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${clientUrl}/checkout/cancel`,
-      customer_email: req.user.email,
-      metadata: {
-        userId: req.user._id.toString(),
-        planName,
-        billingPeriod
-      }
+    // Safe 40-char max reference ID: ref_userId_PlanPeriod (e.g. ref_64f9b8c34f321d234a56b78c_PM)
+    const planLetter = planName === 'Pro' ? 'P' : 'PR';
+    const periodLetter = billingPeriod === 'monthly' ? 'M' : 'Y';
+    const referenceId = `ref_${req.user._id}_${planLetter}${periodLetter}`;
+
+    const hostUrl = req.get('host'); // E.g. localhost:5000 or production API URL
+    const protocol = req.protocol; // http or https
+    const callbackUrl = `${protocol}://${hostUrl}/api/payments/razorpay-callback`;
+
+    const paymentLink = await razorpay.paymentLink.create({
+      amount: amount,
+      currency: 'INR',
+      accept_partial: false,
+      reference_id: referenceId,
+      description: `InterviewAce AI - ${planName} Plan (${billingPeriod === 'monthly' ? 'Monthly' : 'Annual'})`,
+      customer: {
+        name: req.user.name || 'Candidate',
+        email: req.user.email
+      },
+      notify: {
+        sms: false,
+        email: true
+      },
+      callback_url: callbackUrl,
+      callback_method: 'get'
     });
 
-    res.json({ url: session.url });
+    res.json({ url: paymentLink.short_url });
   } catch (error) {
-    console.error('Error creating Stripe checkout session:', error.message);
-    res.status(500).json({ message: 'Failed to create payment checkout session.' });
+    console.error('Error creating Razorpay payment link:', error.message);
+    res.status(500).json({ message: 'Failed to create payment checkout link.' });
+  }
+});
+
+/**
+ * @route   GET /api/payments/razorpay-callback
+ * @desc    Verify Razorpay payment link return signature and update user subscription
+ * @access  Public (Redirected from Razorpay)
+ */
+router.get('/razorpay-callback', async (req, res) => {
+  const {
+    razorpay_payment_id,
+    razorpay_payment_link_id,
+    razorpay_payment_link_reference_id,
+    razorpay_payment_link_status,
+    razorpay_signature
+  } = req.query;
+
+  const clientUrl = process.env.CLIENT_URL || 'http://localhost:5173';
+
+  if (!razorpay_payment_id || !razorpay_payment_link_id || !razorpay_signature) {
+    console.error('Callback error: Missing payment verification parameters');
+    return res.redirect(`${clientUrl}/checkout/cancel`);
+  }
+
+  try {
+    // 1. Verify Razorpay Payment Link signature
+    const payload = `${razorpay_payment_link_id}|${razorpay_payment_link_reference_id}|${razorpay_payment_link_status}|${razorpay_payment_id}`;
+    const expectedSignature = crypto
+      .createHmac('sha256', keySecret)
+      .update(payload)
+      .digest('hex');
+
+    if (expectedSignature !== razorpay_signature) {
+      console.error('Invalid Razorpay signature in callback');
+      return res.redirect(`${clientUrl}/checkout/cancel`);
+    }
+
+    if (razorpay_payment_link_status !== 'paid') {
+      console.warn(`Payment link status is not paid: ${razorpay_payment_link_status}`);
+      return res.redirect(`${clientUrl}/checkout/cancel`);
+    }
+
+    // 2. Decode Reference ID (ref_userId_PlanPeriod)
+    const parts = razorpay_payment_link_reference_id.split('_');
+    if (parts.length < 3) {
+      throw new Error('Malformed reference ID in payment callback');
+    }
+    const userId = parts[1];
+    const planCode = parts[2];
+
+    let planName = 'Pro';
+    if (planCode.startsWith('PR')) {
+      planName = 'Premium';
+    }
+
+    // Update User Sub status in Database
+    const user = await User.findByIdAndUpdate(userId, { subscription: planName }, { new: true });
+    if (!user) {
+      throw new Error('User not found during payment upgrade callback');
+    }
+
+    // Upsert Subscription record
+    await Subscription.findOneAndUpdate(
+      { userId },
+      {
+        plan: planName,
+        status: 'active',
+        stripeCustomerId: 'razorpay',
+        stripeSubscriptionId: razorpay_payment_id,
+        currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) // 30 days
+      },
+      { upsert: true }
+    );
+
+    console.log(`Razorpay success callback: Upgraded User ${userId} to subscription ${planName}`);
+    res.redirect(`${clientUrl}/checkout/success?plan=${planName}`);
+  } catch (error) {
+    console.error('Error verifying payment callback:', error.message);
+    res.redirect(`${clientUrl}/checkout/cancel`);
   }
 });
 
@@ -147,74 +228,6 @@ router.get('/billing-info', protect, async (req, res) => {
     });
   } catch (error) {
     res.status(500).json({ message: 'Failed to fetch billing history details.' });
-  }
-});
-
-/**
- * @route   POST /api/payments/webhook
- * @desc    Stripe webhook handler to sync subscription states
- * @access  Public (webhook verification)
- */
-router.post('/webhook', express.raw({ type: 'application/json' }), async (req, res) => {
-  const sig = req.headers['stripe-signature'];
-  const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
-
-  if (!stripe || !sig || !webhookSecret) {
-    // If stripe webhooks aren't active, just send 400
-    return res.status(400).send('Stripe Webhook config is incomplete.');
-  }
-
-  let event;
-
-  try {
-    event = stripe.webhooks.constructEvent(req.body, sig, webhookSecret);
-  } catch (err) {
-    console.error('Stripe webhook verification failed:', err.message);
-    return res.status(400).send(`Webhook Error: ${err.message}`);
-  }
-
-  // Handle billing states
-  try {
-    if (event.type === 'checkout.session.completed') {
-      const session = event.data.object;
-      const { userId, planName } = session.metadata;
-
-      // Update User Sub status
-      await User.findByIdAndUpdate(userId, { subscription: planName });
-
-      // Upsert Subscription
-      await Subscription.findOneAndUpdate(
-        { userId },
-        {
-          plan: planName,
-          status: 'active',
-          stripeCustomerId: session.customer,
-          stripeSubscriptionId: session.subscription,
-          currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
-        },
-        { upsert: true }
-      );
-      console.log(`Stripe Sync: Upgraded User ${userId} to subscription ${planName}`);
-    }
-
-    if (event.type === 'customer.subscription.deleted') {
-      const subscription = event.data.object;
-      
-      const subRecord = await Subscription.findOne({ stripeSubscriptionId: subscription.id });
-      if (subRecord) {
-        subRecord.status = 'canceled';
-        subRecord.plan = 'Free';
-        await subRecord.save();
-        
-        await User.findByIdAndUpdate(subRecord.userId, { subscription: 'Free' });
-        console.log(`Stripe Sync: Downgraded User ${subRecord.userId} to Free due to subscription cancellation.`);
-      }
-    }
-
-    res.json({ received: true });
-  } catch (error) {
-    console.error('Webhook database sync error:', error.message);
-    res.status(500).send('Webhook database sync error');
   }
 });
 

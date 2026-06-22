@@ -16,26 +16,37 @@ const upload = multer({
   limits: { fileSize: 10 * 1024 * 1024 } // 10MB limit
 });
 
-// Helper to check and increment daily resume usage limits
+// Helper to check and increment 15-day resume usage limits
 const checkDailyResumeLimit = async (user) => {
   if (user.subscription === 'Pro' || user.subscription === 'Premium') {
     return { allowed: true };
   }
 
-  const todayStr = new Date().toDateString();
-  const lastDateStr = new Date(user.lastResumeDate).toDateString();
+  const now = new Date();
+  const lastRefill = new Date(user.freeRefillDate || user.createdAt);
+  const diffTime = Math.abs(now - lastRefill);
 
-  let count = user.resumeCountToday;
-  if (todayStr !== lastDateStr) {
-    count = 0;
-    user.lastResumeDate = new Date();
+  // If 15 days have elapsed, reset limits
+  if (diffTime >= 15 * 24 * 60 * 60 * 1000) {
+    user.interviewCountToday = 0;
+    user.resumeCountToday = 0;
+    user.freeRefillDate = now;
   }
 
-  if (count >= 1) {
-    return { allowed: false, message: 'Free tier limit reached (1 ATS Resume Analysis per day). Please upgrade to Pro or Premium!' };
+  const count = user.resumeCountToday;
+  const maxFreeResumes = 2;
+
+  if (count >= maxFreeResumes) {
+    const nextRefillDate = new Date(lastRefill.getTime() + 15 * 24 * 60 * 60 * 1000);
+    const daysRemaining = Math.max(1, Math.ceil((nextRefillDate - now) / (1000 * 60 * 60 * 24)));
+    return { 
+      allowed: false, 
+      message: `Free student limit reached (2 ATS Resume Analyses per 15 days). Your limits will refill in ${daysRemaining} day(s), or upgrade to Pro or Premium for unlimited access!` 
+    };
   }
 
   user.resumeCountToday = count + 1;
+  user.lastResumeDate = now;
   await user.save();
   return { allowed: true };
 };

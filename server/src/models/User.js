@@ -64,6 +64,10 @@ const userSchema = new mongoose.Schema({
   lastResumeDate: {
     type: Date,
     default: Date.now
+  },
+  freeRefillDate: {
+    type: Date,
+    default: Date.now
   }
 }, {
   timestamps: true

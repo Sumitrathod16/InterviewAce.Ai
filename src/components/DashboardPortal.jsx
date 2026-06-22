@@ -6,18 +6,27 @@ import {
   CreditCard, User, Sparkles, Building, Compass, Check, Info, Settings, Clock
 } from 'lucide-react';
 import API from '../services/api';
+import MockInterviewDemo from './MockInterviewDemo';
+import ResumeAnalyzer from './ResumeAnalyzer';
+import CodingAssessment from './CodingAssessment';
 
 export default function DashboardPortal({ 
   solvedProblems, 
-  recentActivity, 
+  onSolveProblem,
+  selectedProblemIndex,
+  onSelectProblemIndex,
   atsScore, 
+  onAtsScoreChange,
   completedInterviews,
   onSelectProblem,
+  onInterviewComplete,
   onViewChange,
   userProfile,
-  onLogout
+  onLogout,
+  activeTab = 'overview',
+  setActiveTab
 }) {
-  const [activeTab, setActiveTab] = useState('overview'); // 'overview' | 'coach' | 'company' | 'billing' | 'profile'
+  
   
   // AI Career Coach states
   const [coachData, setCoachData] = useState(null);
@@ -270,6 +279,9 @@ export default function DashboardPortal({
         <div className="flex border-b border-white/5 overflow-x-auto gap-2 pb-1">
           {[
             { id: 'overview', name: 'Workspace Overview', icon: Activity },
+            { id: 'interviews', name: 'AI Mock Interviews', icon: UserCheck },
+            { id: 'resume', name: 'ATS Resume Analyzer', icon: FileText },
+            { id: 'coding', name: 'Coding Assessment', icon: Code },
             { id: 'coach', name: 'AI Career Coach', icon: Compass },
             { id: 'company', name: 'Company-Specific Prep', icon: Building },
             { id: 'billing', name: 'Billing & Tiers', icon: CreditCard }
@@ -322,6 +334,24 @@ export default function DashboardPortal({
                     );
                   })}
                 </div>
+
+                {userProfile?.subscription === 'Free' && (
+                  <div className="p-5 bg-emerald-950/20 border border-emerald-900/40 rounded-xl flex flex-col sm:flex-row items-center justify-between gap-4 text-xs">
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-1.5 text-emerald-400 font-bold">
+                        <Sparkles size={14} className="animate-pulse" />
+                        15-Day Free Student Usage Tracker
+                      </div>
+                      <div className="flex flex-wrap gap-4 text-lightGray/70">
+                        <span>AI Interviews: <strong className="text-white">{3 - (userProfile.interviewCountToday || 0)} / 3</strong> left</span>
+                        <span>Resume Audits: <strong className="text-white">{2 - (userProfile.resumeCountToday || 0)} / 2</strong> left</span>
+                      </div>
+                    </div>
+                    <div className="text-[10px] text-lightGray/40 font-mono text-right">
+                      Next Refill: {new Date(new Date(userProfile.freeRefillDate || userProfile.createdAt).getTime() + 15 * 24 * 60 * 60 * 1000).toLocaleDateString()}
+                    </div>
+                  </div>
+                )}
 
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
                   {/* Contribution heat activity log */}
@@ -418,6 +448,161 @@ export default function DashboardPortal({
                       </div>
                     ))}
                   </div>
+                </div>
+
+                {/* Plans / Active subscription tier */}
+                {userProfile?.subscription === 'Free' ? (
+                  <div className="p-6 bg-secondaryBg/30 border border-white/5 rounded-xl space-y-6">
+                    <div>
+                      <h3 className="text-sm font-bold text-white uppercase tracking-wider">SaaS Premium Billing Matrix</h3>
+                      <p className="text-xs text-lightGray/55 mt-0.5">Select and unlock advanced AI configurations</p>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 items-stretch">
+                      {/* Free */}
+                      <div className="p-5 bg-background/50 border border-white/5 rounded-xl flex flex-col justify-between text-xs">
+                        <div className="space-y-4">
+                          <div>
+                            <div className="font-bold text-white">Free Plan</div>
+                            <div className="text-[10px] text-lightGray/40">Core access checks</div>
+                          </div>
+                          <div className="text-2xl font-black text-white">₹0</div>
+                          <ul className="space-y-1.5 text-lightGray/60 text-[10px]">
+                            <li>• 3 mock interviews / 15 days</li>
+                            <li>• 2 resume scans / 15 days</li>
+                            <li>• Basic coding problem sets</li>
+                          </ul>
+                        </div>
+                        <button 
+                          disabled 
+                          className="w-full mt-6 py-2 bg-white/5 text-lightGray/40 font-bold rounded border border-white/5 cursor-not-allowed"
+                        >
+                          Active Tier
+                        </button>
+                      </div>
+
+                      {/* Pro */}
+                      <div className="p-5 bg-background/60 border border-white/5 rounded-xl flex flex-col justify-between text-xs relative">
+                        <div className="space-y-4">
+                          <div>
+                            <div className="font-bold text-white">Pro Plan</div>
+                            <div className="text-[10px] text-lightGray/40">Thorough training track</div>
+                          </div>
+                          <div className="text-2xl font-black text-white">₹199<span className="text-[10px] text-lightGray/40">/month</span></div>
+                          <ul className="space-y-1.5 text-lightGray/60 text-[10px]">
+                            <li>• Unlimited interviews</li>
+                            <li>• Voice interview formats</li>
+                            <li>• Full ATS Resume checks</li>
+                            <li>• Company prep files</li>
+                          </ul>
+                        </div>
+                        <button
+                          onClick={() => handleSubscribe('Pro')}
+                          disabled={upgrading}
+                          className="w-full mt-6 py-2 bg-white text-background hover:bg-lightGray font-bold rounded transition-colors disabled:opacity-40"
+                        >
+                          Upgrade to Pro
+                        </button>
+                      </div>
+
+                      {/* Premium */}
+                      <div className="p-5 bg-background/60 border border-white/5 rounded-xl flex flex-col justify-between text-xs relative">
+                        <div className="space-y-4">
+                          <div>
+                            <div className="font-bold text-white">Premium Plan</div>
+                            <div className="text-[10px] text-lightGray/40">AI career placement sets</div>
+                          </div>
+                          <div className="text-2xl font-black text-white">₹499<span className="text-[10px] text-lightGray/40">/month</span></div>
+                          <ul className="space-y-1.5 text-lightGray/60 text-[10px]">
+                            <li>• Everything in Pro tier</li>
+                            <li>• 24/7 AI Career Coach</li>
+                            <li>• Priority code sandbox</li>
+                            <li>• Deep progress charts</li>
+                          </ul>
+                        </div>
+                        <button
+                          onClick={() => handleSubscribe('Premium')}
+                          disabled={upgrading}
+                          className="w-full mt-6 py-2 bg-white text-background hover:bg-lightGray font-bold rounded transition-colors disabled:opacity-40"
+                        >
+                          Upgrade Premium
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="p-6 bg-gradient-to-r from-emerald-950/20 to-secondaryBg/30 border border-emerald-900/40 rounded-xl flex flex-col sm:flex-row items-center justify-between gap-4">
+                    <div className="flex items-center gap-3">
+                      <div className="p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-lg text-emerald-400">
+                        <Sparkles size={20} className="animate-pulse" />
+                      </div>
+                      <div>
+                        <h4 className="text-sm font-bold text-white uppercase tracking-wider">Active {userProfile?.subscription} Subscription</h4>
+                        <p className="text-xs text-lightGray/60 mt-0.5">Thank you for supporting us! You have unlocked all premium preparation features.</p>
+                      </div>
+                    </div>
+                    <div className="px-4 py-1.5 bg-emerald-950 border border-emerald-800 rounded-full text-xs font-semibold text-emerald-400">
+                      Active Pack: {userProfile?.subscription}
+                    </div>
+                  </div>
+                )}
+              </motion.div>
+            )}
+
+            {/* INTERVIEWS TAB */}
+            {activeTab === 'interviews' && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                className="space-y-6"
+              >
+                <div className="p-6 bg-secondaryBg/30 border border-white/5 rounded-xl">
+                  <MockInterviewDemo 
+                    onInterviewComplete={() => {
+                      fetchDashboardData();
+                      if (onInterviewComplete) onInterviewComplete();
+                    }} 
+                  />
+                </div>
+              </motion.div>
+            )}
+
+            {/* RESUME TAB */}
+            {activeTab === 'resume' && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                className="space-y-6"
+              >
+                <div className="p-6 bg-secondaryBg/30 border border-white/5 rounded-xl">
+                  <ResumeAnalyzer 
+                    atsScore={atsScore} 
+                    onAtsScoreChange={(newScore) => {
+                      if (onAtsScoreChange) onAtsScoreChange(newScore);
+                      fetchDashboardData();
+                    }} 
+                  />
+                </div>
+              </motion.div>
+            )}
+
+            {/* CODING TAB */}
+            {activeTab === 'coding' && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                className="space-y-6"
+              >
+                <div className="p-6 bg-secondaryBg/30 border border-white/5 rounded-xl">
+                  <CodingAssessment 
+                    solvedProblems={solvedProblems} 
+                    onSolveProblem={onSolveProblem} 
+                    selectedProblemIndex={selectedProblemIndex}
+                    onSelectProblemIndex={onSelectProblemIndex}
+                  />
                 </div>
               </motion.div>
             )}
@@ -646,94 +831,106 @@ export default function DashboardPortal({
                 exit={{ opacity: 0, y: -10 }}
                 className="grid grid-cols-1 lg:grid-cols-12 gap-8"
               >
-                {/* Stripe Plan Matrices */}
+                {/* Billing details / Plans */}
                 <div className="lg:col-span-8 p-6 bg-secondaryBg/30 border border-white/5 rounded-xl space-y-6">
-                  <div>
-                    <h3 className="text-sm font-bold text-white uppercase tracking-wider">SaaS Premium Billing Matrix</h3>
-                    <p className="text-xs text-lightGray/55 mt-0.5">Select and unlock advanced AI configurations</p>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 items-stretch">
-                    {/* Free */}
-                    <div className="p-5 bg-background/50 border border-white/5 rounded-xl flex flex-col justify-between text-xs">
-                      <div className="space-y-4">
-                        <div>
-                          <div className="font-bold text-white">Free Plan</div>
-                          <div className="text-[10px] text-lightGray/40">Core access checks</div>
-                        </div>
-                        <div className="text-2xl font-black text-white">₹0</div>
-                        <ul className="space-y-1.5 text-lightGray/60 text-[10px]">
-                          <li>• 3 mock interviews / day</li>
-                          <li>• 1 resume analysis / day</li>
-                          <li>• Limited coding problem sets</li>
-                        </ul>
+                  {userProfile?.subscription === 'Free' ? (
+                    <>
+                      <div>
+                        <h3 className="text-sm font-bold text-white uppercase tracking-wider">SaaS Premium Billing Matrix</h3>
+                        <p className="text-xs text-lightGray/55 mt-0.5">Select and unlock advanced AI configurations</p>
                       </div>
-                      <button 
-                        disabled 
-                        className="w-full mt-6 py-2 bg-secondaryBg text-lightGray/40 font-bold rounded border border-white/5 cursor-not-allowed"
-                      >
-                        Active Tier
-                      </button>
-                    </div>
 
-                    {/* Pro */}
-                    <div className={`p-5 bg-background/60 border rounded-xl flex flex-col justify-between text-xs relative ${
-                      userProfile?.subscription === 'Pro' ? 'border-white' : 'border-white/5'
-                    }`}>
-                      {userProfile?.subscription === 'Pro' && (
-                        <span className="absolute top-0 right-4 -translate-y-1/2 px-2 py-0.5 rounded bg-white text-background text-[8px] font-black uppercase tracking-wider">Active</span>
-                      )}
-                      <div className="space-y-4">
-                        <div>
-                          <div className="font-bold text-white">Pro Plan</div>
-                          <div className="text-[10px] text-lightGray/40">Thorough training track</div>
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 items-stretch">
+                        {/* Free */}
+                        <div className="p-5 bg-background/50 border border-white/5 rounded-xl flex flex-col justify-between text-xs">
+                          <div className="space-y-4">
+                            <div>
+                              <div className="font-bold text-white">Free Plan</div>
+                              <div className="text-[10px] text-lightGray/40">Core access checks</div>
+                            </div>
+                            <div className="text-2xl font-black text-white">₹0</div>
+                            <ul className="space-y-1.5 text-lightGray/60 text-[10px]">
+                              <li>• 3 mock interviews / 15 days</li>
+                              <li>• 2 resume scans / 15 days</li>
+                              <li>• Basic coding problem sets</li>
+                            </ul>
+                          </div>
+                          <button 
+                            disabled 
+                            className="w-full mt-6 py-2 bg-secondaryBg text-lightGray/40 font-bold rounded border border-white/5 cursor-not-allowed"
+                          >
+                            Active Tier
+                          </button>
                         </div>
-                        <div className="text-2xl font-black text-white">₹199<span className="text-[10px] text-lightGray/40">/month</span></div>
-                        <ul className="space-y-1.5 text-lightGray/60 text-[10px]">
-                          <li>• Unlimited interviews</li>
-                          <li>• Voice interview formats</li>
-                          <li>• Full ATS Resume checks</li>
-                          <li>• Company prep files</li>
-                        </ul>
-                      </div>
-                      <button
-                        onClick={() => handleSubscribe('Pro')}
-                        disabled={upgrading || userProfile?.subscription === 'Pro' || userProfile?.subscription === 'Premium'}
-                        className="w-full mt-6 py-2 bg-white text-background hover:bg-lightGray font-bold rounded transition-colors disabled:opacity-40"
-                      >
-                        {userProfile?.subscription === 'Pro' ? 'Current Active' : userProfile?.subscription === 'Premium' ? 'Downgrade Access' : 'Upgrade to Pro'}
-                      </button>
-                    </div>
 
-                    {/* Premium */}
-                    <div className={`p-5 bg-background/60 border rounded-xl flex flex-col justify-between text-xs relative ${
-                      userProfile?.subscription === 'Premium' ? 'border-white' : 'border-white/5'
-                    }`}>
-                      {userProfile?.subscription === 'Premium' && (
-                        <span className="absolute top-0 right-4 -translate-y-1/2 px-2 py-0.5 rounded bg-white text-background text-[8px] font-black uppercase tracking-wider">Active</span>
-                      )}
-                      <div className="space-y-4">
-                        <div>
-                          <div className="font-bold text-white">Premium Plan</div>
-                          <div className="text-[10px] text-lightGray/40">AI career placement sets</div>
+                        {/* Pro */}
+                        <div className="p-5 bg-background/60 border border-white/5 rounded-xl flex flex-col justify-between text-xs relative">
+                          <div className="space-y-4">
+                            <div>
+                              <div className="font-bold text-white">Pro Plan</div>
+                              <div className="text-[10px] text-lightGray/40">Thorough training track</div>
+                            </div>
+                            <div className="text-2xl font-black text-white">₹199<span className="text-[10px] text-lightGray/40">/month</span></div>
+                            <ul className="space-y-1.5 text-lightGray/60 text-[10px]">
+                              <li>• Unlimited interviews</li>
+                              <li>• Voice interview formats</li>
+                              <li>• Full ATS Resume checks</li>
+                              <li>• Company prep files</li>
+                            </ul>
+                          </div>
+                          <button
+                            onClick={() => handleSubscribe('Pro')}
+                            disabled={upgrading}
+                            className="w-full mt-6 py-2 bg-white text-background hover:bg-lightGray font-bold rounded transition-colors disabled:opacity-40"
+                          >
+                            Upgrade to Pro
+                          </button>
                         </div>
-                        <div className="text-2xl font-black text-white">₹499<span className="text-[10px] text-lightGray/40">/month</span></div>
-                        <ul className="space-y-1.5 text-lightGray/60 text-[10px]">
-                          <li>• Everything in Pro tier</li>
-                          <li>• 24/7 AI Career Coach</li>
-                          <li>• Priority code sandbox</li>
-                          <li>• Deep progress charts</li>
-                        </ul>
+
+                        {/* Premium */}
+                        <div className="p-5 bg-background/60 border border-white/5 rounded-xl flex flex-col justify-between text-xs relative">
+                          <div className="space-y-4">
+                            <div>
+                              <div className="font-bold text-white">Premium Plan</div>
+                              <div className="text-[10px] text-lightGray/40">AI career placement sets</div>
+                            </div>
+                            <div className="text-2xl font-black text-white">₹499<span className="text-[10px] text-lightGray/40">/month</span></div>
+                            <ul className="space-y-1.5 text-lightGray/60 text-[10px]">
+                              <li>• Everything in Pro tier</li>
+                              <li>• 24/7 AI Career Coach</li>
+                              <li>• Priority code sandbox</li>
+                              <li>• Deep progress charts</li>
+                            </ul>
+                          </div>
+                          <button
+                            onClick={() => handleSubscribe('Premium')}
+                            disabled={upgrading}
+                            className="w-full mt-6 py-2 bg-white text-background hover:bg-lightGray font-bold rounded transition-colors disabled:opacity-40"
+                          >
+                            Upgrade Premium
+                          </button>
+                        </div>
                       </div>
-                      <button
-                        onClick={() => handleSubscribe('Premium')}
-                        disabled={upgrading || userProfile?.subscription === 'Premium'}
-                        className="w-full mt-6 py-2 bg-white text-background hover:bg-lightGray font-bold rounded transition-colors disabled:opacity-40"
-                      >
-                        {userProfile?.subscription === 'Premium' ? 'Current Active' : 'Upgrade Premium'}
-                      </button>
+                    </>
+                  ) : (
+                    <div className="p-8 bg-gradient-to-br from-emerald-950/20 to-background border border-emerald-900/40 rounded-2xl text-center space-y-5">
+                      <div className="w-12 h-12 rounded-full bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 mx-auto">
+                        <Sparkles size={24} className="animate-pulse" />
+                      </div>
+                      <div className="space-y-2">
+                        <h3 className="text-lg font-black text-white">Active {userProfile.subscription} Pack</h3>
+                        <p className="text-xs text-lightGray/60 max-w-sm mx-auto">
+                          Thank you for purchasing the {userProfile.subscription} access tier. You now have unlimited access to AI Mock Interviews, ATS Resume Audits, and the Coding Compilation Sandbox.
+                        </p>
+                      </div>
+                      <div className="p-4 bg-emerald-950/40 rounded-xl border border-emerald-900/60 text-xs text-emerald-400 font-mono max-w-xs mx-auto">
+                        SUBSCRIPTION STATUS: ACTIVE
+                      </div>
+                      <div className="text-[10px] text-lightGray/40 leading-relaxed font-sans">
+                        Need help managing your subscription? Contact support at any time.
+                      </div>
                     </div>
-                  </div>
+                  )}
 
                   {userProfile?.subscription !== 'Free' && (
                     <div className="pt-4 border-t border-white/5 flex justify-end">
