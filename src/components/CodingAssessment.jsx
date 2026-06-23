@@ -122,7 +122,8 @@ export default function CodingAssessment({
   solvedProblems, 
   onSolveProblem,
   selectedProblemIndex,
-  onSelectProblemIndex
+  onSelectProblemIndex,
+  problems = []
 }) {
   const { userProfile } = useAuth();
   
@@ -134,7 +135,8 @@ export default function CodingAssessment({
   const [perfScore, setPerfScore] = useState(null);
   const [errorMsg, setErrorMsg] = useState('');
 
-  const problem = PROBLEMS[selectedProblemIndex] || PROBLEMS[0];
+  const activeProblems = problems && problems.length > 0 ? problems : PROBLEMS;
+  const problem = activeProblems[selectedProblemIndex] || activeProblems[0];
 
   useEffect(() => {
     const starter = problem.starterCode[selectedLang] || problem.starterCode['javascript'] || '';
@@ -255,8 +257,8 @@ export default function CodingAssessment({
                   onChange={(e) => onSelectProblemIndex(Number(e.target.value))}
                   className="bg-background/80 text-white rounded-lg px-3 py-1.5 text-xs border border-white/5 focus:outline-none"
                 >
-                  {PROBLEMS.map((p, idx) => (
-                    <option key={p.id} value={idx}>{p.title}</option>
+                  {activeProblems.map((p, idx) => (
+                    <option key={p.id || p.problemId} value={idx}>{p.title}</option>
                   ))}
                 </select>
               </div>

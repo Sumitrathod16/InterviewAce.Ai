@@ -53,6 +53,7 @@ export default function DashboardPortal({
   // History logs fetched from DB
   const [dbInterviews, setDbInterviews] = useState([]);
   const [dbResumes, setDbResumes] = useState([]);
+  const [problems, setProblems] = useState([]);
 
   // Fetch candidate history datasets
   const fetchDashboardData = async () => {
@@ -68,6 +69,13 @@ export default function DashboardPortal({
       setDbResumes(resumeRes.data);
     } catch (err) {
       console.warn('Backend resume history load failed.');
+    }
+
+    try {
+      const problemsRes = await API.get('/problems');
+      setProblems(problemsRes.data);
+    } catch (err) {
+      console.warn('Backend problems load failed.');
     }
   };
 
@@ -193,17 +201,19 @@ export default function DashboardPortal({
   const totalXp = (solvedProblems.size * 100) + (interviewsList.length * 200);
   const practiceStreak = solvedProblems.size > 0 || interviewsList.length > 0 ? 1 : 0;
 
+  const CHALLENGES = problems.length > 0
+    ? problems.map((p, idx) => ({ id: p.problemId, title: p.title, difficulty: p.difficulty, index: idx }))
+    : [
+        { id: 'twosum', title: '1. Two Sum', difficulty: 'Easy', index: 0 },
+        { id: 'reversestring', title: '344. Reverse String', difficulty: 'Easy', index: 1 },
+        { id: 'palindrome', title: '9. Valid Palindrome', difficulty: 'Easy', index: 2 }
+      ];
+
   const stats = [
     { title: 'Interview Rating', value: `${avgInterviewScore}%`, desc: interviewsList.length > 0 ? `Based on ${interviewsList.length} rounds` : 'Starting baseline', icon: Award },
     { title: 'ATS Resume Rating', value: `${atsScore}/100`, desc: atsScore >= 80 ? 'ATS Compatible' : 'Needs Optimization', icon: FileText },
-    { title: 'Algorithm Challenges', value: `${solvedProblems.size} / 6`, desc: `${6 - solvedProblems.size} remaining`, icon: CheckSquare },
+    { title: 'Algorithm Challenges', value: `${solvedProblems.size} / ${CHALLENGES.length}`, desc: `${Math.max(0, CHALLENGES.length - solvedProblems.size)} remaining`, icon: CheckSquare },
     { title: 'Practice Streak', value: `${practiceStreak} Day${practiceStreak !== 1 ? 's' : ''}`, desc: 'Active streak', icon: Calendar }
-  ];
-
-  const CHALLENGES = [
-    { id: 'twosum', title: '1. Two Sum', difficulty: 'Easy', index: 0 },
-    { id: 'reversestring', title: '344. Reverse String', difficulty: 'Easy', index: 1 },
-    { id: 'palindrome', title: '9. Valid Palindrome', difficulty: 'Easy', index: 2 }
   ];
 
   const nameInitials = userProfile?.name
@@ -602,6 +612,7 @@ export default function DashboardPortal({
                     onSolveProblem={onSolveProblem} 
                     selectedProblemIndex={selectedProblemIndex}
                     onSelectProblemIndex={onSelectProblemIndex}
+                    problems={problems}
                   />
                 </div>
               </motion.div>
