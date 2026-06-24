@@ -116,8 +116,8 @@ export default function DashboardPreview() {
                     <svg className="w-full h-full text-white" viewBox="0 0 500 120" preserveAspectRatio="none">
                       <defs>
                         <linearGradient id="chartGlow" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="0%" stopColor="rgba(255, 255, 255, 0.15)" />
-                          <stop offset="100%" stopColor="rgba(255, 255, 255, 0)" />
+                          <stop offset="0%" stopColor="rgba(var(--white), 0.15)" />
+                          <stop offset="100%" stopColor="rgba(var(--white), 0)" />
                         </linearGradient>
                       </defs>
                       
@@ -137,7 +137,7 @@ export default function DashboardPreview() {
                       />
 
                       {/* Reference line */}
-                      <line x1="0" y1="90" x2="500" y2="90" stroke="rgba(255, 255, 255, 0.05)" strokeDasharray="4 4" />
+                      <line x1="0" y1="90" x2="500" y2="90" stroke="rgba(var(--white), 0.05)" strokeDasharray="4 4" />
                     </svg>
                   </div>
                   

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Menu, X, Terminal, ArrowRight, LayoutDashboard, Home } from 'lucide-react';
+import { Menu, X, Terminal, ArrowRight, LayoutDashboard, Home, Sun, Moon } from 'lucide-react';
 
-export default function Navbar({ currentView, onViewChange, onTabChange, hasUser }) {
+export default function Navbar({ currentView, onViewChange, onTabChange, hasUser, theme, toggleTheme }) {
   const [isOpen, setIsOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
 
@@ -121,6 +121,13 @@ export default function Navbar({ currentView, onViewChange, onTabChange, hasUser
 
           {/* Desktop CTA & View Toggle */}
           <div className="hidden md:flex items-center space-x-4">
+            <button
+              onClick={toggleTheme}
+              className="p-2 text-lightGray hover:text-white hover:bg-white/5 rounded-lg transition-all duration-200 flex items-center justify-center focus:outline-none"
+              title={theme === 'dark' ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+            >
+              {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
+            </button>
             {currentView === 'landing' ? (
               <>
                 <button
@@ -175,6 +182,22 @@ export default function Navbar({ currentView, onViewChange, onTabChange, hasUser
             </a>
           ))}
           <div className="pt-4 border-t border-white/5 flex flex-col space-y-3 px-3">
+            <button
+              onClick={toggleTheme}
+              className="w-full py-2.5 text-sm font-semibold text-lightGray hover:text-white hover:bg-white/5 rounded-lg transition-all flex items-center justify-center gap-2"
+            >
+              {theme === 'dark' ? (
+                <>
+                  <Sun size={16} />
+                  Light Mode
+                </>
+              ) : (
+                <>
+                  <Moon size={16} />
+                  Dark Mode
+                </>
+              )}
+            </button>
             {currentView === 'landing' ? (
               <>
                 <button

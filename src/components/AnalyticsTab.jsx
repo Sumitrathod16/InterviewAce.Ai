@@ -26,7 +26,7 @@ ChartJS.register(
   Filler
 );
 
-export default function AnalyticsTab({ interviewsList = [] }) {
+export default function AnalyticsTab({ interviewsList = [], theme = 'dark' }) {
   const [useDemo, setUseDemo] = useState(false);
 
   // Define realistic mock/demo data for placeholder view
@@ -131,7 +131,7 @@ export default function AnalyticsTab({ interviewsList = [] }) {
       legend: {
         position: 'top',
         labels: {
-          color: 'rgba(255, 255, 255, 0.7)',
+          color: theme === 'dark' ? 'rgba(255, 255, 255, 0.7)' : 'rgba(15, 23, 42, 0.7)',
           font: {
             family: 'system-ui',
             size: 11,
@@ -142,10 +142,10 @@ export default function AnalyticsTab({ interviewsList = [] }) {
         }
       },
       tooltip: {
-        backgroundColor: '#1E293B',
-        titleColor: '#FFFFFF',
-        bodyColor: '#E2E8F0',
-        borderColor: 'rgba(255,255,255,0.1)',
+        backgroundColor: theme === 'dark' ? '#1E293B' : '#FFFFFF',
+        titleColor: theme === 'dark' ? '#FFFFFF' : '#0F172A',
+        bodyColor: theme === 'dark' ? '#E2E8F0' : '#334155',
+        borderColor: theme === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(15,23,42,0.1)',
         borderWidth: 1,
         padding: 10,
         cornerRadius: 8,
@@ -155,11 +155,11 @@ export default function AnalyticsTab({ interviewsList = [] }) {
     scales: {
       x: {
         grid: {
-          color: 'rgba(255, 255, 255, 0.04)',
+          color: theme === 'dark' ? 'rgba(255, 255, 255, 0.04)' : 'rgba(15, 23, 42, 0.04)',
           drawBorder: false
         },
         ticks: {
-          color: 'rgba(255, 255, 255, 0.5)',
+          color: theme === 'dark' ? 'rgba(255, 255, 255, 0.5)' : 'rgba(15, 23, 42, 0.5)',
           font: { size: 10 }
         }
       },
@@ -167,11 +167,11 @@ export default function AnalyticsTab({ interviewsList = [] }) {
         min: 0,
         max: 100,
         grid: {
-          color: 'rgba(255, 255, 255, 0.04)',
+          color: theme === 'dark' ? 'rgba(255, 255, 255, 0.04)' : 'rgba(15, 23, 42, 0.04)',
           drawBorder: false
         },
         ticks: {
-          color: 'rgba(255, 255, 255, 0.5)',
+          color: theme === 'dark' ? 'rgba(255, 255, 255, 0.5)' : 'rgba(15, 23, 42, 0.5)',
           font: { size: 10 },
           stepSize: 20
         }
@@ -191,13 +191,13 @@ export default function AnalyticsTab({ interviewsList = [] }) {
       {
         label: 'Overall Average (%)',
         data: sortedCompleted.map(item => item.score),
-        borderColor: '#FFFFFF',
-        backgroundColor: 'rgba(255, 255, 255, 0.03)',
+        borderColor: theme === 'dark' ? '#FFFFFF' : '#0F172A',
+        backgroundColor: theme === 'dark' ? 'rgba(255, 255, 255, 0.03)' : 'rgba(15, 23, 42, 0.03)',
         borderWidth: 2,
         tension: 0.25,
         fill: true,
-        pointBackgroundColor: '#FFFFFF',
-        pointBorderColor: '#FFFFFF',
+        pointBackgroundColor: theme === 'dark' ? '#FFFFFF' : '#0F172A',
+        pointBorderColor: theme === 'dark' ? '#FFFFFF' : '#0F172A',
         pointHoverRadius: 6,
         pointRadius: 4
       },
@@ -243,15 +243,23 @@ export default function AnalyticsTab({ interviewsList = [] }) {
       {
         label: 'Average Score Metrics',
         data: [avgComm, avgContent, avgOverallScore],
-        backgroundColor: [
+        backgroundColor: theme === 'dark' ? [
           'rgba(255, 255, 255, 0.8)',
           'rgba(148, 163, 184, 0.6)',
           'rgba(71, 85, 105, 0.5)'
+        ] : [
+          'rgba(15, 23, 42, 0.8)',
+          'rgba(71, 85, 105, 0.6)',
+          'rgba(148, 163, 184, 0.5)'
         ],
-        borderColor: [
+        borderColor: theme === 'dark' ? [
           '#FFFFFF',
           '#94A3B8',
           '#475569'
+        ] : [
+          '#0F172A',
+          '#475569',
+          '#94A3B8'
         ],
         borderWidth: 1,
         borderRadius: 6

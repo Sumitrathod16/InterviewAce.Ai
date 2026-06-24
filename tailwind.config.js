@@ -7,11 +7,11 @@ export default {
   theme: {
     extend: {
       colors: {
-        background: "#0F172A",
-        secondaryBg: "#1E293B",
-        white: "#FFFFFF",
-        lightGray: "#E2E8F0",
-        accent: "#64748B",
+        background: "rgb(var(--background) / <alpha-value>)",
+        secondaryBg: "rgb(var(--secondary-bg) / <alpha-value>)",
+        white: "rgb(var(--white) / <alpha-value>)",
+        lightGray: "rgb(var(--light-gray) / <alpha-value>)",
+        accent: "rgb(var(--accent) / <alpha-value>)",
       },
       fontFamily: {
         sans: ["Inter", "sans-serif"],

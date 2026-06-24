@@ -32,7 +32,9 @@ function MainAppLayout({
   setShowAuthModal,
   handleAuthSuccess,
   activeTab,
-  setActiveTab
+  setActiveTab,
+  theme,
+  toggleTheme
 }) {
   const { userProfile, logout } = useAuth();
   const navigate = useNavigate();
@@ -63,6 +65,8 @@ function MainAppLayout({
         }}
         onTabChange={setActiveTab}
         hasUser={!!userProfile}
+        theme={theme}
+        toggleTheme={toggleTheme}
       />
 
       {currentView === 'landing' ? (
@@ -109,6 +113,7 @@ function MainAppLayout({
             onLogout={handleLogout}
             activeTab={activeTab}
             setActiveTab={setActiveTab}
+            theme={theme}
           />
         </main>
       )}
@@ -130,10 +135,29 @@ export default function App() {
   const { userProfile, loading } = useAuth();
   const navigate = useNavigate();
 
+  const [theme, setTheme] = useState(() => {
+    const saved = localStorage.getItem('interviewace_theme');
+    return saved || 'light';
+  });
+
   const [currentView, setCurrentView] = useState('landing');
   const [activeTab, setActiveTab] = useState('overview');
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [selectedProblemIndex, setSelectedProblemIndex] = useState(0);
+
+  useEffect(() => {
+    const root = document.documentElement;
+    if (theme === 'dark') {
+      root.classList.add('dark');
+    } else {
+      root.classList.remove('dark');
+    }
+    localStorage.setItem('interviewace_theme', theme);
+  }, [theme]);
+
+  const toggleTheme = () => {
+    setTheme(prev => prev === 'dark' ? 'light' : 'dark');
+  };
 
   // States synchronized dynamically
   const [solvedProblems, setSolvedProblems] = useState(() => {
@@ -218,6 +242,8 @@ export default function App() {
             handleAuthSuccess={handleAuthSuccess}
             activeTab={activeTab}
             setActiveTab={setActiveTab}
+            theme={theme}
+            toggleTheme={toggleTheme}
           />
         } 
       />

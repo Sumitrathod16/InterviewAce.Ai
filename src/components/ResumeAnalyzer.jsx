@@ -256,7 +256,7 @@ export default function ResumeAnalyzer({ atsScore, onAtsScoreChange }) {
                           cx="48"
                           cy="48"
                           r="40"
-                          stroke="rgba(255, 255, 255, 0.05)"
+                          stroke="rgba(var(--white), 0.05)"
                           strokeWidth="8"
                           fill="transparent"
                         />
@@ -264,7 +264,7 @@ export default function ResumeAnalyzer({ atsScore, onAtsScoreChange }) {
                           cx="48"
                           cy="48"
                           r="40"
-                          stroke="#FFFFFF"
+                          stroke="rgb(var(--white))"
                           strokeWidth="8"
                           fill="transparent"
                           strokeDasharray={251.2}
@@ -338,7 +338,7 @@ export default function ResumeAnalyzer({ atsScore, onAtsScoreChange }) {
                           <Info size={11} /> Missing Core Keywords
                         </h4>
                         <p className="text-[10px] text-lightGray/60 leading-relaxed mb-3">
-                          Add these skills to align your document with standard ATS filters for a {req.userProfile?.targetRole || 'Developer'} target.
+                          Add these skills to align your document with standard ATS filters for a {userProfile?.targetRole || 'Developer'} target.
                         </p>
                         <div className="flex flex-wrap gap-1.5">
                           {missingKeywords.map((kw, i) => (

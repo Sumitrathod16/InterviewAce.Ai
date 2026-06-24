@@ -226,7 +226,8 @@ export default function CodingAssessment({
   onSolveProblem,
   selectedProblemIndex,
   onSelectProblemIndex,
-  problems = []
+  problems = [],
+  theme = 'dark'
 }) {
   const { userProfile } = useAuth();
   
@@ -475,11 +476,11 @@ export default function CodingAssessment({
             </div>
 
             {/* Monaco Editor Component */}
-            <div className="flex-1 overflow-hidden bg-[#1e1e1e]">
+            <div className="flex-1 overflow-hidden bg-background">
               <Editor
                 height="100%"
                 language={selectedLang === 'python' ? 'python' : selectedLang === 'java' ? 'java' : 'javascript'}
-                theme="vs-dark"
+                theme={theme === 'dark' ? 'vs-dark' : 'light'}
                 value={codeText}
                 onChange={(val) => setCodeText(val || '')}
                 options={{

@@ -26,7 +26,8 @@ export default function DashboardPortal({
   userProfile,
   onLogout,
   activeTab = 'overview',
-  setActiveTab
+  setActiveTab,
+  theme
 }) {
   
   
@@ -577,7 +578,7 @@ export default function DashboardPortal({
                 className="space-y-6"
               >
                 <div className="p-6 bg-secondaryBg/30 border border-white/5 rounded-xl">
-                  <AnalyticsTab interviewsList={interviewsList} />
+                  <AnalyticsTab interviewsList={interviewsList} theme={theme} />
                 </div>
               </motion.div>
             )}
@@ -636,6 +637,7 @@ export default function DashboardPortal({
                     selectedProblemIndex={selectedProblemIndex}
                     onSelectProblemIndex={onSelectProblemIndex}
                     problems={problems}
+                    theme={theme}
                   />
                 </div>
               </motion.div>

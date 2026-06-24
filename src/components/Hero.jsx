@@ -161,9 +161,9 @@ export default function Hero() {
                     />
                     {/* Dots at graph points */}
                     <circle cx="100" cy="60" r="4" fill="#64748B" />
-                    <circle cx="200" cy="30" r="4" fill="#FFFFFF" />
+                    <circle cx="200" cy="30" r="4" fill="currentColor" />
                     <circle cx="300" cy="50" r="4" fill="#64748B" />
-                    <circle cx="400" cy="20" r="4" fill="#FFFFFF" />
+                    <circle cx="400" cy="20" r="4" fill="currentColor" />
                   </svg>
                 </div>
                 <div className="flex justify-between text-[10px] text-lightGray/40 mt-2 font-mono">
