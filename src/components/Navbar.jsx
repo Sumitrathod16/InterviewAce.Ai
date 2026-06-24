@@ -13,7 +13,12 @@ export default function Navbar({ currentView, onViewChange, onTabChange, hasUser
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  const navLinks = [
+  const navLinks = hasUser ? [
+    { name: 'Mock Interviews', href: '#demo' },
+    { name: 'Resume Analyzer', href: '#resume' },
+    { name: 'Coding Sandbox', href: '#coding' },
+    { name: 'Pricing & Tiers', href: '#pricing' },
+  ] : [
     { name: 'Features', href: '#features' },
     { name: 'How It Works', href: '#how-it-works' },
     { name: 'Interview Demo', href: '#demo' },
@@ -102,7 +107,7 @@ export default function Navbar({ currentView, onViewChange, onTabChange, hasUser
           </button>
 
           {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center space-x-8">
+          <div className="hidden md:flex items-center space-x-8 mx-6">
             {navLinks.map((link) => (
               <a
                 key={link.name}
