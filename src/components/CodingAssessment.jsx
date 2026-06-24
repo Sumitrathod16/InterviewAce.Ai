@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Play, Code, CheckCircle, XCircle, Award, Terminal, RefreshCw, Layers } from 'lucide-react';
+import { Play, Code, CheckCircle, XCircle, Award, Terminal, RefreshCw, Layers, ChevronLeft, ChevronRight } from 'lucide-react';
 import Editor from '@monaco-editor/react';
 import confetti from 'canvas-confetti';
 import API from '../services/api';
@@ -352,18 +352,38 @@ export default function CodingAssessment({
           {/* Left panel: Problem Description */}
           <div className="lg:col-span-5 p-6 bg-secondaryBg/40 border border-white/5 rounded-xl flex flex-col justify-between space-y-6">
             <div>
-              {/* Problem Selection drop */}
-              <div className="flex items-center justify-between mb-4">
-                <span className="text-xs font-bold text-lightGray/40 uppercase tracking-widest">Select Challenge</span>
-                <select
-                  value={selectedProblemIndex}
-                  onChange={(e) => onSelectProblemIndex(Number(e.target.value))}
-                  className="bg-background/80 text-white rounded-lg px-3 py-1.5 text-xs border border-white/5 focus:outline-none"
+              {/* Problem Selection Slider */}
+              <div className="flex items-center justify-between mb-4 p-2 bg-background/50 border border-white/5 rounded-xl">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const prevIndex = (selectedProblemIndex - 1 + activeProblems.length) % activeProblems.length;
+                    onSelectProblemIndex(prevIndex);
+                  }}
+                  className="p-1.5 hover:bg-white/5 rounded-lg text-lightGray/60 hover:text-white transition-colors flex items-center justify-center"
+                  title="Previous Challenge"
                 >
-                  {activeProblems.map((p, idx) => (
-                    <option key={p.id || p.problemId} value={idx}>{p.title}</option>
-                  ))}
-                </select>
+                  <ChevronLeft size={16} />
+                </button>
+                
+                <div className="text-center">
+                  <span className="text-[10px] font-bold text-lightGray/40 uppercase tracking-widest block">Select Challenge</span>
+                  <span className="text-xs font-semibold text-white font-mono">
+                    {selectedProblemIndex + 1} of {activeProblems.length}
+                  </span>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    const nextIndex = (selectedProblemIndex + 1) % activeProblems.length;
+                    onSelectProblemIndex(nextIndex);
+                  }}
+                  className="p-1.5 hover:bg-white/5 rounded-lg text-lightGray/60 hover:text-white transition-colors flex items-center justify-center"
+                  title="Next Challenge"
+                >
+                  <ChevronRight size={16} />
+                </button>
               </div>
 
               {/* Title & Tag */}
