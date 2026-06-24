@@ -3,12 +3,14 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Award, FileText, CheckSquare, Calendar, ChevronRight, Activity, 
   Code, UserCheck, AlertCircle, ArrowRight, LogOut, Shield,
-  CreditCard, User, Sparkles, Building, Compass, Check, Info, Settings, Clock
+  CreditCard, User, Sparkles, Building, Compass, Check, Info, Settings, Clock,
+  BarChart3
 } from 'lucide-react';
 import API from '../services/api';
 import MockInterviewDemo from './MockInterviewDemo';
 import ResumeAnalyzer from './ResumeAnalyzer';
 import CodingAssessment from './CodingAssessment';
+import AnalyticsTab from './AnalyticsTab';
 
 export default function DashboardPortal({ 
   solvedProblems, 
@@ -289,6 +291,7 @@ export default function DashboardPortal({
         <div className="flex border-b border-white/5 overflow-x-auto gap-2 pb-1">
           {[
             { id: 'overview', name: 'Workspace Overview', icon: Activity },
+            { id: 'analytics', name: 'Performance Analytics', icon: BarChart3 },
             { id: 'interviews', name: 'AI Mock Interviews', icon: UserCheck },
             { id: 'resume', name: 'ATS Resume Analyzer', icon: FileText },
             { id: 'coding', name: 'Coding Assessment', icon: Code },
@@ -556,6 +559,20 @@ export default function DashboardPortal({
                     </div>
                   </div>
                 )}
+              </motion.div>
+            )}
+
+            {/* ANALYTICS TAB */}
+            {activeTab === 'analytics' && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                className="space-y-6"
+              >
+                <div className="p-6 bg-secondaryBg/30 border border-white/5 rounded-xl">
+                  <AnalyticsTab interviewsList={interviewsList} />
+                </div>
               </motion.div>
             )}
 
