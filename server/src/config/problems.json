@@ -6,9 +6,9 @@
     "description": "Given an array of integers nums and an integer target, return indices of the two numbers such that they add up to target.\nYou may assume that each input would have exactly one solution, and you may not use the same element twice.",
     "category": "Arrays",
     "starterCode": {
-      "javascript": "function twoSum(nums, target) {\n  const map = new Map();\n  for (let i = 0; i < nums.length; i++) {\n    const diff = target - nums[i];\n    if (map.has(diff)) {\n      return [map.get(diff), i];\n    }\n    map.set(nums[i], i);\n  }\n  return [];\n}",
-      "python": "def twoSum(nums, target):\n    seen = {}\n    for i, num in enumerate(nums):\n        diff = target - num\n        if diff in seen:\n            return [seen[diff], i]\n        seen[num] = i\n    return []",
-      "java": "import java.util.HashMap;\nclass Solution {\n    public int[] twoSum(int[] nums, int target) {\n        HashMap<Integer, Integer> map = new HashMap<>();\n        for (int i = 0; i < nums.length; i++) {\n            int diff = target - nums[i];\n            if (map.containsKey(diff)) {\n                return new int[] { map.get(diff), i };\n            }\n            map.put(nums[i], i);\n        }\n        return new int[0];\n    }\n}"
+      "javascript": "function twoSum(nums, target) {\n  // Write your code here\n}",
+      "python": "def twoSum(nums, target):\n    # Write your code here\n    pass",
+      "java": "class Solution {\n    public int[] twoSum(int[] nums, int target) {\n        // Write your code here\n        return new int[0];\n    }\n}"
     },
     "tests": [
       { "input": "[2, 7, 11, 15]\n9", "expected": "[0,1]" },
@@ -22,9 +22,9 @@
     "description": "Write a function that reverses a string. The input string is given as an array of characters s.\nYou must do this by modifying the input array in-place with O(1) extra memory.",
     "category": "Strings",
     "starterCode": {
-      "javascript": "function reverseString(s) {\n  let left = 0, right = s.length - 1;\n  while (left < right) {\n    const temp = s[left];\n    s[left] = s[right];\n    s[right] = temp;\n    left++; right--;\n  }\n  return s;\n}",
-      "python": "def reverseString(s):\n    left, right = 0, len(s) - 1\n    while left < right:\n        s[left], s[right] = s[right], s[left]\n        left += 1\n        right -= 1\n    return s",
-      "java": "class Solution {\n    public void reverseString(char[] s) {\n        int left = 0, right = s.length - 1;\n        while (left < right) {\n            char temp = s[left];\n            s[left] = s[right];\n            s[right] = temp;\n            left++; right--;\n        }\n    }\n}"
+      "javascript": "function reverseString(s) {\n  // Write your code here\n}",
+      "python": "def reverseString(s):\n    # Write your code here\n    pass",
+      "java": "class Solution {\n    public void reverseString(char[] s) {\n        // Write your code here\n    }\n}"
     },
     "tests": [
       { "input": "[\"h\",\"e\",\"l\",\"l\",\"o\"]", "expected": "[\"o\",\"l\",\"l\",\"e\",\"h\"]" }
@@ -37,9 +37,9 @@
     "description": "Given a string s, return true if it is a palindrome, or false otherwise.",
     "category": "Strings",
     "starterCode": {
-      "javascript": "function isPalindrome(s) {\n  const clean = s.toLowerCase().replace(/[^a-z0-9]/g, '');\n  return clean === clean.split('').reverse().join('');\n}",
-      "python": "def isPalindrome(s):\n    clean = \"\".join(c.lower() for c in s if c.isalnum())\n    return clean == clean[::-1]",
-      "java": "class Solution {\n    public boolean isPalindrome(String s) {\n        String clean = s.replaceAll(\"[^a-zA-Z0-9]\", \"\").toLowerCase();\n        String rev = new StringBuilder(clean).reverse().toString();\n        return clean.equals(rev);\n    }\n}"
+      "javascript": "function isPalindrome(s) {\n  // Write your code here\n}",
+      "python": "def isPalindrome(s):\n    # Write your code here\n    pass",
+      "java": "class Solution {\n    public boolean isPalindrome(String s) {\n        // Write your code here\n        return false;\n    }\n}"
     },
     "tests": [
       { "input": "A man, a plan, a canal: Panama", "expected": "true" }
@@ -52,12 +52,91 @@
     "description": "Given an integer n, return a string array answer (1-indexed) where:\n- answer[i] == \"FizzBuzz\" if i is divisible by 3 and 5.\n- answer[i] == \"Fizz\" if i is divisible by 3.\n- answer[i] == \"Buzz\" if i is divisible by 5.\n- answer[i] == i (as a string) if none of the above conditions are true.",
     "category": "Algorithms",
     "starterCode": {
-      "javascript": "function fizzBuzz(n) {\n  const result = [];\n  for (let i = 1; i <= n; i++) {\n    if (i % 3 === 0 && i % 5 === 0) result.push(\"FizzBuzz\");\n    else if (i % 3 === 0) result.push(\"Fizz\");\n    else if (i % 5 === 0) result.push(\"Buzz\");\n    else result.push(i.toString());\n  }\n  return result;\n}",
-      "python": "def fizzBuzz(n):\n    result = []\n    for i in range(1, n + 1):\n        if i % 3 == 0 and i % 5 == 0:\n            result.append(\"FizzBuzz\")\n        elif i % 3 == 0:\n            result.append(\"Fizz\")\n        elif i % 5 == 0:\n            result.append(\"Buzz\")\n        else:\n            result.append(str(i))\n    return result",
-      "java": "import java.util.List;\nimport java.util.ArrayList;\nclass Solution {\n    public List<String> fizzBuzz(int n) {\n        List<String> result = new ArrayList<>();\n        for (int i = 1; i <= n; i++) {\n            if (i % 3 == 0 && i % 5 == 0) result.add(\"FizzBuzz\");\n            else if (i % 3 == 0) result.add(\"Fizz\");\n            else if (i % 5 == 0) result.add(\"Buzz\");\n            else result.add(String.valueOf(i));\n        }\n        return result;\n    }\n}"
+      "javascript": "function fizzBuzz(n) {\n  // Write your code here\n}",
+      "python": "def fizzBuzz(n):\n    # Write your code here\n    pass",
+      "java": "import java.util.List;\nimport java.util.ArrayList;\nclass Solution {\n    public List<String> fizzBuzz(int n) {\n        // Write your code here\n        return new ArrayList<>();\n    }\n}"
     },
     "tests": [
       { "input": "15", "expected": "[\"1\",\"2\",\"Fizz\",\"4\",\"Buzz\",\"Fizz\",\"7\",\"8\",\"Fizz\",\"Buzz\",\"11\",\"Fizz\",\"13\",\"14\",\"FizzBuzz\"]" }
+    ]
+  },
+  {
+    "problemId": "fibonacci",
+    "title": "509. Fibonacci Number",
+    "difficulty": "Easy",
+    "description": "The Fibonacci numbers, commonly denoted F(n) form a sequence, called the Fibonacci sequence, such that each number is the sum of the two preceding ones, starting from 0 and 1.\nGiven n, calculate F(n).",
+    "category": "Algorithms",
+    "starterCode": {
+      "javascript": "function fib(n) {\n  // Write your code here\n}",
+      "python": "def fib(n):\n    # Write your code here\n    pass",
+      "java": "class Solution {\n    public int fib(int n) {\n        // Write your code here\n        return 0;\n    }\n}"
+    },
+    "tests": [
+      { "input": "4", "expected": "3" },
+      { "input": "2", "expected": "1" }
+    ]
+  },
+  {
+    "problemId": "mergesorted",
+    "title": "88. Merge Sorted Array",
+    "difficulty": "Easy",
+    "description": "You are given two integer arrays nums1 and nums2, sorted in non-decreasing order, and two integers m and n, representing the number of elements in nums1 and nums2 respectively.\nMerge nums1 and nums2 into a single array sorted in non-decreasing order. The fusion should happen inside nums1 in-place.",
+    "category": "Arrays",
+    "starterCode": {
+      "javascript": "function merge(nums1, m, nums2, n) {\n  // Write your code here\n}",
+      "python": "def merge(nums1, m, nums2, n):\n    # Write your code here\n    pass",
+      "java": "class Solution {\n    public void merge(int[] nums1, int m, int[] nums2, int n) {\n        // Write your code here\n    }\n}"
+    },
+    "tests": [
+      { "input": "[1,2,3,0,0,0]\n3\n[2,5,6]\n3", "expected": "[1,2,2,3,5,6]" }
+    ]
+  },
+  {
+    "problemId": "binarysearch",
+    "title": "704. Binary Search",
+    "difficulty": "Easy",
+    "description": "Given an array of integers nums which is sorted in ascending order, and an integer target, write a function to search target in nums. If target exists, then return its index. Otherwise, return -1.",
+    "category": "Algorithms",
+    "starterCode": {
+      "javascript": "function search(nums, target) {\n  // Write your code here\n}",
+      "python": "def search(nums, target):\n    # Write your code here\n    pass",
+      "java": "class Solution {\n    public int search(int[] nums, int target) {\n        // Write your code here\n        return -1;\n    }\n}"
+    },
+    "tests": [
+      { "input": "[-1,0,3,5,9,12]\n9", "expected": "4" },
+      { "input": "[-1,0,3,5,9,12]\n2", "expected": "-1" }
+    ]
+  },
+  {
+    "problemId": "containsduplicate",
+    "title": "217. Contains Duplicate",
+    "difficulty": "Easy",
+    "description": "Given an integer array nums, return true if any value appears at least twice in the array, and return false if every element is distinct.",
+    "category": "Arrays",
+    "starterCode": {
+      "javascript": "function containsDuplicate(nums) {\n  // Write your code here\n}",
+      "python": "def containsDuplicate(nums):\n    # Write your code here\n    pass",
+      "java": "class Solution {\n    public boolean containsDuplicate(int[] nums) {\n        // Write your code here\n        return false;\n    }\n}"
+    },
+    "tests": [
+      { "input": "[1,2,3,1]", "expected": "true" },
+      { "input": "[1,2,3,4]", "expected": "false" }
+    ]
+  },
+  {
+    "problemId": "validparentheses",
+    "title": "20. Valid Parentheses",
+    "difficulty": "Easy",
+    "description": "Given a string s containing just the characters '(', ')', '{', '}', '[' and ']', determine if the input string is valid. An open bracket must be closed by the same type and in correct order.",
+    "category": "Strings",
+    "starterCode": {
+      "javascript": "function isValid(s) {\n  // Write your code here\n}",
+      "python": "def isValid(s):\n    # Write your code here\n    pass",
+      "java": "class Solution {\n    public boolean isValid(String s) {\n        // Write your code here\n        return false;\n    }\n}"
+    },
+    "tests": [
+      { "input": "()[]{}", "expected": "true" },
+      { "input": "(]", "expected": "false" }
     ]
   }
 ]

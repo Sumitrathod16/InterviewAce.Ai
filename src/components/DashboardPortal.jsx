@@ -204,11 +204,17 @@ export default function DashboardPortal({
   const practiceStreak = solvedProblems.size > 0 || interviewsList.length > 0 ? 1 : 0;
 
   const CHALLENGES = problems.length > 0
-    ? problems.map((p, idx) => ({ id: p.problemId, title: p.title, difficulty: p.difficulty, index: idx }))
+    ? problems.map((p, idx) => ({ id: p.problemId || p.id, title: p.title, difficulty: p.difficulty, index: idx }))
     : [
         { id: 'twosum', title: '1. Two Sum', difficulty: 'Easy', index: 0 },
         { id: 'reversestring', title: '344. Reverse String', difficulty: 'Easy', index: 1 },
-        { id: 'palindrome', title: '9. Valid Palindrome', difficulty: 'Easy', index: 2 }
+        { id: 'palindrome', title: '9. Valid Palindrome', difficulty: 'Easy', index: 2 },
+        { id: 'fizzbuzz', title: '412. Fizz Buzz', difficulty: 'Easy', index: 3 },
+        { id: 'fibonacci', title: '509. Fibonacci Number', difficulty: 'Easy', index: 4 },
+        { id: 'mergesorted', title: '88. Merge Sorted Array', difficulty: 'Easy', index: 5 },
+        { id: 'binarysearch', title: '704. Binary Search', difficulty: 'Easy', index: 6 },
+        { id: 'containsduplicate', title: '217. Contains Duplicate', difficulty: 'Easy', index: 7 },
+        { id: 'validparentheses', title: '20. Valid Parentheses', difficulty: 'Easy', index: 8 }
       ];
 
   const stats = [

@@ -14,35 +14,14 @@ const PROBLEMS = [
     description: 'Given an array of integers nums and an integer target, return indices of the two numbers such that they add up to target.\nYou may assume that each input would have exactly one solution, and you may not use the same element twice.',
     starterCode: {
       javascript: `function twoSum(nums, target) {
-  const map = new Map();
-  for (let i = 0; i < nums.length; i++) {
-    const diff = target - nums[i];
-    if (map.has(diff)) {
-      return [map.get(diff), i];
-    }
-    map.set(nums[i], i);
-  }
-  return [];
+  // Write your code here
 }`,
       python: `def twoSum(nums, target):
-    seen = {}
-    for i, num in enumerate(nums):
-        diff = target - num
-        if diff in seen:
-            return [seen[diff], i]
-        seen[num] = i
-    return []`,
-      java: `import java.util.HashMap;
-class Solution {
+    # Write your code here
+    pass`,
+      java: `class Solution {
     public int[] twoSum(int[] nums, int target) {
-        HashMap<Integer, Integer> map = new HashMap<>();
-        for (int i = 0; i < nums.length; i++) {
-            int diff = target - nums[i];
-            if (map.containsKey(diff)) {
-                return new int[] { map.get(diff), i };
-            }
-            map.put(nums[i], i);
-        }
+        // Write your code here
         return new int[0];
     }
 }`
@@ -59,31 +38,14 @@ class Solution {
     description: 'Write a function that reverses a string. The input string is given as an array of characters s.\nYou must do this by modifying the input array in-place with O(1) extra memory.',
     starterCode: {
       javascript: `function reverseString(s) {
-  let left = 0, right = s.length - 1;
-  while (left < right) {
-    const temp = s[left];
-    s[left] = s[right];
-    s[right] = temp;
-    left++; right--;
-  }
-  return s;
+  // Write your code here
 }`,
       python: `def reverseString(s):
-    left, right = 0, len(s) - 1
-    while left < right:
-        s[left], s[right] = s[right], s[left]
-        left += 1
-        right -= 1
-    return s`,
+    # Write your code here
+    pass`,
       java: `class Solution {
     public void reverseString(char[] s) {
-        int left = 0, right = s.length - 1;
-        while (left < right) {
-            char temp = s[left];
-            s[left] = s[right];
-            s[right] = temp;
-            left++; right--;
-        }
+        // Write your code here
     }
 }`
     },
@@ -98,22 +60,163 @@ class Solution {
     description: 'Given a string s, return true if it is a palindrome, or false otherwise.',
     starterCode: {
       javascript: `function isPalindrome(s) {
-  const clean = s.toLowerCase().replace(/[^a-z0-9]/g, '');
-  return clean === clean.split('').reverse().join('');
+  // Write your code here
 }`,
       python: `def isPalindrome(s):
-    clean = "".join(c.lower() for c in s if c.isalnum())
-    return clean == clean[::-1]`,
+    # Write your code here
+    pass`,
       java: `class Solution {
     public boolean isPalindrome(String s) {
-        String clean = s.replaceAll("[^a-zA-Z0-9]", "").toLowerCase();
-        String rev = new StringBuilder(clean).reverse().toString();
-        return clean.equals(rev);
+        // Write your code here
+        return false;
     }
 }`
     },
     tests: [
       { input: "A man, a plan, a canal: Panama", expected: "true" }
+    ]
+  },
+  {
+    id: 'fizzbuzz',
+    title: '412. Fizz Buzz',
+    difficulty: 'Easy',
+    description: 'Given an integer n, return a string array answer (1-indexed) where:\n- answer[i] == "FizzBuzz" if i is divisible by 3 and 5.\n- answer[i] == "Fizz" if i is divisible by 3.\n- answer[i] == "Buzz" if i is divisible by 5.\n- answer[i] == i (as a string) if none of the above conditions are true.',
+    starterCode: {
+      javascript: `function fizzBuzz(n) {
+  // Write your code here
+}`,
+      python: `def fizzBuzz(n):
+    # Write your code here
+    pass`,
+      java: `import java.util.List;
+import java.util.ArrayList;
+class Solution {
+    public List<String> fizzBuzz(int n) {
+        // Write your code here
+        return new ArrayList<>();
+    }
+}`
+    },
+    tests: [
+      { input: "15", expected: "[\"1\",\"2\",\"Fizz\",\"4\",\"Buzz\",\"Fizz\",\"7\",\"8\",\"Fizz\",\"Buzz\",\"11\",\"Fizz\",\"13\",\"14\",\"FizzBuzz\"]" }
+    ]
+  },
+  {
+    id: 'fibonacci',
+    title: '509. Fibonacci Number',
+    difficulty: 'Easy',
+    description: 'The Fibonacci numbers, commonly denoted F(n) form a sequence, called the Fibonacci sequence, such that each number is the sum of the two preceding ones, starting from 0 and 1.\nGiven n, calculate F(n).',
+    starterCode: {
+      javascript: `function fib(n) {
+  // Write your code here
+}`,
+      python: `def fib(n):
+    # Write your code here
+    pass`,
+      java: `class Solution {
+    public int fib(int n) {
+        // Write your code here
+        return 0;
+    }
+}`
+    },
+    tests: [
+      { input: "4", expected: "3" },
+      { input: "2", expected: "1" }
+    ]
+  },
+  {
+    id: 'mergesorted',
+    title: '88. Merge Sorted Array',
+    difficulty: 'Easy',
+    description: 'You are given two integer arrays nums1 and nums2, sorted in non-decreasing order, and two integers m and n, representing the number of elements in nums1 and nums2 respectively.\nMerge nums1 and nums2 into a single array sorted in non-decreasing order. The fusion should happen inside nums1 in-place.',
+    starterCode: {
+      javascript: `function merge(nums1, m, nums2, n) {
+  // Write your code here
+}`,
+      python: `def merge(nums1, m, nums2, n):
+    # Write your code here
+    pass`,
+      java: `class Solution {
+    public void merge(int[] nums1, int m, int[] nums2, int n) {
+        // Write your code here
+    }
+}`
+    },
+    tests: [
+      { input: "[1,2,3,0,0,0]\n3\n[2,5,6]\n3", expected: "[1,2,2,3,5,6]" }
+    ]
+  },
+  {
+    id: 'binarysearch',
+    title: '704. Binary Search',
+    difficulty: 'Easy',
+    description: 'Given an array of integers nums which is sorted in ascending order, and an integer target, write a function to search target in nums. If target exists, then return its index. Otherwise, return -1.',
+    starterCode: {
+      javascript: `function search(nums, target) {
+  // Write your code here
+}`,
+      python: `def search(nums, target):
+    # Write your code here
+    pass`,
+      java: `class Solution {
+    public int search(int[] nums, int target) {
+        // Write your code here
+        return -1;
+    }
+}`
+    },
+    tests: [
+      { input: "[-1,0,3,5,9,12]\n9", expected: "4" },
+      { input: "[-1,0,3,5,9,12]\n2", expected: "-1" }
+    ]
+  },
+  {
+    id: 'containsduplicate',
+    title: '217. Contains Duplicate',
+    difficulty: 'Easy',
+    description: 'Given an integer array nums, return true if any value appears at least twice in the array, and return false if every element is distinct.',
+    starterCode: {
+      javascript: `function containsDuplicate(nums) {
+  // Write your code here
+}`,
+      python: `def containsDuplicate(nums):
+    # Write your code here
+    pass`,
+      java: `class Solution {
+    public boolean containsDuplicate(int[] nums) {
+        // Write your code here
+        return false;
+    }
+}`
+    },
+    tests: [
+      { input: "[1,2,3,1]", expected: "true" },
+      { input: "[1,2,3,4]", expected: "false" }
+    ]
+  },
+  {
+    id: 'validparentheses',
+    title: '20. Valid Parentheses',
+    difficulty: 'Easy',
+    description: 'Given a string s containing just the characters \'(\', \')\', \'{\', \'}\', \'[\' and \']\', determine if the input string is valid. An open bracket must be closed by the same type and in correct order.',
+    starterCode: {
+      javascript: `function isValid(s) {
+  // Write your code here
+}`,
+      python: `def isValid(s):
+    # Write your code here
+    pass`,
+      java: `class Solution {
+    public boolean isValid(String s) {
+        // Write your code here
+        return false;
+    }
+}`
+    },
+    tests: [
+      { input: "()[]{}", expected: "true" },
+      { input: "(]", expected: "false" }
     ]
   }
 ];
