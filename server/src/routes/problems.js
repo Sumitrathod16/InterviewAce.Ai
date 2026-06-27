@@ -1,6 +1,7 @@
 import express from 'express';
 import { protect } from '../middleware/auth.js';
 import Problem from '../models/Problem.js';
+import { generateCodingHint } from '../services/gemini.js';
 
 const router = express.Router();
 
@@ -34,6 +35,32 @@ router.get('/:problemId', protect, async (req, res) => {
   } catch (error) {
     console.error(`Failed to get problem ${req.params.problemId}:`, error.message);
     res.status(500).json({ message: 'Server failed to retrieve coding problem detail.' });
+  }
+});
+
+/**
+ * @route   POST /api/problems/:problemId/hint
+ * @desc    Generate a code debugging hint or complexity analysis
+ * @access  Private
+ */
+router.post('/:problemId/hint', protect, async (req, res) => {
+  const { code, language, consoleOutput } = req.body;
+  try {
+    const problem = await Problem.findOne({ problemId: req.params.problemId });
+    if (!problem) {
+      return res.status(404).json({ message: 'Problem not found' });
+    }
+    const hintResult = await generateCodingHint(
+      problem.title,
+      problem.description,
+      code || '',
+      language || 'javascript',
+      consoleOutput || ''
+    );
+    res.json(hintResult);
+  } catch (error) {
+    console.error(`Failed to get hint for problem ${req.params.problemId}:`, error.message);
+    res.status(500).json({ message: 'Server failed to generate hint.' });
   }
 });
 

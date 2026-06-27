@@ -5,7 +5,7 @@ import { protect } from '../middleware/auth.js';
 import ResumeReport from '../models/ResumeReport.js';
 import User from '../models/User.js';
 import { uploadFile } from '../services/cloudinary.js';
-import { analyzeResume } from '../services/gemini.js';
+import { analyzeResume, optimizeResumeBullet } from '../services/gemini.js';
 
 const router = express.Router();
 
@@ -136,6 +136,27 @@ router.get('/history', protect, async (req, res) => {
     res.json(history);
   } catch (error) {
     res.status(500).json({ message: 'Server error fetching resume report history.' });
+  }
+});
+
+/**
+ * @route   POST /api/resumes/optimize-bullet
+ * @desc    Optimize a resume work experience bullet point
+ * @access  Private
+ */
+router.post('/optimize-bullet', protect, async (req, res) => {
+  const { bulletPoint } = req.body;
+  if (!bulletPoint || !bulletPoint.trim()) {
+    return res.status(400).json({ message: 'Missing bullet point text.' });
+  }
+
+  try {
+    const targetRole = req.user.targetRole || 'Frontend Engineer';
+    const result = await optimizeResumeBullet(bulletPoint, targetRole);
+    res.json(result);
+  } catch (error) {
+    console.error('Error optimizing resume bullet:', error.message);
+    res.status(500).json({ message: 'Server error during bullet point optimization.' });
   }
 });
 

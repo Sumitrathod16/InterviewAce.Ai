@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Play, Code, CheckCircle, XCircle, Award, Terminal, RefreshCw, Layers, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Play, Code, CheckCircle, XCircle, Award, Terminal, RefreshCw, Layers, ChevronLeft, ChevronRight, Sparkles } from 'lucide-react';
 import Editor from '@monaco-editor/react';
 import confetti from 'canvas-confetti';
 import API from '../services/api';
@@ -239,6 +239,11 @@ export default function CodingAssessment({
   const [perfScore, setPerfScore] = useState(null);
   const [errorMsg, setErrorMsg] = useState('');
 
+  // AI Hint States
+  const [loadingHint, setLoadingHint] = useState(false);
+  const [hintData, setHintData] = useState(null);
+  const [showHint, setShowHint] = useState(false);
+
   const activeProblems = problems && problems.length > 0 ? problems : PROBLEMS;
   const problem = activeProblems[selectedProblemIndex] || activeProblems[0];
 
@@ -250,6 +255,8 @@ export default function CodingAssessment({
     setResults([]);
     setPerfScore(null);
     setErrorMsg('');
+    setHintData(null);
+    setShowHint(false);
   }, [selectedProblemIndex, selectedLang]);
 
   const resetCode = () => {
@@ -260,6 +267,31 @@ export default function CodingAssessment({
     setResults([]);
     setPerfScore(null);
     setErrorMsg('');
+    setHintData(null);
+    setShowHint(false);
+  };
+
+  const getAiHint = async () => {
+    if (!userProfile) {
+      setErrorMsg('Please log in to query the AI assistant.');
+      return;
+    }
+    setLoadingHint(true);
+    setErrorMsg('');
+    try {
+      const response = await API.post(`/problems/${problem.id}/hint`, {
+        code: codeText,
+        language: selectedLang,
+        consoleOutput: consoleLog.join('\n')
+      });
+      setHintData(response.data);
+      setShowHint(true);
+    } catch (err) {
+      console.error(err);
+      setErrorMsg(err.response?.data?.message || 'Failed to generate AI coding hint.');
+    } finally {
+      setLoadingHint(false);
+    }
   };
 
   const runCode = async () => {
@@ -406,32 +438,89 @@ export default function CodingAssessment({
               </div>
             </div>
 
-            {/* Performance diagnostics panel */}
-            <AnimatePresence>
-              {perfScore && (
-                <motion.div
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="p-4 bg-white/5 rounded-xl border border-white/5 space-y-4 animate-in fade-in duration-200"
-                >
-                  <h4 className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
-                    <Award size={14} /> Optimization Diagnostics
-                  </h4>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <div className="text-2xl font-black text-white">{perfScore.runtime} ms</div>
-                      <div className="text-[10px] text-lightGray/50 font-bold uppercase">Runtime</div>
-                      <div className="text-xs text-white/80 mt-1">Beats {perfScore.runtimePercent}% of users</div>
+            {/* AI Hint and performance diagnostics */}
+            <div className="space-y-4">
+              {/* AI Code Hint Panel */}
+              {userProfile?.subscription === 'Premium' ? (
+                <div>
+                  {!showHint ? (
+                    <button
+                      onClick={getAiHint}
+                      disabled={loadingHint}
+                      className="w-full py-2.5 text-xs font-bold bg-white/5 border border-white/10 text-white rounded-xl hover:bg-white/10 transition-all flex items-center justify-center gap-2"
+                    >
+                      {loadingHint ? (
+                        <>
+                          <RefreshCw size={14} className="animate-spin" />
+                          Analyzing Code Logic...
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles size={14} className="text-amber-400 fill-amber-400" />
+                          Request AI Debugging Hint
+                        </>
+                      )}
+                    </button>
+                  ) : (
+                    <div className="p-4 bg-white/5 border border-white/10 rounded-xl space-y-3">
+                      <div className="flex items-center justify-between">
+                        <h4 className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
+                          <Sparkles size={14} className="text-amber-400 fill-amber-400" /> AI Code Hint
+                        </h4>
+                        <button
+                          onClick={() => setShowHint(false)}
+                          className="text-[10px] text-lightGray/40 hover:text-white transition-colors"
+                        >
+                          Hide
+                        </button>
+                      </div>
+                      {hintData && (
+                        <div className="space-y-2 text-xs leading-relaxed text-lightGray/85">
+                          <p>{hintData.hint}</p>
+                          <div className="text-[10px] text-white/60 font-mono bg-background/50 p-2.5 rounded border border-white/5">
+                            {hintData.complexityAnalysis}
+                          </div>
+                        </div>
+                      )}
                     </div>
-                    <div>
-                      <div className="text-2xl font-black text-white">{perfScore.memory} MB</div>
-                      <div className="text-[10px] text-lightGray/50 font-bold uppercase">Memory Usage</div>
-                      <div className="text-xs text-white/80 mt-1">Beats {perfScore.memoryPercent}% of users</div>
-                    </div>
-                  </div>
-                </motion.div>
+                  )}
+                </div>
+              ) : (
+                <div className="p-4 bg-white/5 rounded-xl border border-white/5 text-center space-y-2">
+                  <span className="text-[10px] font-bold text-amber-400 uppercase tracking-widest block">AI Coding Mentor</span>
+                  <p className="text-[11px] text-lightGray/50 leading-relaxed">
+                    AI debugger hints & complexity insights are available on the Premium tier.
+                  </p>
+                </div>
               )}
-            </AnimatePresence>
+
+              {/* Performance diagnostics panel */}
+              <AnimatePresence>
+                {perfScore && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="p-4 bg-white/5 rounded-xl border border-white/5 space-y-4"
+                  >
+                    <h4 className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
+                      <Award size={14} /> Optimization Diagnostics
+                    </h4>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <div className="text-2xl font-black text-white">{perfScore.runtime} ms</div>
+                        <div className="text-[10px] text-lightGray/50 font-bold uppercase">Runtime</div>
+                        <div className="text-xs text-white/80 mt-1">Beats {perfScore.runtimePercent}% of users</div>
+                      </div>
+                      <div>
+                        <div className="text-2xl font-black text-white">{perfScore.memory} MB</div>
+                        <div className="text-[10px] text-lightGray/50 font-bold uppercase">Memory Usage</div>
+                        <div className="text-xs text-white/80 mt-1">Beats {perfScore.memoryPercent}% of users</div>
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
           </div>
 
           {/* Right panel: Editor and compilation results */}

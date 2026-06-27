@@ -35,6 +35,39 @@ export default function ResumeAnalyzer({ atsScore, onAtsScoreChange }) {
   const [missingKeywords, setMissingKeywords] = useState([]);
   const [errorMsg, setErrorMsg] = useState('');
 
+  // AI Bullet Point Optimizer States
+  const [originalBullet, setOriginalBullet] = useState('');
+  const [optimizedBullet, setOptimizedResult] = useState('');
+  const [verbUsed, setVerbUsed] = useState('');
+  const [metricTip, setMetricTip] = useState('');
+  const [optimizingBullet, setOptimizingBullet] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  const handleOptimizeBullet = async () => {
+    if (!originalBullet.trim()) return;
+    setOptimizingBullet(true);
+    setErrorMsg('');
+    try {
+      const response = await API.post('/resumes/optimize-bullet', {
+        bulletPoint: originalBullet
+      });
+      setOptimizedResult(response.data.optimized);
+      setVerbUsed(response.data.verbUsed);
+      setMetricTip(response.data.metricTip);
+    } catch (err) {
+      console.error(err);
+      setErrorMsg(err.response?.data?.message || 'Failed to optimize bullet point.');
+    } finally {
+      setOptimizingBullet(false);
+    }
+  };
+
+  const copyToClipboard = () => {
+    navigator.clipboard.writeText(optimizedBullet);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
   const handleUpload = (e) => {
     e.preventDefault();
     const uploadedFile = e.target.files?.[0];
@@ -369,6 +402,83 @@ export default function ResumeAnalyzer({ atsScore, onAtsScoreChange }) {
             </AnimatePresence>
           </div>
 
+        </div>
+
+        {/* Experience Bullet Point Optimizer Section */}
+        <div className="mt-12 p-6 bg-secondaryBg/45 border border-white/5 rounded-xl space-y-6">
+          <div className="border-b border-white/5 pb-4">
+            <h3 className="text-lg font-bold text-white flex items-center gap-2">
+              <Sparkles size={18} className="text-amber-400 fill-amber-400" /> Resume Experience Bullet-Point Optimizer
+            </h3>
+            <p className="text-xs text-lightGray/70 mt-1">
+              Paste a bullet point from your work history. Our AI will inject strong action verbs and metrics templates.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-stretch text-xs">
+            {/* Input area */}
+            <div className="space-y-4 flex flex-col justify-between">
+              <div className="space-y-2">
+                <label className="block font-bold text-lightGray/60 uppercase">Original Bullet Point</label>
+                <textarea
+                  value={originalBullet}
+                  onChange={(e) => setOriginalBullet(e.target.value)}
+                  placeholder="e.g. I worked on a react dashboard and improved speed."
+                  className="w-full h-28 bg-background/50 text-white rounded-lg p-3 border border-white/5 focus:outline-none focus:border-white/30 resize-none font-sans placeholder-lightGray/35"
+                />
+              </div>
+              <button
+                onClick={handleOptimizeBullet}
+                disabled={optimizingBullet || !originalBullet.trim()}
+                className="w-full py-3 bg-white text-background hover:bg-lightGray font-black uppercase tracking-wider rounded-lg disabled:opacity-45 transition-all text-center flex items-center justify-center gap-1.5"
+              >
+                {optimizingBullet && <span className="w-3.5 h-3.5 rounded-full border-2 border-background border-t-transparent animate-spin" />}
+                {optimizingBullet ? 'Polishing...' : 'Optimize experience'}
+              </button>
+            </div>
+
+            {/* Output area */}
+            <div className="p-4 bg-background/35 border border-white/5 rounded-xl flex flex-col justify-between space-y-4">
+              <div className="space-y-3">
+                <div className="flex justify-between items-center">
+                  <span className="font-bold text-lightGray/60 uppercase">AI Polished Result</span>
+                  {optimizedBullet && (
+                    <button
+                      onClick={copyToClipboard}
+                      className="px-2.5 py-1 bg-white/5 border border-white/5 hover:bg-white/10 text-white rounded text-[10px] flex items-center gap-1.5 transition-colors font-sans"
+                    >
+                      {copied ? 'Copied!' : 'Copy text'}
+                    </button>
+                  )}
+                </div>
+                {optimizedBullet ? (
+                  <div className="space-y-3 leading-relaxed">
+                    <p className="text-white bg-white/5 p-3 rounded-lg border border-white/5 font-medium">{optimizedBullet}</p>
+                    {verbUsed && (
+                      <div>
+                        <span className="text-[10px] text-lightGray/50 font-bold uppercase">Strong Verbs Applied:</span>
+                        <div className="flex gap-1.5 flex-wrap mt-1">
+                          {verbUsed.split(',').map((v, i) => (
+                            <span key={i} className="px-2 py-0.5 rounded bg-emerald-950/20 border border-emerald-800/40 text-[10px] text-emerald-400 font-semibold">{v.trim()}</span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    {metricTip && (
+                      <div className="p-2.5 bg-white/5 border border-white/5 rounded-lg text-[10px] text-lightGray/55 leading-normal flex items-start gap-1.5 font-sans">
+                        <Info size={11} className="flex-shrink-0 mt-0.5" />
+                        <span>{metricTip}</span>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="h-full flex items-center justify-center py-8 text-lightGray/40 italic text-center font-sans">
+                    Polished result will appear here. Enter an original bullet point and click optimize.
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
         </div>
 
       </div>

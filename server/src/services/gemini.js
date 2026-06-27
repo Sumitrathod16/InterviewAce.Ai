@@ -107,6 +107,7 @@ export const evaluateAnswer = async (question, answer, track, role) => {
   }
 
   try {
+    const isBehavioral = track.toLowerCase().includes('hr') || track.toLowerCase().includes('behavioral');
     const prompt = `You are an AI Interviewer evaluating a candidate's answer.
     Role: ${role}
     Track: ${track}
@@ -121,7 +122,13 @@ export const evaluateAnswer = async (question, answer, track, role) => {
       "contentScore": number (0-100, score for technical/logical depth),
       "strengths": string[] (list of 2-3 specific strengths of the answer),
       "improvements": string[] (list of 2-3 actionable feedback items to improve),
-      "idealAnswer": string (a concise model answer demonstrating how to answer this question optimally using the STAR method if behavioral or detailing the correct technical concepts if technical)
+      "idealAnswer": string (a concise model answer demonstrating how to answer this question optimally using the STAR method if behavioral or detailing the correct technical concepts if technical)${isBehavioral ? `,
+      "starRating": {
+        "situation": number (0-100, how well they set up the Situation),
+        "task": number (0-100, how well they described the Task),
+        "action": number (0-100, how detailed their Action description was),
+        "result": number (0-100, how well they highlighted and quantified the Result)
+      }` : ''}
     }
     Format your response as a valid JSON object. Do not include any markdown format wrapper outside.`;
 
@@ -130,6 +137,87 @@ export const evaluateAnswer = async (question, answer, track, role) => {
   } catch (error) {
     console.error('Error in evaluateAnswer:', error.message);
     return getMockEvaluation(question, answer, track, role);
+  }
+};
+
+/**
+ * Generate a conceptual coding hint & complexity analysis
+ */
+export const generateCodingHint = async (problemTitle, problemDescription, code, language, consoleOutput) => {
+  if (!openrouterKey) {
+    return {
+      hint: "Review your loop boundary or conditional check. Ensure you are not accessing indices outside the array bounds.",
+      complexityAnalysis: "Time Complexity: O(N) | Space Complexity: O(1)"
+    };
+  }
+
+  try {
+    const prompt = `You are an elite coding tutor. Provide a conceptual hint for this coding problem. Do NOT write or output any solution code.
+    Problem: "${problemTitle}"
+    Description: "${problemDescription}"
+    Candidate Language: "${language}"
+    Candidate Code:
+    """
+    ${code}
+    """
+    Compiler / Test Output: "${consoleOutput || 'None'}"
+
+    Analyze the candidate's code and execution output. Offer a helpful architectural, algorithmic, or dry-run debugging hint.
+    Also, analyze the time and space complexity of their current approach.
+    Format your response as a JSON object:
+    {
+      "hint": string (helpful guidance explaining what concept or logic to double-check, without providing code snippets),
+      "complexityAnalysis": string (e.g. "Current: O(N^2) time, O(1) space. Optimal: O(N) time, O(N) space.")
+    }
+    Format your response as a valid JSON object.`;
+
+    const text = await callOpenRouter(prompt, true);
+    return parseJSON(text);
+  } catch (error) {
+    console.error('Error in generateCodingHint:', error.message);
+    return {
+      hint: "Review your loop boundary or conditional check. Ensure you are not accessing indices outside the array bounds.",
+      complexityAnalysis: "Time Complexity: O(N) | Space Complexity: O(1)"
+    };
+  }
+};
+
+/**
+ * Optimize resume bullet points for high impact and action verbs
+ */
+export const optimizeResumeBullet = async (bulletPoint, targetRole) => {
+  if (!openrouterKey) {
+    return {
+      optimized: `Spearheaded front-end optimization by engineering responsive React components, improving client-side page rendering speed by 34% and increasing user retention.`,
+      verbUsed: "Spearheaded, Engineered",
+      metricTip: "Quantify metrics like latency, load times, user engagement, or server capacity based on your actual work."
+    };
+  }
+
+  try {
+    const prompt = `You are a premium resume writer and career consultant.
+    Target Role: ${targetRole}
+    Candidate's original bullet point: "${bulletPoint}"
+
+    Optimize this bullet point to make it sound professional, high-impact, and ATS-compatible.
+    Use strong action verbs at the beginning and integrate potential quantifiable metrics (use placeholders like [X]% if no metric is implied, but make it look realistic).
+    Format your response as a JSON object:
+    {
+      "optimized": string (the polished, high-impact bullet point),
+      "verbUsed": string (the major action verbs used in the rewrite),
+      "metricTip": string (advice on what real metrics they can measure and put here)
+    }
+    Format your response as a valid JSON object.`;
+
+    const text = await callOpenRouter(prompt, true);
+    return parseJSON(text);
+  } catch (error) {
+    console.error('Error in optimizeResumeBullet:', error.message);
+    return {
+      optimized: `Spearheaded front-end optimization by engineering responsive React components, improving client-side page rendering speed by 34% and increasing user retention.`,
+      verbUsed: "Spearheaded, Engineered",
+      metricTip: "Quantify metrics like latency, load times, user engagement, or server capacity based on your actual work."
+    };
   }
 };
 
@@ -306,17 +394,27 @@ function getMockEvaluation(question, answer, track, role) {
     idealAnswer = `A technical answer should define core terms immediately, list 2-3 architecture patterns, analyze the performance or latency trade-offs, and detail standard scaling methods (e.g. caching, indexing, throttling).`;
   }
 
+  const isBehavioral = track.toLowerCase().includes('hr') || track.toLowerCase().includes('behavioral');
+  const starRating = isBehavioral ? {
+    situation: Math.min(50 + Math.floor(Math.random() * 50), 100),
+    task: Math.min(50 + Math.floor(Math.random() * 50), 100),
+    action: Math.min(50 + Math.floor(Math.random() * 50), 100),
+    result: Math.min(40 + Math.floor(Math.random() * 60), 100)
+  } : undefined;
+
   return {
     score,
     communicationScore: Math.min(score + 4, 100),
     contentScore: Math.min(score - 3, 100),
     strengths,
     improvements,
-    idealAnswer
+    idealAnswer,
+    starRating
   };
 }
 
 function getMockResumeAnalysis(resumeText, targetRole) {
+
   const base = 62 + Math.floor(Math.random() * 12);
   return {
     atsScore: base,

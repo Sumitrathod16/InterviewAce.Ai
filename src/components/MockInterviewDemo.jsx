@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Send, User, Cpu, Award, ThumbsUp, HelpCircle, ArrowRight, RefreshCw, AlertCircle, Mic, MicOff, Volume2 } from 'lucide-react';
+import { Send, User, Cpu, Award, ThumbsUp, HelpCircle, ArrowRight, RefreshCw, AlertCircle, Mic, MicOff, Volume2, Sparkles } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import API from '../services/api';
 import { useAuth } from '../context/AuthContext';
@@ -163,7 +163,13 @@ export default function MockInterviewDemo({ onInterviewComplete }) {
           contentScore: score - 3,
           strengths: ['Direct communication style.', 'Good examples provided.'],
           improvements: ['Incorporate more structured metrics.', 'Try using the STAR format.'],
-          idealAnswer: 'Ideally, explain the technical variables and list optimization results.'
+          idealAnswer: 'Ideally, explain the technical variables and list optimization results.',
+          starRating: selectedTrack === 'hr' ? {
+            situation: Math.min(60 + Math.floor(Math.random() * 40), 100),
+            task: Math.min(60 + Math.floor(Math.random() * 40), 100),
+            action: Math.min(60 + Math.floor(Math.random() * 40), 100),
+            result: Math.min(45 + Math.floor(Math.random() * 55), 100)
+          } : undefined
         };
         setCurrentFeedback(mockEval);
         setShowFeedback(true);
@@ -549,6 +555,31 @@ export default function MockInterviewDemo({ onInterviewComplete }) {
                       </div>
                     </div>
 
+                    {/* STAR Breakdown Panel */}
+                    {selectedTrack === 'hr' && currentFeedback.starRating && (
+                      <div className="mb-6 pt-4 border-t border-white/5 space-y-3">
+                        <span className="text-[10px] font-bold text-white uppercase tracking-wider block">STAR Method Scores</span>
+                        <div className="grid grid-cols-2 gap-3.5">
+                          {[
+                            { label: 'Situation', score: currentFeedback.starRating.situation, color: 'bg-emerald-400' },
+                            { label: 'Task', score: currentFeedback.starRating.task, color: 'bg-sky-400' },
+                            { label: 'Action', score: currentFeedback.starRating.action, color: 'bg-amber-400' },
+                            { label: 'Result', score: currentFeedback.starRating.result, color: 'bg-rose-400' }
+                          ].map((star) => (
+                            <div key={star.label} className="p-2.5 bg-background/50 rounded-lg border border-white/5">
+                              <div className="flex justify-between items-center text-[10px] font-semibold text-lightGray/60">
+                                <span>{star.label}</span>
+                                <span className="text-white">{star.score}%</span>
+                              </div>
+                              <div className="w-full h-1 bg-white/5 rounded-full overflow-hidden mt-1.5">
+                                <div className={`h-full ${star.color}`} style={{ width: `${star.score}%` }} />
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
                     {/* Strengths & Improvements */}
                     <div className="space-y-4 overflow-y-auto max-h-52 pr-1">
                       {/* Strengths */}
@@ -594,6 +625,51 @@ export default function MockInterviewDemo({ onInterviewComplete }) {
                     <ArrowRight size={16} />
                   </button>
                 </motion.div>
+              ) : selectedTrack === 'hr' && activeInterview !== null ? (
+                <div className="bg-secondaryBg/40 border border-white/5 rounded-xl p-6 h-full flex flex-col justify-between space-y-4">
+                  <div>
+                    <div className="flex items-center gap-2 border-b border-white/5 pb-3">
+                      <Sparkles size={16} className="text-amber-400 fill-amber-400" />
+                      <h4 className="text-xs font-bold text-white uppercase tracking-wider">STAR Interview Assistant</h4>
+                    </div>
+                    <p className="text-[11px] text-lightGray/60 mt-2">Structure your response using the STAR method for maximum scoring potential:</p>
+                    
+                    <div className="space-y-3.5 mt-4 text-xs">
+                      <div className="flex items-start gap-2.5">
+                        <span className="w-5 h-5 rounded-full bg-white/10 text-white flex items-center justify-center font-mono font-bold text-[9px] flex-shrink-0">S</span>
+                        <div>
+                          <strong className="text-white">Situation</strong>
+                          <p className="text-[10px] text-lightGray/50 mt-0.5">Describe the context or challenge you faced. Keep it under 2 sentences.</p>
+                        </div>
+                      </div>
+                      <div className="flex items-start gap-2.5">
+                        <span className="w-5 h-5 rounded-full bg-white/10 text-white flex items-center justify-center font-mono font-bold text-[9px] flex-shrink-0">T</span>
+                        <div>
+                          <strong className="text-white">Task</strong>
+                          <p className="text-[10px] text-lightGray/50 mt-0.5">Explain your responsibility and the goal of your initiative.</p>
+                        </div>
+                      </div>
+                      <div className="flex items-start gap-2.5">
+                        <span className="w-5 h-5 rounded-full bg-white/10 text-white flex items-center justify-center font-mono font-bold text-[9px] flex-shrink-0">A</span>
+                        <div>
+                          <strong className="text-white">Action</strong>
+                          <p className="text-[10px] text-lightGray/50 mt-0.5">Detail the specific steps you took and how you collaborated with your team.</p>
+                        </div>
+                      </div>
+                      <div className="flex items-start gap-2.5">
+                        <span className="w-5 h-5 rounded-full bg-white/10 text-white flex items-center justify-center font-mono font-bold text-[9px] flex-shrink-0">R</span>
+                        <div>
+                          <strong className="text-white">Result</strong>
+                          <p className="text-[10px] text-lightGray/50 mt-0.5">State the final outcome. Quantify metrics, percentages, or learnings.</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="p-3 bg-white/5 rounded-lg border border-white/5 text-[10px] text-lightGray/55 leading-relaxed font-mono">
+                    💡 TIP: Use strong verbs like "Spearheaded", "Architected", or "Negotiated" when describing your Actions.
+                  </div>
+                </div>
               ) : (
                 <div className="bg-secondaryBg/20 border border-white/5 rounded-xl p-6 h-full flex flex-col justify-center items-center text-center space-y-4">
                   <div className="p-4 bg-white/5 rounded-full text-lightGray mb-2">
