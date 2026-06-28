@@ -9,17 +9,17 @@
   --background: 248 250 252;     /* slate-50 */
   --secondary-bg: 255 255 255;   /* white */
   --white: 15 23 42;             /* slate-900 */
-  --light-gray: 71 85 105;       /* slate-600 */
-  --accent: 100 116 139;         /* slate-500 */
+  --light-gray: 51 65 85;        /* slate-700 - darker for higher readability */
+  --accent: 79 70 229;           /* indigo-600 - vibrant royal indigo brand accent */
 }
 
 html.dark {
   /* Dark Mode values */
-  --background: 15 23 42;        /* slate-900 */
-  --secondary-bg: 30 41 59;      /* slate-800 */
+  --background: 10 15 30;        /* rich premium dark blue-black */
+  --secondary-bg: 20 27 45;      /* deep slate navy */
   --white: 255 255 255;          /* white */
-  --light-gray: 226 232 240;     /* slate-200 */
-  --accent: 100 116 139;         /* slate-500 */
+  --light-gray: 241 245 249;     /* slate-100 - much brighter for clear contrast */
+  --accent: 99 102 241;          /* indigo-500 - glowing tech indigo accent */
 }
 
 @layer base {

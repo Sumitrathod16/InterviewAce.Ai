@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
+import { Toaster } from 'react-hot-toast';
 import Navbar from './components/Navbar';
 import Hero from './components/Hero';
 import Features from './components/Features';
@@ -223,8 +224,27 @@ export default function App() {
   }
 
   return (
-    <Routes>
-      <Route 
+    <>
+      <Toaster 
+        position="top-right"
+        toastOptions={{
+          style: {
+            background: 'rgb(20 27 45)',
+            color: '#fff',
+            border: '1px solid rgba(255, 255, 255, 0.08)',
+            fontSize: '13px',
+            fontFamily: 'Inter, sans-serif',
+          },
+          success: {
+            iconTheme: {
+              primary: '#10b981',
+              secondary: '#fff',
+            },
+          },
+        }}
+      />
+      <Routes>
+        <Route 
         path="/" 
         element={
           <MainAppLayout
@@ -259,7 +279,7 @@ export default function App() {
           )
         } 
       />
-      <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
+    </>
   );
 }

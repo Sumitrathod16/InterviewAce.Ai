@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Play, Code, CheckCircle, XCircle, Award, Terminal, RefreshCw, Layers, ChevronLeft, ChevronRight, Sparkles } from 'lucide-react';
 import Editor from '@monaco-editor/react';
 import confetti from 'canvas-confetti';
+import { toast } from 'react-hot-toast';
 import API from '../services/api';
 import { useAuth } from '../context/AuthContext';
 
@@ -274,6 +275,7 @@ export default function CodingAssessment({
   const getAiHint = async () => {
     if (!userProfile) {
       setErrorMsg('Please log in to query the AI assistant.');
+      toast.error('Please log in to query the AI assistant.');
       return;
     }
     setLoadingHint(true);
@@ -286,9 +288,12 @@ export default function CodingAssessment({
       });
       setHintData(response.data);
       setShowHint(true);
+      toast.success('AI debug hints generated successfully!');
     } catch (err) {
       console.error(err);
-      setErrorMsg(err.response?.data?.message || 'Failed to generate AI coding hint.');
+      const msg = err.response?.data?.message || 'Failed to generate AI coding hint.';
+      setErrorMsg(msg);
+      toast.error(msg);
     } finally {
       setLoadingHint(false);
     }
@@ -297,6 +302,7 @@ export default function CodingAssessment({
   const runCode = async () => {
     if (!userProfile) {
       setErrorMsg('Please log in to submit code compilation.');
+      toast.error('Please log in to submit code compilation.');
       return;
     }
 
@@ -305,6 +311,7 @@ export default function CodingAssessment({
     setResults([]);
     setPerfScore(null);
     setErrorMsg('');
+    const toastId = toast.loading('Compiling and running assertions...');
 
     try {
       const response = await API.post('/compiler/run', {
@@ -337,6 +344,8 @@ export default function CodingAssessment({
           onSolveProblem(problem.id, problem.title);
         }
 
+        toast.success('Compilation successful! All tests passed.', { id: toastId });
+
         confetti({
           particleCount: 50,
           spread: 45,
@@ -350,12 +359,15 @@ export default function CodingAssessment({
           `Compilation Error. Status: ${data.status}`,
           `Errors: ${data.stderr || 'Assertion failed.'}`
         ]);
+        toast.error('Compilation failed! Test assertion error.', { id: toastId });
       }
     } catch (err) {
       console.error('Compiler execution failure:', err);
       setTestingStatus('fail');
-      setErrorMsg(err.response?.data?.message || 'Failed to connect to backend execution environment.');
+      const msg = err.response?.data?.message || 'Failed to connect to backend execution environment.';
+      setErrorMsg(msg);
       setConsoleLog(prev => [...prev, `InternalError: Compiler connection failed.`]);
+      toast.error(msg, { id: toastId });
     }
   };
 

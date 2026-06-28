@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Send, User, Cpu, Award, ThumbsUp, HelpCircle, ArrowRight, RefreshCw, AlertCircle, Mic, MicOff, Volume2, Sparkles } from 'lucide-react';
 import confetti from 'canvas-confetti';
+import { toast } from 'react-hot-toast';
 import API from '../services/api';
 import { useAuth } from '../context/AuthContext';
 
@@ -79,6 +80,7 @@ export default function MockInterviewDemo({ onInterviewComplete }) {
   const startInterviewSession = async () => {
     if (!userProfile) {
       setErrorMsg('Please sign in to take a mock interview.');
+      toast.error('Please sign in to take a mock interview.');
       return;
     }
 
@@ -113,9 +115,11 @@ export default function MockInterviewDemo({ onInterviewComplete }) {
 
       // Automatically speak first question
       speakText(firstQuestion);
+      toast.success('Interview session successfully initialized!');
     } catch (err) {
       console.error('Error starting interview session:', err);
       setErrorMsg(err.response?.data?.message || 'Failed to start interview session. Ensure backend is running.');
+      toast.error('Failed to connect to AI server. Running in developer offline fallback mode.');
       
       // Local offline fallback questions
       const localQs = {
@@ -171,6 +175,7 @@ export default function MockInterviewDemo({ onInterviewComplete }) {
           idealAnswer: 'Ideally, explain the technical variables and list optimization results.',
           starRating: selectedTrack === 'hr' ? {
             situation: Math.min(60 + Math.floor(Math.random() * 40), 100),
+            situation: Math.min(60 + Math.floor(Math.random() * 40), 100),
             task: Math.min(60 + Math.floor(Math.random() * 40), 100),
             action: Math.min(60 + Math.floor(Math.random() * 40), 100),
             result: Math.min(45 + Math.floor(Math.random() * 55), 100)
@@ -179,6 +184,7 @@ export default function MockInterviewDemo({ onInterviewComplete }) {
         setCurrentFeedback(mockEval);
         setShowFeedback(true);
         setChatHistory(prev => [...prev, { sender: 'ai', text: 'Response analyzed. Scorecard updated.', isFeedbackTrigger: true }]);
+        toast.success('Response analyzed successfully (offline mode)!');
       }, 1000);
       return;
     }
@@ -201,9 +207,11 @@ export default function MockInterviewDemo({ onInterviewComplete }) {
           isFeedbackTrigger: true
         }
       ]);
+      toast.success('Response analyzed successfully!');
     } catch (err) {
       console.error('Error submitting answer:', err);
       setErrorMsg('Failed to verify answer with server.');
+      toast.error('Failed to submit answer to evaluator.');
       setIsThinking(false);
     }
   };
@@ -232,6 +240,7 @@ export default function MockInterviewDemo({ onInterviewComplete }) {
       ]);
       
       speakText(nextQ);
+      toast.success(`Next question loaded (${nextIndex + 1}/${totalQs})`);
     } else {
       setIsCompleted(true);
       confetti({
@@ -257,6 +266,7 @@ export default function MockInterviewDemo({ onInterviewComplete }) {
           isCompleted: true
         }
       ]);
+      toast.success('Congratulations! Mock interview completed!');
     }
   };
 
@@ -323,7 +333,7 @@ export default function MockInterviewDemo({ onInterviewComplete }) {
           <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-white mb-4">
             Try the AI Interview Simulator
           </h2>
-          <p className="text-lg text-lightGray/70">
+          <p className="text-lg text-lightGray">
             Choose your career track, chat with the AI interviewer, and receive real-time granular feedback.
           </p>
         </div>
@@ -331,7 +341,7 @@ export default function MockInterviewDemo({ onInterviewComplete }) {
         {/* Tracks Selector & Question Count Selector */}
         <div className="flex flex-col sm:flex-row justify-center items-center gap-6 mb-10">
           <div className="flex items-center gap-2.5">
-            <span className="text-xs font-bold text-lightGray/40 uppercase tracking-wider">Select Track:</span>
+            <span className="text-xs font-bold text-lightGray/75 uppercase tracking-wider">Select Track:</span>
             <div className="flex gap-2">
               {tracks.map(t => (
                 <button
@@ -351,7 +361,7 @@ export default function MockInterviewDemo({ onInterviewComplete }) {
           </div>
 
           <div className="flex items-center gap-2.5">
-            <span className="text-xs font-bold text-lightGray/40 uppercase tracking-wider">Questions:</span>
+            <span className="text-xs font-bold text-lightGray/75 uppercase tracking-wider">Questions:</span>
             <div className="flex gap-2">
               {[3, 5, 10].map(cnt => (
                 <button
@@ -393,7 +403,7 @@ export default function MockInterviewDemo({ onInterviewComplete }) {
                 {activeQuestion && (
                   <button
                     onClick={() => speakText(activeQuestion)}
-                    className="text-xs text-lightGray/60 hover:text-white flex items-center gap-1 transition-colors"
+                    className="text-xs text-lightGray/85 hover:text-white flex items-center gap-1 transition-colors"
                     title="Play audio query"
                   >
                     <Volume2 size={13} />
@@ -402,7 +412,7 @@ export default function MockInterviewDemo({ onInterviewComplete }) {
                 )}
                 <button 
                   onClick={() => resetInterview(selectedTrack)}
-                  className="text-xs text-lightGray/60 hover:text-white flex items-center gap-1.5 transition-colors"
+                  className="text-xs text-lightGray/85 hover:text-white flex items-center gap-1.5 transition-colors"
                 >
                   <RefreshCw size={12} />
                   Restart
@@ -540,7 +550,7 @@ export default function MockInterviewDemo({ onInterviewComplete }) {
                     {/* Score Gauges */}
                     <div className="space-y-3 mb-6">
                       <div>
-                        <div className="flex justify-between text-xs text-lightGray/60 mb-1">
+                        <div className="flex justify-between text-xs text-lightGray/85 mb-1">
                           <span>Communication & Structure</span>
                           <span>{currentFeedback.communicationScore}%</span>
                         </div>
@@ -549,7 +559,7 @@ export default function MockInterviewDemo({ onInterviewComplete }) {
                         </div>
                       </div>
                       <div>
-                        <div className="flex justify-between text-xs text-lightGray/60 mb-1">
+                        <div className="flex justify-between text-xs text-lightGray/85 mb-1">
                           <span>Technical Depth / Logic</span>
                           <span>{currentFeedback.contentScore}%</span>
                         </div>
@@ -571,9 +581,9 @@ export default function MockInterviewDemo({ onInterviewComplete }) {
                             { label: 'Result', score: currentFeedback.starRating.result, color: 'bg-rose-400' }
                           ].map((star) => (
                             <div key={star.label} className="p-2.5 bg-background/50 rounded-lg border border-white/5">
-                              <div className="flex justify-between items-center text-[10px] font-semibold text-lightGray/60">
+                              <div className="flex justify-between items-center text-[10px] font-bold text-lightGray/85">
                                 <span>{star.label}</span>
-                                <span className="text-white">{star.score}%</span>
+                                <span className="text-white font-extrabold">{star.score}%</span>
                               </div>
                               <div className="w-full h-1 bg-white/5 rounded-full overflow-hidden mt-1.5">
                                 <div className={`h-full ${star.color}`} style={{ width: `${star.score}%` }} />
@@ -593,8 +603,8 @@ export default function MockInterviewDemo({ onInterviewComplete }) {
                         </h4>
                         <ul className="space-y-1">
                           {currentFeedback.strengths.map((str, idx) => (
-                            <li key={idx} className="text-[11px] text-lightGray/70 flex items-start gap-1">
-                              <span className="text-white">•</span>
+                            <li key={idx} className="text-[11px] text-lightGray/90 flex items-start gap-1">
+                              <span className="text-white font-extrabold">•</span>
                               <span>{str}</span>
                             </li>
                           ))}
@@ -608,8 +618,8 @@ export default function MockInterviewDemo({ onInterviewComplete }) {
                         </h4>
                         <ul className="space-y-1">
                           {currentFeedback.improvements.map((imp, idx) => (
-                            <li key={idx} className="text-[11px] text-lightGray/70 flex items-start gap-1">
-                              <span className="text-white">•</span>
+                            <li key={idx} className="text-[11px] text-lightGray/90 flex items-start gap-1">
+                              <span className="text-white font-extrabold">•</span>
                               <span>{imp}</span>
                             </li>
                           ))}
@@ -636,41 +646,41 @@ export default function MockInterviewDemo({ onInterviewComplete }) {
                       <Sparkles size={16} className="text-amber-400 fill-amber-400" />
                       <h4 className="text-xs font-bold text-white uppercase tracking-wider">STAR Interview Assistant</h4>
                     </div>
-                    <p className="text-[11px] text-lightGray/60 mt-2">Structure your response using the STAR method for maximum scoring potential:</p>
+                    <p className="text-[11px] text-lightGray/85 mt-2">Structure your response using the STAR method for maximum scoring potential:</p>
                     
                     <div className="space-y-3.5 mt-4 text-xs">
                       <div className="flex items-start gap-2.5">
                         <span className="w-5 h-5 rounded-full bg-white/10 text-white flex items-center justify-center font-mono font-bold text-[9px] flex-shrink-0">S</span>
                         <div>
                           <strong className="text-white">Situation</strong>
-                          <p className="text-[10px] text-lightGray/50 mt-0.5">Describe the context or challenge you faced. Keep it under 2 sentences.</p>
+                          <p className="text-[10px] text-lightGray/70 mt-0.5">Describe the context or challenge you faced. Keep it under 2 sentences.</p>
                         </div>
                       </div>
                       <div className="flex items-start gap-2.5">
                         <span className="w-5 h-5 rounded-full bg-white/10 text-white flex items-center justify-center font-mono font-bold text-[9px] flex-shrink-0">T</span>
                         <div>
                           <strong className="text-white">Task</strong>
-                          <p className="text-[10px] text-lightGray/50 mt-0.5">Explain your responsibility and the goal of your initiative.</p>
+                          <p className="text-[10px] text-lightGray/70 mt-0.5">Explain your responsibility and the goal of your initiative.</p>
                         </div>
                       </div>
                       <div className="flex items-start gap-2.5">
                         <span className="w-5 h-5 rounded-full bg-white/10 text-white flex items-center justify-center font-mono font-bold text-[9px] flex-shrink-0">A</span>
                         <div>
                           <strong className="text-white">Action</strong>
-                          <p className="text-[10px] text-lightGray/50 mt-0.5">Detail the specific steps you took and how you collaborated with your team.</p>
+                          <p className="text-[10px] text-lightGray/70 mt-0.5">Detail the specific steps you took and how you collaborated with your team.</p>
                         </div>
                       </div>
                       <div className="flex items-start gap-2.5">
                         <span className="w-5 h-5 rounded-full bg-white/10 text-white flex items-center justify-center font-mono font-bold text-[9px] flex-shrink-0">R</span>
                         <div>
                           <strong className="text-white">Result</strong>
-                          <p className="text-[10px] text-lightGray/50 mt-0.5">State the final outcome. Quantify metrics, percentages, or learnings.</p>
+                          <p className="text-[10px] text-lightGray/70 mt-0.5">State the final outcome. Quantify metrics, percentages, or learnings.</p>
                         </div>
                       </div>
                     </div>
                   </div>
 
-                  <div className="p-3 bg-white/5 rounded-lg border border-white/5 text-[10px] text-lightGray/55 leading-relaxed font-mono">
+                  <div className="p-3 bg-white/5 rounded-lg border border-white/5 text-[10px] text-lightGray/80 leading-relaxed font-mono">
                     💡 TIP: Use strong verbs like "Spearheaded", "Architected", or "Negotiated" when describing your Actions.
                   </div>
                 </div>
@@ -680,7 +690,7 @@ export default function MockInterviewDemo({ onInterviewComplete }) {
                     <HelpCircle size={32} className="stroke-[1.5]" />
                   </div>
                   <h3 className="text-lg font-bold text-white">Awaiting Candidate Answer</h3>
-                  <p className="text-sm text-lightGray/50 max-w-xs leading-relaxed">
+                  <p className="text-sm text-lightGray/75 max-w-xs leading-relaxed">
                     Start a practice round and enter your response to the question in the chat interface to trigger AI evaluations.
                   </p>
                 </div>

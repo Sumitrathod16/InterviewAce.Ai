@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { UploadCloud, CheckCircle2, AlertCircle, FileText, Sparkles, Square, Info } from 'lucide-react';
 import confetti from 'canvas-confetti';
+import { toast } from 'react-hot-toast';
 import API from '../services/api';
 import { useAuth } from '../context/AuthContext';
 
@@ -54,9 +55,11 @@ export default function ResumeAnalyzer({ atsScore, onAtsScoreChange }) {
       setOptimizedResult(response.data.optimized);
       setVerbUsed(response.data.verbUsed);
       setMetricTip(response.data.metricTip);
+      toast.success('Bullet point optimized successfully!');
     } catch (err) {
       console.error(err);
       setErrorMsg(err.response?.data?.message || 'Failed to optimize bullet point.');
+      toast.error(err.response?.data?.message || 'Failed to optimize bullet point.');
     } finally {
       setOptimizingBullet(false);
     }
@@ -65,6 +68,7 @@ export default function ResumeAnalyzer({ atsScore, onAtsScoreChange }) {
   const copyToClipboard = () => {
     navigator.clipboard.writeText(optimizedBullet);
     setCopied(true);
+    toast.success('Optimized bullet point copied to clipboard!');
     setTimeout(() => setCopied(false), 2000);
   };
 
@@ -86,6 +90,7 @@ export default function ResumeAnalyzer({ atsScore, onAtsScoreChange }) {
   const triggerAnalysis = async () => {
     if (!userProfile) {
       setErrorMsg('Please log in to analyze your resume.');
+      toast.error('Please log in to analyze your resume.');
       return;
     }
 
@@ -101,6 +106,7 @@ export default function ResumeAnalyzer({ atsScore, onAtsScoreChange }) {
         formData.append('pasteText', pasteText);
       } else {
         setErrorMsg('Please upload a resume file or paste resume details.');
+        toast.error('Please upload a resume file or paste resume details.');
         setAnalyzing(false);
         return;
       }
@@ -121,6 +127,8 @@ export default function ResumeAnalyzer({ atsScore, onAtsScoreChange }) {
         onAtsScoreChange(data.atsScore, "ATS Resume Scan Complete");
       }
 
+      toast.success(`Analysis complete! ATS Rating: ${data.atsScore}%`);
+
       if (data.atsScore >= 80) {
         confetti({
           particleCount: 50,
@@ -131,10 +139,9 @@ export default function ResumeAnalyzer({ atsScore, onAtsScoreChange }) {
       }
     } catch (error) {
       console.error('Resume scanning error:', error);
-      setErrorMsg(
-        error.response?.data?.message || 
-        'An error occurred during resume scanning. Please try again.'
-      );
+      const msg = error.response?.data?.message || 'An error occurred during resume scanning. Please try again.';
+      setErrorMsg(msg);
+      toast.error(msg);
     } finally {
       setAnalyzing(false);
     }
@@ -147,6 +154,11 @@ export default function ResumeAnalyzer({ atsScore, onAtsScoreChange }) {
         if (item.id === id || item._id === id) {
           const newStatus = !item.solved;
           scoreAddition = newStatus ? item.value : -item.value;
+          if (newStatus) {
+            toast.success('Resolved! ATS Rating score increased.');
+          } else {
+            toast.success('Reopened audit checkmark suggestion.');
+          }
           return { ...item, solved: newStatus };
         }
         return item;
@@ -164,6 +176,7 @@ export default function ResumeAnalyzer({ atsScore, onAtsScoreChange }) {
             origin: { y: 0.8 },
             colors: ['#FFFFFF', '#38BDF8']
           });
+          toast.success('Awesome! Resume audit checklist is 100% complete!');
         }
         return final;
       });

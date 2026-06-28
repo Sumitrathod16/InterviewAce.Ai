@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Terminal, Mail, Lock, User, Briefcase, Github, Globe, AlertCircle } from 'lucide-react';
+import { toast } from 'react-hot-toast';
 import { useAuth } from '../context/AuthContext';
 import { isFirebaseConfigured } from '../config/firebase';
 
@@ -32,6 +33,7 @@ export default function AuthScreen({ onAuthSuccess, onClose }) {
 
     if (!email.trim()) {
       setErrorMsg('Please enter your email address.');
+      toast.error('Please enter your email address.');
       return;
     }
 
@@ -40,8 +42,10 @@ export default function AuthScreen({ onAuthSuccess, onClose }) {
       try {
         await resetPassword(email);
         setSuccessMsg('A password reset link has been dispatched to your email address.');
+        toast.success('Password reset link sent to your email.');
       } catch (err) {
         setErrorMsg(err.message || 'Failed to dispatch reset email.');
+        toast.error(err.message || 'Failed to dispatch reset email.');
       } finally {
         setLoading(false);
       }
@@ -50,16 +54,19 @@ export default function AuthScreen({ onAuthSuccess, onClose }) {
 
     if (!password.trim()) {
       setErrorMsg('Please enter your password.');
+      toast.error('Please enter your password.');
       return;
     }
 
     if (password.length < 6) {
       setErrorMsg('Password must be at least 6 characters long.');
+      toast.error('Password must be at least 6 characters.');
       return;
     }
 
     if (isSignUp && !name.trim()) {
       setErrorMsg('Please enter your professional name.');
+      toast.error('Please enter your professional name.');
       return;
     }
 
@@ -68,15 +75,19 @@ export default function AuthScreen({ onAuthSuccess, onClose }) {
       let profile;
       if (isSignUp) {
         profile = await signup(email, password, name, role);
+        toast.success(`Account created successfully! Welcome, ${name || 'User'}.`);
       } else {
         profile = await login(email, password);
+        toast.success('Successfully logged into your workspace!');
       }
       
       if (onAuthSuccess) {
         onAuthSuccess(profile);
       }
     } catch (err) {
-      setErrorMsg(err.response?.data?.message || err.message || 'Authentication failed. Please verify credentials.');
+      const msg = err.response?.data?.message || err.message || 'Authentication failed. Please verify credentials.';
+      setErrorMsg(msg);
+      toast.error(msg);
     } finally {
       setLoading(false);
     }
@@ -88,11 +99,13 @@ export default function AuthScreen({ onAuthSuccess, onClose }) {
     setLoading(true);
     try {
       const profile = await loginWithGoogle();
+      toast.success('Successfully logged in with Google!');
       if (onAuthSuccess) {
         onAuthSuccess(profile);
       }
     } catch (err) {
       setErrorMsg(err.message || 'Google Auth Connection failed.');
+      toast.error(err.message || 'Google Auth Connection failed.');
     } finally {
       setLoading(false);
     }
