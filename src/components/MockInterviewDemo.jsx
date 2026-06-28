@@ -23,7 +23,7 @@ export default function MockInterviewDemo({ onInterviewComplete }) {
   const [errorMsg, setErrorMsg] = useState('');
   const [questionCount, setQuestionCount] = useState(3);
 
-  const messagesEndRef = useRef(null);
+  const chatContainerRef = useRef(null);
 
   const tracks = [
     { id: 'hr', name: 'HR Behavioral' },
@@ -36,7 +36,12 @@ export default function MockInterviewDemo({ onInterviewComplete }) {
   }, [selectedTrack]);
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (chatContainerRef.current) {
+      chatContainerRef.current.scrollTo({
+        top: chatContainerRef.current.scrollHeight,
+        behavior: 'smooth'
+      });
+    }
   }, [chatHistory, isThinking]);
 
   // Audio Playback: Browser SpeechSynthesis
@@ -406,7 +411,7 @@ export default function MockInterviewDemo({ onInterviewComplete }) {
             </div>
 
             {/* Message Thread */}
-            <div className="flex-1 overflow-y-auto p-6 space-y-4">
+            <div ref={chatContainerRef} className="flex-1 overflow-y-auto p-6 space-y-4">
               {chatHistory.map((msg, index) => (
                 <div
                   key={index}
@@ -442,7 +447,6 @@ export default function MockInterviewDemo({ onInterviewComplete }) {
                   </div>
                 </div>
               )}
-              <div ref={messagesEndRef} />
             </div>
 
             {/* Input Form or Start Button */}
