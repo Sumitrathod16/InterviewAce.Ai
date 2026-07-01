@@ -19,6 +19,16 @@ import AdminDashboard from './components/AdminDashboard';
 import { PaymentSuccess, PaymentCancel } from './components/CheckoutStatus';
 import { useAuth } from './context/AuthContext';
 
+// Import footer subpages
+import PrivacyPolicy from './components/footer_pages/PrivacyPolicy';
+import TermsOfService from './components/footer_pages/TermsOfService';
+import SecurityPolicy from './components/footer_pages/SecurityPolicy';
+import CookiePolicy from './components/footer_pages/CookiePolicy';
+import AboutUs from './components/footer_pages/AboutUs';
+import Careers from './components/footer_pages/Careers';
+import Blog from './components/footer_pages/Blog';
+import Contact from './components/footer_pages/Contact';
+
 function MainAppLayout({
   solvedProblems,
   handleSolveProblem,
@@ -29,21 +39,12 @@ function MainAppLayout({
   setSelectedProblemIndex,
   currentView,
   setCurrentView,
-  showAuthModal,
-  setShowAuthModal,
-  handleAuthSuccess,
   activeTab,
   setActiveTab,
-  theme,
-  toggleTheme
+  theme
 }) {
-  const { userProfile, logout, refreshUserProfile } = useAuth();
+  const { userProfile, logout } = useAuth();
   const navigate = useNavigate();
-
-  // Stats states loaded from localStorage fallback
-  const nameInitials = userProfile?.name
-    ? userProfile.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase()
-    : 'US';
 
   const handleLogout = async () => {
     await logout();
@@ -52,24 +53,7 @@ function MainAppLayout({
   };
 
   return (
-    <div className="bg-background min-h-screen text-white selection:bg-white selection:text-background overflow-hidden">
-      {/* Navigation Bar */}
-      <Navbar 
-        currentView={currentView} 
-        onViewChange={(view) => {
-          if (view === 'dashboard-portal' && !userProfile) {
-            setShowAuthModal(true);
-          } else {
-            setCurrentView(view);
-            navigate('/');
-          }
-        }}
-        onTabChange={setActiveTab}
-        hasUser={!!userProfile}
-        theme={theme}
-        toggleTheme={toggleTheme}
-      />
-
+    <>
       {currentView === 'landing' ? (
         <main>
           {/* Hero Landing */}
@@ -118,22 +102,12 @@ function MainAppLayout({
           />
         </main>
       )}
-
-      {/* Auth Screen Overlay Modal */}
-      {showAuthModal && (
-        <AuthScreen 
-          onAuthSuccess={handleAuthSuccess} 
-          onClose={() => setShowAuthModal(false)} 
-        />
-      )}
-
-      <Footer />
-    </div>
+    </>
   );
 }
 
 export default function App() {
-  const { userProfile, loading } = useAuth();
+  const { userProfile, loading, logout } = useAuth();
   const navigate = useNavigate();
 
   const [theme, setTheme] = useState(() => {
@@ -193,17 +167,14 @@ export default function App() {
       next.add(id);
       return next;
     });
-    if (refreshUserProfile) refreshUserProfile();
   };
 
   const handleAtsScoreChange = (newScore) => {
     setAtsScore(newScore);
-    if (refreshUserProfile) refreshUserProfile();
   };
 
   const handleInterviewComplete = () => {
     // Reload metrics logs
-    if (refreshUserProfile) refreshUserProfile();
   };
 
   const handleAuthSuccess = (profile) => {
@@ -213,6 +184,7 @@ export default function App() {
   };
 
   const handleLogout = async () => {
+    await logout();
     setCurrentView('landing');
     navigate('/');
   };
@@ -227,62 +199,96 @@ export default function App() {
   }
 
   return (
-    <>
-      <Toaster 
-        position="top-right"
-        toastOptions={{
-          style: {
-            background: 'rgb(20 27 45)',
-            color: '#fff',
-            border: '1px solid rgba(255, 255, 255, 0.08)',
-            fontSize: '13px',
-            fontFamily: 'Inter, sans-serif',
-          },
-          success: {
-            iconTheme: {
-              primary: '#10b981',
-              secondary: '#fff',
+    <div className="bg-background min-h-screen text-white selection:bg-white selection:text-background flex flex-col justify-between overflow-x-hidden">
+      <div>
+        {/* Navigation Bar */}
+        <Navbar 
+          currentView={currentView} 
+          onViewChange={(view) => {
+            if (view === 'dashboard-portal' && !userProfile) {
+              setShowAuthModal(true);
+            } else {
+              setCurrentView(view);
+              navigate('/');
+            }
+          }}
+          onTabChange={setActiveTab}
+          hasUser={!!userProfile}
+          theme={theme}
+          toggleTheme={toggleTheme}
+        />
+
+        <Toaster 
+          position="top-right"
+          toastOptions={{
+            style: {
+              background: 'rgb(20 27 45)',
+              color: '#fff',
+              border: '1px solid rgba(255, 255, 255, 0.08)',
+              fontSize: '13px',
+              fontFamily: 'Inter, sans-serif',
             },
-          },
-        }}
-      />
-      <Routes>
-        <Route 
-        path="/" 
-        element={
-          <MainAppLayout
-            solvedProblems={solvedProblems}
-            handleSolveProblem={handleSolveProblem}
-            atsScore={atsScore}
-            handleAtsScoreChange={handleAtsScoreChange}
-            handleInterviewComplete={handleInterviewComplete}
-            selectedProblemIndex={selectedProblemIndex}
-            setSelectedProblemIndex={setSelectedProblemIndex}
-            currentView={currentView}
-            setCurrentView={setCurrentView}
-            showAuthModal={showAuthModal}
-            setShowAuthModal={setShowAuthModal}
-            handleAuthSuccess={handleAuthSuccess}
-            activeTab={activeTab}
-            setActiveTab={setActiveTab}
-            theme={theme}
-            toggleTheme={toggleTheme}
+            success: {
+              iconTheme: {
+                primary: '#10b981',
+                secondary: '#fff',
+              },
+            },
+          }}
+        />
+
+        <Routes>
+          <Route 
+            path="/" 
+            element={
+              <MainAppLayout
+                solvedProblems={solvedProblems}
+                handleSolveProblem={handleSolveProblem}
+                atsScore={atsScore}
+                handleAtsScoreChange={handleAtsScoreChange}
+                handleInterviewComplete={handleInterviewComplete}
+                selectedProblemIndex={selectedProblemIndex}
+                setSelectedProblemIndex={setSelectedProblemIndex}
+                currentView={currentView}
+                setCurrentView={setCurrentView}
+                activeTab={activeTab}
+                setActiveTab={setActiveTab}
+                theme={theme}
+              />
+            } 
           />
-        } 
-      />
-      <Route path="/checkout/success" element={<PaymentSuccess />} />
-      <Route path="/checkout/cancel" element={<PaymentCancel />} />
-      <Route 
-        path="/admin" 
-        element={
-          userProfile && userProfile.role === 'Admin' ? (
-            <AdminDashboard onLogout={handleLogout} />
-          ) : (
-            <Navigate to="/" replace />
-          )
-        } 
-      />
-    </Routes>
-    </>
+          <Route path="/checkout/success" element={<PaymentSuccess />} />
+          <Route path="/checkout/cancel" element={<PaymentCancel />} />
+          <Route 
+            path="/admin" 
+            element={
+              userProfile && userProfile.role === 'Admin' ? (
+                <AdminDashboard onLogout={handleLogout} />
+              ) : (
+                <Navigate to="/" replace />
+              )
+            } 
+          />
+          <Route path="/privacy" element={<PrivacyPolicy />} />
+          <Route path="/terms" element={<TermsOfService />} />
+          <Route path="/security" element={<SecurityPolicy />} />
+          <Route path="/cookie-policy" element={<CookiePolicy />} />
+          <Route path="/about" element={<AboutUs />} />
+          <Route path="/careers" element={<Careers />} />
+          <Route path="/blog" element={<Blog />} />
+          <Route path="/contact" element={<Contact />} />
+        </Routes>
+      </div>
+
+      <Footer />
+
+      {/* Auth Screen Overlay Modal */}
+      {showAuthModal && (
+        <AuthScreen 
+          onAuthSuccess={handleAuthSuccess} 
+          onClose={() => setShowAuthModal(false)} 
+        />
+      )}
+    </div>
   );
 }
