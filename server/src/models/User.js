@@ -30,7 +30,7 @@ const userSchema = new mongoose.Schema({
   subscription: {
     type: String,
     enum: ['Free', 'Pro', 'Premium'],
-    default: 'Free'
+    default: 'Premium'
   },
   stripeCustomerId: {
     type: String,
@@ -68,10 +68,48 @@ const userSchema = new mongoose.Schema({
   freeRefillDate: {
     type: Date,
     default: Date.now
+  },
+  // Practice streak stats
+  streakCount: {
+    type: Number,
+    default: 1
+  },
+  lastActiveDate: {
+    type: Date,
+    default: Date.now
   }
 }, {
   timestamps: true
 });
+
+// Document method to update/check user practice streak
+userSchema.methods.updateStreak = async function() {
+  const now = new Date();
+  const currentStreak = this.streakCount || 0;
+  const lastActiveDate = this.lastActiveDate || this.createdAt || now;
+
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const lastActive = new Date(lastActiveDate.getFullYear(), lastActiveDate.getMonth(), lastActiveDate.getDate());
+  
+  const diffTime = today.getTime() - lastActive.getTime();
+  const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+
+  if (currentStreak === 0) {
+    this.streakCount = 1;
+    this.lastActiveDate = now;
+  } else if (diffDays === 1) {
+    this.streakCount = currentStreak + 1;
+    this.lastActiveDate = now;
+  } else if (diffDays > 1) {
+    this.streakCount = 1;
+    this.lastActiveDate = now;
+  } else {
+    // diffDays <= 0 (same-day activity)
+    this.lastActiveDate = now;
+  }
+  
+  return await this.save();
+};
 
 const User = mongoose.model('User', userSchema);
 export default User;

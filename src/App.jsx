@@ -37,7 +37,7 @@ function MainAppLayout({
   theme,
   toggleTheme
 }) {
-  const { userProfile, logout } = useAuth();
+  const { userProfile, logout, refreshUserProfile } = useAuth();
   const navigate = useNavigate();
 
   // Stats states loaded from localStorage fallback
@@ -193,14 +193,17 @@ export default function App() {
       next.add(id);
       return next;
     });
+    if (refreshUserProfile) refreshUserProfile();
   };
 
   const handleAtsScoreChange = (newScore) => {
     setAtsScore(newScore);
+    if (refreshUserProfile) refreshUserProfile();
   };
 
   const handleInterviewComplete = () => {
     // Reload metrics logs
+    if (refreshUserProfile) refreshUserProfile();
   };
 
   const handleAuthSuccess = (profile) => {

@@ -202,7 +202,7 @@ export default function DashboardPortal({
     : 84;
 
   const totalXp = (solvedProblems.size * 100) + (interviewsList.length * 200);
-  const practiceStreak = solvedProblems.size > 0 || interviewsList.length > 0 ? 1 : 0;
+  const practiceStreak = userProfile?.streakCount || 0;
 
   const CHALLENGES = problems.length > 0
     ? problems.map((p, idx) => ({ id: p.problemId || p.id, title: p.title, difficulty: p.difficulty, index: idx }))

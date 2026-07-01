@@ -29,7 +29,7 @@ export const protect = async (req, res, next) => {
             name,
             role,
             targetRole,
-            subscription: 'Free'
+            subscription: 'Premium'
           });
         }
         req.user = user;
@@ -62,7 +62,7 @@ export const protect = async (req, res, next) => {
               email: email || `${uid}@interviewace.ai`,
               name: name || email?.split('@')[0] || 'Candidate',
               role: 'Student', // Default role
-              subscription: 'Free'
+              subscription: 'Premium'
             });
           }
           req.user = user;
@@ -87,7 +87,7 @@ export const protect = async (req, res, next) => {
                 email: email || `${uid}@interviewace.ai`,
                 name: name || email?.split('@')[0] || 'Candidate',
                 role: 'Student',
-                subscription: 'Free'
+                subscription: 'Premium'
               });
             }
             req.user = user;

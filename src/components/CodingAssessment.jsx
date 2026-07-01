@@ -222,6 +222,14 @@ class Solution {
   }
 ];
 
+const FALLBACK_STARTER = {
+  javascript: `// Write your JavaScript code here\nfunction solve() {\n  console.log("Hello from JS!");\n}\n\nsolve();`,
+  python: `# Write your Python code here\ndef solve():\n    print("Hello from Python!")\n\nsolve()`,
+  java: `// Write your Java code here\nclass Solution {\n    public static void main(String[] args) {\n        System.out.println("Hello from Java!");\n    }\n}`,
+  cpp: `// Write your C++ code here\n#include <iostream>\nusing namespace std;\n\nint main() {\n    cout << "Hello from C++!" << endl;\n    return 0;\n}`,
+  c: `// Write your C code here\n#include <stdio.h>\n\nint main() {\n    printf("Hello from C!\\n");\n    return 0;\n}`
+};
+
 export default function CodingAssessment({ 
   solvedProblems, 
   onSolveProblem,
@@ -249,7 +257,7 @@ export default function CodingAssessment({
   const problem = activeProblems[selectedProblemIndex] || activeProblems[0];
 
   useEffect(() => {
-    const starter = problem.starterCode[selectedLang] || problem.starterCode['javascript'] || '';
+    const starter = problem.starterCode[selectedLang] || FALLBACK_STARTER[selectedLang] || problem.starterCode['javascript'] || '';
     setCodeText(starter);
     setConsoleLog([]);
     setTestingStatus('idle');
@@ -261,7 +269,7 @@ export default function CodingAssessment({
   }, [selectedProblemIndex, selectedLang]);
 
   const resetCode = () => {
-    const starter = problem.starterCode[selectedLang] || problem.starterCode['javascript'] || '';
+    const starter = problem.starterCode[selectedLang] || FALLBACK_STARTER[selectedLang] || problem.starterCode['javascript'] || '';
     setCodeText(starter);
     setConsoleLog([]);
     setTestingStatus('idle');
@@ -554,6 +562,8 @@ export default function CodingAssessment({
                   <option value="javascript">JavaScript</option>
                   <option value="python">Python</option>
                   <option value="java">Java</option>
+                  <option value="cpp">C++</option>
+                  <option value="c">C</option>
                 </select>
               </div>
               
@@ -580,7 +590,13 @@ export default function CodingAssessment({
             <div className="flex-1 overflow-hidden bg-background">
               <Editor
                 height="100%"
-                language={selectedLang === 'python' ? 'python' : selectedLang === 'java' ? 'java' : 'javascript'}
+                language={
+                  selectedLang === 'python' ? 'python' :
+                  selectedLang === 'java' ? 'java' :
+                  selectedLang === 'cpp' ? 'cpp' :
+                  selectedLang === 'c' ? 'c' :
+                  'javascript'
+                }
                 theme={theme === 'dark' ? 'vs-dark' : 'light'}
                 value={codeText}
                 onChange={(val) => setCodeText(val || '')}

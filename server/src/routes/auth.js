@@ -48,7 +48,7 @@ router.post('/sync', async (req, res) => {
         name: name || email.split('@')[0],
         role: email.includes('admin@interviewace.ai') ? 'Admin' : role,
         targetRole,
-        subscription: 'Free',
+        subscription: 'Premium',
         freeRefillDate: new Date()
       });
       console.log(`Created new synced MongoDB user: ${user.email}`);
@@ -58,8 +58,17 @@ router.post('/sync', async (req, res) => {
         user.name = name;
         await user.save();
       }
+      // Auto-upgrade existing free tier users to Premium for the free launch
+      if (user.subscription === 'Free') {
+        user.subscription = 'Premium';
+        await user.save();
+        console.log(`Auto-upgraded existing free user to Premium: ${user.email}`);
+      }
       user = await checkAndResetFreeRefills(user);
     }
+
+    // Update candidate practice/login streak
+    await user.updateStreak();
 
     // Sign a local JWT for session management fallback
     const token = jwt.sign(
@@ -83,7 +92,9 @@ router.post('/sync', async (req, res) => {
         resumeUrl: user.resumeUrl,
         interviewCountToday: user.interviewCountToday,
         resumeCountToday: user.resumeCountToday,
-        freeRefillDate: user.freeRefillDate || user.createdAt
+        freeRefillDate: user.freeRefillDate || user.createdAt,
+        streakCount: user.streakCount,
+        lastActiveDate: user.lastActiveDate
       }
     });
   } catch (error) {

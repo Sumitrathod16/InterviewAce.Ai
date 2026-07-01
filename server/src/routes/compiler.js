@@ -25,6 +25,9 @@ router.post('/run', protect, strictLimiter, async (req, res) => {
   }
 
   try {
+    // Update practice streak
+    await req.user.updateStreak();
+
     const report = await executeCode(code, language, stdin);
     res.json(report);
   } catch (error) {

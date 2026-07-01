@@ -60,6 +60,9 @@ router.post('/start', protect, async (req, res) => {
       return res.status(403).json({ message: limitCheck.message });
     }
 
+    // Update practice streak
+    await req.user.updateStreak();
+
     // Generate questions using Gemini
     const questions = await generateQuestions({
       track: type,

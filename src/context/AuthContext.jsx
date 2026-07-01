@@ -213,6 +213,18 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  // Refresh user profile details
+  const refreshUserProfile = async () => {
+    try {
+      const response = await API.get('/auth/profile');
+      setUserProfile(response.data);
+      localStorage.setItem('interviewace_user', JSON.stringify(response.data));
+      return response.data;
+    } catch (error) {
+      console.error('Refresh profile error:', error.message);
+    }
+  };
+
   const value = {
     currentUser,
     userProfile,
@@ -222,7 +234,8 @@ export const AuthProvider = ({ children }) => {
     loginWithGoogle,
     resetPassword,
     logout,
-    updateProfileDetails
+    updateProfileDetails,
+    refreshUserProfile
   };
 
   return (

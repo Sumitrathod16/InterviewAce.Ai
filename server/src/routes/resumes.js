@@ -64,6 +64,9 @@ router.post('/analyze', protect, upload.single('resumeFile'), async (req, res) =
       return res.status(403).json({ message: limitCheck.message });
     }
 
+    // Update practice streak
+    await req.user.updateStreak();
+
     let resumeText = '';
     let fileUrl = 'Text paste details';
     const targetRole = req.user.targetRole || 'Frontend Engineer';
