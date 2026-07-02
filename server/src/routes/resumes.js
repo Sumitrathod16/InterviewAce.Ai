@@ -5,7 +5,7 @@ import { protect } from '../middleware/auth.js';
 import ResumeReport from '../models/ResumeReport.js';
 import User from '../models/User.js';
 import { uploadFile } from '../services/cloudinary.js';
-import { analyzeResume, optimizeResumeBullet, optimizeWholeResume, fixResumeSuggestion } from '../services/gemini.js';
+import { analyzeResume, optimizeResumeBullet, optimizeWholeResume, fixResumeSuggestion, optimizeStructuredResume } from '../services/gemini.js';
 
 const router = express.Router();
 
@@ -208,6 +208,27 @@ router.post('/fix-suggestion', protect, async (req, res) => {
   } catch (error) {
     console.error('Error fixing suggestion:', error.message);
     res.status(500).json({ message: 'Server error during suggestion fix.' });
+  }
+});
+
+/**
+ * @route   POST /api/resumes/optimize-structured
+ * @desc    Optimize structured resume JSON fields
+ * @access  Private
+ */
+router.post('/optimize-structured', protect, async (req, res) => {
+  const { parsedResume } = req.body;
+  if (!parsedResume) {
+    return res.status(400).json({ message: 'Missing structured resume data.' });
+  }
+
+  try {
+    const targetRole = req.user.targetRole || 'Frontend Engineer';
+    const optimizedResume = await optimizeStructuredResume(parsedResume, targetRole);
+    res.json({ optimizedResume });
+  } catch (error) {
+    console.error('Error optimizing structured resume:', error.message);
+    res.status(500).json({ message: 'Server error during structured resume optimization.' });
   }
 });
 

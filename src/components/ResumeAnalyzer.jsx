@@ -45,26 +45,92 @@ export default function ResumeAnalyzer({ atsScore, onAtsScoreChange }) {
   const [optimizingBullet, setOptimizingBullet] = useState(false);
   const [copied, setCopied] = useState(false);
   // Resume Editor & AI Auto-Optimizer States
-  const [currentResumeText, setCurrentResumeText] = useState('');
-  const [initialResumeText, setInitialResumeText] = useState('');
   const [autoOptimizing, setAutoOptimizing] = useState(false);
   const [fixingSuggestionId, setFixingSuggestionId] = useState(null);
   const [fileExtension, setFileExtension] = useState('txt');
+  const [editorTab, setEditorTab] = useState('contact');
+
+  const DEFAULT_STRUCTURED_RESUME = {
+    name: "Sumit Rathod",
+    email: "sumit@example.com",
+    phone: "+91 99999 99999",
+    website: "github.com/Sumitrathod16",
+    summary: "Highly motivated Software Engineer specializing in front-end development and speed optimizations.",
+    skills: ["JavaScript (ES6+)", "React", "Django", "CSS3", "HTML5"],
+    experience: [
+      {
+        role: "Software Engineer",
+        company: "TechCorp",
+        dates: "2024 - Present",
+        bullets: [
+          "Worked on the front-end dashboard using React.",
+          "Helped optimize web application speed.",
+          "Maintained legacy state management architecture."
+        ]
+      }
+    ],
+    projects: [
+      {
+        title: "BookMyShow Django Clone",
+        bullets: [
+          "Built a clone using Django.",
+          "Managed user login systems."
+        ]
+      }
+    ],
+    education: [
+      {
+        degree: "B.S. in Computer Science",
+        school: "University of Tech",
+        dates: "Graduated 2024"
+      }
+    ]
+  };
+
+  const [resumeData, setResumeData] = useState(DEFAULT_STRUCTURED_RESUME);
+  const [initialResumeData, setInitialResumeData] = useState(DEFAULT_STRUCTURED_RESUME);
+
+  const compileResumeText = (data) => {
+    if (!data) return '';
+    return `
+${data.name || ''}
+${data.email || ''} | ${data.phone || ''} | ${data.website || ''}
+
+SUMMARY:
+${data.summary || ''}
+
+SKILLS:
+${(data.skills || []).join(', ')}
+
+EXPERIENCE:
+${(data.experience || []).map(exp => `
+${exp.role || ''} at ${exp.company || ''} (${exp.dates || ''})
+${(exp.bullets || []).map(b => `- ${b}`).join('\n')}
+`).join('\n')}
+
+PROJECTS:
+${(data.projects || []).map(proj => `
+${proj.title || ''}
+${(proj.bullets || []).map(b => `- ${b}`).join('\n')}
+`).join('\n')}
+
+EDUCATION:
+${(data.education || []).map(edu => `
+${edu.degree || ''} - ${edu.school || ''} (${edu.dates || ''})
+`).join('\n')}
+    `.trim();
+  };
 
   const handleFixSuggestion = async (id, suggestionText) => {
-    if (!currentResumeText.trim()) {
-      toast.error('No resume content loaded.');
-      return;
-    }
+    if (!resumeData) return;
     setFixingSuggestionId(id);
     try {
+      const compiledText = compileResumeText(resumeData);
       const response = await API.post('/resumes/fix-suggestion', {
-        resumeText: currentResumeText,
+        resumeText: compiledText,
         suggestionText
       });
       const updatedText = response.data.updatedText;
-      setCurrentResumeText(updatedText);
-      toast.success('AI successfully resolved this suggestion in your resume!');
       
       // Trigger re-scan of the updated text immediately
       setAnalyzing(true);
@@ -78,8 +144,8 @@ export default function ResumeAnalyzer({ atsScore, onAtsScoreChange }) {
       setSuggestions(data.suggestions || []);
       setMissingKeywords(data.missingKeywords || []);
       setHasResult(true);
-      setCurrentResumeText(data.resumeText || updatedText);
-      setInitialResumeText(data.resumeText || updatedText);
+      setResumeData(data.parsedResume || DEFAULT_STRUCTURED_RESUME);
+      toast.success('AI successfully resolved this suggestion in your resume template!');
       
       if (data.atsScore >= 80) {
         confetti({
@@ -101,7 +167,8 @@ export default function ResumeAnalyzer({ atsScore, onAtsScoreChange }) {
   };
 
   const downloadAsTxt = () => {
-    const blob = new Blob([currentResumeText], { type: 'text/plain;charset=utf-8' });
+    const textContent = compileResumeText(resumeData);
+    const blob = new Blob([textContent], { type: 'text/plain;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
@@ -112,7 +179,7 @@ export default function ResumeAnalyzer({ atsScore, onAtsScoreChange }) {
   };
 
   const handleDownloadResume = () => {
-    if (!currentResumeText.trim()) return;
+    if (!resumeData) return;
 
     if (fileExtension === 'pdf') {
       try {
@@ -122,41 +189,177 @@ export default function ResumeAnalyzer({ atsScore, onAtsScoreChange }) {
           format: 'a4'
         });
 
-        // Set layout constants
         const marginX = 20;
         const pageHeight = 297;
         const pageWidth = 210;
         const maxLineWidth = pageWidth - (marginX * 2); // 170mm
-        const lineSpacing = 6;
         let currentY = 20;
 
-        // Set font style
-        doc.setFont("helvetica", "normal");
-        doc.setFontSize(10.5);
-
-        // Split text by lines
-        const sourceLines = currentResumeText.split('\n');
-
-        sourceLines.forEach((sourceLine) => {
-          // If the line is empty, just insert spacing
-          if (!sourceLine.trim()) {
-            currentY += 4;
-            return;
+        const checkPageOverflow = (heightNeeded) => {
+          if (currentY + heightNeeded > pageHeight - 20) {
+            doc.addPage();
+            currentY = 20;
           }
+        };
 
-          // Split line to fit width
-          const splitLines = doc.splitTextToSize(sourceLine, maxLineWidth);
-          
-          splitLines.forEach((line) => {
-            // Check for page overflow
-            if (currentY + lineSpacing > pageHeight - 20) {
-              doc.addPage();
-              currentY = 20; // reset to top margin
-            }
+        // 1. Header (Name, Contact Details)
+        doc.setFont("helvetica", "bold");
+        doc.setFontSize(18);
+        doc.text(resumeData.name || "Candidate", pageWidth / 2, currentY, { align: "center" });
+        currentY += 7;
+
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(9);
+        const contactInfo = [resumeData.email, resumeData.phone, resumeData.website].filter(Boolean).join("  |  ");
+        doc.text(contactInfo, pageWidth / 2, currentY, { align: "center" });
+        currentY += 12;
+
+        // 2. Summary
+        if (resumeData.summary) {
+          doc.setFont("helvetica", "bold");
+          doc.setFontSize(11);
+          doc.text("PROFESSIONAL SUMMARY", marginX, currentY);
+          currentY += 2;
+          doc.setLineWidth(0.2);
+          doc.line(marginX, currentY, pageWidth - marginX, currentY);
+          currentY += 5;
+
+          doc.setFont("helvetica", "normal");
+          doc.setFontSize(9.5);
+          const summaryLines = doc.splitTextToSize(resumeData.summary, maxLineWidth);
+          summaryLines.forEach(line => {
+            checkPageOverflow(5);
             doc.text(line, marginX, currentY);
-            currentY += lineSpacing;
+            currentY += 5;
           });
-        });
+          currentY += 5;
+        }
+
+        // 3. Technical Skills
+        if (resumeData.skills && resumeData.skills.length > 0) {
+          checkPageOverflow(15);
+          doc.setFont("helvetica", "bold");
+          doc.setFontSize(11);
+          doc.text("TECHNICAL SKILLS", marginX, currentY);
+          currentY += 2;
+          doc.line(marginX, currentY, pageWidth - marginX, currentY);
+          currentY += 5;
+
+          doc.setFont("helvetica", "normal");
+          doc.setFontSize(9.5);
+          const skillsText = resumeData.skills.join(", ");
+          const skillsLines = doc.splitTextToSize(skillsText, maxLineWidth);
+          skillsLines.forEach(line => {
+            checkPageOverflow(5);
+            doc.text(line, marginX, currentY);
+            currentY += 5;
+          });
+          currentY += 5;
+        }
+
+        // 4. Work Experience
+        if (resumeData.experience && resumeData.experience.length > 0) {
+          checkPageOverflow(15);
+          doc.setFont("helvetica", "bold");
+          doc.setFontSize(11);
+          doc.text("WORK EXPERIENCE", marginX, currentY);
+          currentY += 2;
+          doc.line(marginX, currentY, pageWidth - marginX, currentY);
+          currentY += 6;
+
+          resumeData.experience.forEach(exp => {
+            checkPageOverflow(18);
+            // Role & Dates
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(10);
+            doc.text(exp.role || "", marginX, currentY);
+            doc.setFont("helvetica", "normal");
+            doc.text(exp.dates || "", pageWidth - marginX, currentY, { align: "right" });
+            currentY += 5;
+
+            // Company Name
+            doc.setFont("helvetica", "oblique");
+            doc.setFontSize(9.5);
+            doc.text(exp.company || "", marginX, currentY);
+            currentY += 5;
+
+            // Bullets
+            doc.setFont("helvetica", "normal");
+            doc.setFontSize(9);
+            if (exp.bullets) {
+              exp.bullets.forEach(bullet => {
+                const bulletText = `• ${bullet}`;
+                const bulletLines = doc.splitTextToSize(bulletText, maxLineWidth - 4);
+                bulletLines.forEach(line => {
+                  checkPageOverflow(5);
+                  doc.text(line, marginX + 4, currentY);
+                  currentY += 5.5;
+                });
+              });
+            }
+            currentY += 4;
+          });
+          currentY += 2;
+        }
+
+        // 5. Projects
+        if (resumeData.projects && resumeData.projects.length > 0) {
+          checkPageOverflow(15);
+          doc.setFont("helvetica", "bold");
+          doc.setFontSize(11);
+          doc.text("KEY PROJECTS", marginX, currentY);
+          currentY += 2;
+          doc.line(marginX, currentY, pageWidth - marginX, currentY);
+          currentY += 6;
+
+          resumeData.projects.forEach(proj => {
+            checkPageOverflow(12);
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(10);
+            doc.text(proj.title || "", marginX, currentY);
+            currentY += 5;
+
+            doc.setFont("helvetica", "normal");
+            doc.setFontSize(9);
+            if (proj.bullets) {
+              proj.bullets.forEach(bullet => {
+                const bulletText = `• ${bullet}`;
+                const bulletLines = doc.splitTextToSize(bulletText, maxLineWidth - 4);
+                bulletLines.forEach(line => {
+                  checkPageOverflow(5);
+                  doc.text(line, marginX + 4, currentY);
+                  currentY += 5.5;
+                });
+              });
+            }
+            currentY += 4;
+          });
+          currentY += 2;
+        }
+
+        // 6. Education
+        if (resumeData.education && resumeData.education.length > 0) {
+          checkPageOverflow(15);
+          doc.setFont("helvetica", "bold");
+          doc.setFontSize(11);
+          doc.text("EDUCATION", marginX, currentY);
+          currentY += 2;
+          doc.line(marginX, currentY, pageWidth - marginX, currentY);
+          currentY += 6;
+
+          resumeData.education.forEach(edu => {
+            checkPageOverflow(12);
+            doc.setFont("helvetica", "bold");
+            doc.setFontSize(10);
+            doc.text(edu.degree || "", marginX, currentY);
+            doc.setFont("helvetica", "normal");
+            doc.text(edu.dates || "", pageWidth - marginX, currentY, { align: "right" });
+            currentY += 5;
+
+            doc.text(edu.school || "", marginX, currentY);
+            currentY += 8;
+          });
+        }
 
         doc.save('optimized_resume.pdf');
         toast.success('Resume downloaded successfully as optimized_resume.pdf!');
@@ -167,6 +370,7 @@ export default function ResumeAnalyzer({ atsScore, onAtsScoreChange }) {
       }
     } else if (fileExtension === 'doc' || fileExtension === 'docx') {
       try {
+        const textContent = compileResumeText(resumeData);
         const docContent = `
           <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
           <head>
@@ -181,7 +385,7 @@ export default function ResumeAnalyzer({ atsScore, onAtsScoreChange }) {
             </style>
           </head>
           <body>
-            ${currentResumeText.replace(/\n/g, '<br/>')}
+            ${textContent.replace(/\n/g, '<br/>')}
           </body>
           </html>
         `;
@@ -203,24 +407,21 @@ export default function ResumeAnalyzer({ atsScore, onAtsScoreChange }) {
   };
 
   const handleRescanEditedText = async () => {
-    if (!currentResumeText.trim()) {
-      toast.error('Resume content is empty.');
-      return;
-    }
+    if (!resumeData) return;
     setAnalyzing(true);
     setHasResult(false);
     setErrorMsg('');
     try {
+      const compiledText = compileResumeText(resumeData);
       const response = await API.post('/resumes/analyze', {
-        pasteText: currentResumeText
+        pasteText: compiledText
       });
       const data = response.data;
       setBaseScore(data.atsScore);
       setSuggestions(data.suggestions || []);
       setMissingKeywords(data.missingKeywords || []);
       setHasResult(true);
-      setCurrentResumeText(data.resumeText || currentResumeText);
-      setInitialResumeText(data.resumeText || currentResumeText);
+      setResumeData(data.parsedResume || resumeData);
       toast.success(`ATS Re-scan Complete! Score: ${data.atsScore}%`);
       
       if (data.atsScore >= 80) {
@@ -230,7 +431,6 @@ export default function ResumeAnalyzer({ atsScore, onAtsScoreChange }) {
           origin: { y: 0.8 }
         });
       }
-      
       if (onAtsScoreChange) {
         onAtsScoreChange(data.atsScore, "ATS Resume Scan Complete");
       }
@@ -245,18 +445,15 @@ export default function ResumeAnalyzer({ atsScore, onAtsScoreChange }) {
   };
 
   const handleAutoOptimizeWholeResume = async () => {
-    if (!currentResumeText.trim()) {
-      toast.error('No resume content to optimize.');
-      return;
-    }
+    if (!resumeData) return;
     setAutoOptimizing(true);
     setErrorMsg('');
     try {
-      const response = await API.post('/resumes/auto-optimize', {
-        resumeText: currentResumeText
+      const response = await API.post('/resumes/optimize-structured', {
+        parsedResume: resumeData
       });
-      setCurrentResumeText(response.data.optimizedText);
-      toast.success('Resume auto-optimized by AI!');
+      setResumeData(response.data.optimizedResume);
+      toast.success('Resume template optimized with AI!');
     } catch (err) {
       console.error(err);
       const msg = err.response?.data?.message || 'Failed to auto-optimize resume.';
@@ -348,8 +545,8 @@ export default function ResumeAnalyzer({ atsScore, onAtsScoreChange }) {
       setSuggestions(data.suggestions || []);
       setMissingKeywords(data.missingKeywords || []);
       setHasResult(true);
-      setCurrentResumeText(data.resumeText || pasteText || '');
-      setInitialResumeText(data.resumeText || pasteText || '');
+      setResumeData(data.parsedResume || DEFAULT_STRUCTURED_RESUME);
+      setInitialResumeData(data.parsedResume || DEFAULT_STRUCTURED_RESUME);
 
       if (onAtsScoreChange) {
         onAtsScoreChange(data.atsScore, "ATS Resume Scan Complete");
@@ -668,19 +865,19 @@ export default function ResumeAnalyzer({ atsScore, onAtsScoreChange }) {
         </div>
 
         {/* Interactive Resume Editor & AI Auto-Optimizer */}
-        {hasResult && (
+        {hasResult && resumeData && (
           <motion.div 
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="mt-12 p-6 bg-secondaryBg/45 border border-white/5 rounded-xl space-y-6"
+            className="mt-12 p-6 bg-secondaryBg/45 border border-white/5 rounded-xl space-y-6 text-left"
           >
             <div className="border-b border-white/5 pb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <div>
                 <h3 className="text-lg font-bold text-white flex items-center gap-2">
-                  <Sparkles size={18} className="text-accent animate-pulse" /> Optimize & Edit Resume Content
+                  <Sparkles size={18} className="text-accent animate-pulse" /> Live Resume Template Editor
                 </h3>
                 <p className="text-xs text-lightGray/70 mt-1">
-                  Adjust your resume text manually or use AI to rewrite and integrate missing keywords. Re-scan to see your score improvement.
+                  Build and optimize your resume in real-time. Changes are instantly rendered on the visual A4 sheet preview.
                 </p>
               </div>
               <div className="flex gap-2">
@@ -694,43 +891,568 @@ export default function ResumeAnalyzer({ atsScore, onAtsScoreChange }) {
                 </button>
                 <button
                   onClick={() => {
-                    setCurrentResumeText(initialResumeText);
-                    toast.success('Editor reset to original scanned text.');
+                    setResumeData(JSON.parse(JSON.stringify(initialResumeData)));
+                    toast.success('Editor reset to original parsed structure.');
                   }}
                   disabled={autoOptimizing || analyzing}
                   className="px-4 py-2 bg-white/5 border border-white/5 text-lightGray hover:text-white rounded-lg text-xs font-semibold transition-all disabled:opacity-50"
                 >
-                  Reset Text
+                  Reset Template
                 </button>
               </div>
             </div>
 
-            <div className="space-y-4">
-              <textarea
-                value={currentResumeText}
-                onChange={(e) => setCurrentResumeText(e.target.value)}
-                placeholder="Edit your resume content here..."
-                className="w-full h-80 bg-background/50 text-white rounded-lg p-4 text-xs sm:text-sm border border-white/5 focus:outline-none focus:border-accent/30 font-mono resize-y leading-relaxed"
-                disabled={autoOptimizing || analyzing}
-              />
-              <div className="flex justify-between items-center gap-4">
-                <button
-                  type="button"
-                  onClick={handleDownloadResume}
-                  disabled={!currentResumeText.trim() || autoOptimizing || analyzing}
-                  className="px-4 py-2.5 bg-white/5 border border-white/5 hover:bg-white/10 text-white rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 disabled:opacity-50"
-                >
-                  Download Optimized Resume (.{fileExtension})
-                </button>
-                <button
-                  onClick={handleRescanEditedText}
-                  disabled={analyzing || autoOptimizing || !currentResumeText.trim()}
-                  className="px-6 py-3 bg-white text-background hover:bg-lightGray font-black uppercase tracking-wider rounded-lg disabled:opacity-45 transition-all text-xs sm:text-sm flex items-center gap-1.5 shadow-lg"
-                >
-                  {analyzing ? 'Re-scanning...' : 'Scan Edited Text & Update Score'}
-                </button>
+            {/* Dual Pane Layout */}
+            <div className="grid grid-cols-1 xl:grid-cols-12 gap-8 items-start">
+              
+              {/* Left Pane: Structured Form Editor */}
+              <div className="xl:col-span-6 bg-background/30 p-6 rounded-xl border border-white/5 space-y-6">
+                {/* Tab buttons */}
+                <div className="flex flex-wrap gap-1.5 border-b border-white/5 pb-3">
+                  {[
+                    { id: 'contact', label: 'Contact & Summary' },
+                    { id: 'skills', label: 'Skills' },
+                    { id: 'experience', label: 'Experience' },
+                    { id: 'projects', label: 'Projects' },
+                    { id: 'education', label: 'Education' }
+                  ].map(tab => (
+                    <button
+                      key={tab.id}
+                      type="button"
+                      onClick={() => setEditorTab(tab.id)}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all border ${
+                        editorTab === tab.id
+                          ? 'bg-white text-background border-white'
+                          : 'bg-white/5 text-lightGray hover:text-white border-white/5'
+                      }`}
+                    >
+                      {tab.label}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Tab Contents */}
+                <div className="space-y-4 min-h-[350px]">
+                  
+                  {/* Contact Tab */}
+                  {editorTab === 'contact' && (
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-[10px] font-bold text-lightGray/50 uppercase mb-1">Name</label>
+                          <input
+                            type="text"
+                            value={resumeData.name || ''}
+                            onChange={(e) => setResumeData(prev => ({ ...prev, name: e.target.value }))}
+                            className="w-full bg-background/50 text-white rounded-lg p-2.5 text-xs border border-white/5 focus:outline-none focus:border-accent/40"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[10px] font-bold text-lightGray/50 uppercase mb-1">Email</label>
+                          <input
+                            type="email"
+                            value={resumeData.email || ''}
+                            onChange={(e) => setResumeData(prev => ({ ...prev, email: e.target.value }))}
+                            className="w-full bg-background/50 text-white rounded-lg p-2.5 text-xs border border-white/5 focus:outline-none focus:border-accent/40"
+                          />
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-[10px] font-bold text-lightGray/50 uppercase mb-1">Phone</label>
+                          <input
+                            type="text"
+                            value={resumeData.phone || ''}
+                            onChange={(e) => setResumeData(prev => ({ ...prev, phone: e.target.value }))}
+                            className="w-full bg-background/50 text-white rounded-lg p-2.5 text-xs border border-white/5 focus:outline-none focus:border-accent/40"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[10px] font-bold text-lightGray/50 uppercase mb-1">Website / GitHub / LinkedIn</label>
+                          <input
+                            type="text"
+                            value={resumeData.website || ''}
+                            onChange={(e) => setResumeData(prev => ({ ...prev, website: e.target.value }))}
+                            className="w-full bg-background/50 text-white rounded-lg p-2.5 text-xs border border-white/5 focus:outline-none focus:border-accent/40"
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-[10px] font-bold text-lightGray/50 uppercase mb-1">Professional Summary</label>
+                        <textarea
+                          value={resumeData.summary || ''}
+                          onChange={(e) => setResumeData(prev => ({ ...prev, summary: e.target.value }))}
+                          className="w-full h-32 bg-background/50 text-white rounded-lg p-3 text-xs border border-white/5 focus:outline-none focus:border-accent/40 font-sans resize-none leading-relaxed"
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Skills Tab */}
+                  {editorTab === 'skills' && (
+                    <div className="space-y-4">
+                      <div>
+                        <label className="block text-[10px] font-bold text-lightGray/50 uppercase mb-1">Technical Skills & Technologies</label>
+                        <p className="text-[10px] text-lightGray/40 mb-3">Add skills to target key industry standard terms.</p>
+                        
+                        {/* Skills List tags */}
+                        <div className="flex flex-wrap gap-2 mb-4">
+                          {(resumeData.skills || []).map((skill, index) => (
+                            <span
+                              key={index}
+                              className="px-2.5 py-1 rounded bg-accent/10 border border-accent/20 text-xs text-accent flex items-center gap-1.5"
+                            >
+                              {skill}
+                              <button
+                                type="button"
+                                onClick={() => setResumeData(prev => ({
+                                  ...prev,
+                                  skills: prev.skills.filter((_, i) => i !== index)
+                                }))}
+                                className="text-accent/60 hover:text-accent font-bold"
+                              >
+                                &times;
+                              </button>
+                            </span>
+                          ))}
+                        </div>
+
+                        {/* Add Skill input */}
+                        <div className="flex gap-2">
+                          <input
+                            type="text"
+                            placeholder="e.g. TypeScript, System Design"
+                            id="skillInput"
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                e.preventDefault();
+                                const val = e.target.value.trim();
+                                if (val && !(resumeData.skills || []).includes(val)) {
+                                  setResumeData(prev => ({
+                                    ...prev,
+                                    skills: [...(prev.skills || []), val]
+                                  }));
+                                  e.target.value = '';
+                                }
+                              }
+                            }}
+                            className="flex-1 bg-background/50 text-white rounded-lg p-2.5 text-xs border border-white/5 focus:outline-none focus:border-accent/40"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const input = document.getElementById('skillInput');
+                              const val = input.value.trim();
+                              if (val && !(resumeData.skills || []).includes(val)) {
+                                setResumeData(prev => ({
+                                  ...prev,
+                                  skills: [...(prev.skills || []), val]
+                                }));
+                                input.value = '';
+                              }
+                            }}
+                            className="px-4 bg-white text-background font-bold text-xs rounded-lg hover:bg-lightGray transition-all"
+                          >
+                            Add Skill
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Experience Tab */}
+                  {editorTab === 'experience' && (
+                    <div className="space-y-6 max-h-[450px] overflow-y-auto pr-2">
+                      {(resumeData.experience || []).map((exp, expIdx) => (
+                        <div key={expIdx} className="p-4 bg-white/5 border border-white/5 rounded-xl space-y-3 relative">
+                          <button
+                            type="button"
+                            onClick={() => setResumeData(prev => ({
+                              ...prev,
+                              experience: prev.experience.filter((_, i) => i !== expIdx)
+                            }))}
+                            className="absolute top-3 right-3 text-lightGray/40 hover:text-red-400 text-xs font-bold"
+                          >
+                            Remove
+                          </button>
+                          
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div>
+                              <label className="block text-[9px] font-bold text-lightGray/50 uppercase mb-0.5">Role Title</label>
+                              <input
+                                type="text"
+                                value={exp.role || ''}
+                                onChange={(e) => {
+                                  const updated = [...resumeData.experience];
+                                  updated[expIdx].role = e.target.value;
+                                  setResumeData(prev => ({ ...prev, experience: updated }));
+                                }}
+                                className="w-full bg-background/50 text-white rounded-lg p-2 text-xs border border-white/5 focus:outline-none"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-[9px] font-bold text-lightGray/50 uppercase mb-0.5">Company Name</label>
+                              <input
+                                type="text"
+                                value={exp.company || ''}
+                                onChange={(e) => {
+                                  const updated = [...resumeData.experience];
+                                  updated[expIdx].company = e.target.value;
+                                  setResumeData(prev => ({ ...prev, experience: updated }));
+                                }}
+                                className="w-full bg-background/50 text-white rounded-lg p-2 text-xs border border-white/5 focus:outline-none"
+                              />
+                            </div>
+                          </div>
+                          <div>
+                            <label className="block text-[9px] font-bold text-lightGray/50 uppercase mb-0.5">Dates / Duration</label>
+                            <input
+                              type="text"
+                              value={exp.dates || ''}
+                              onChange={(e) => {
+                                const updated = [...resumeData.experience];
+                                updated[expIdx].dates = e.target.value;
+                                setResumeData(prev => ({ ...prev, experience: updated }));
+                              }}
+                              className="w-full bg-background/50 text-white rounded-lg p-2 text-xs border border-white/5 focus:outline-none"
+                            />
+                          </div>
+
+                          {/* Experience Bullets */}
+                          <div className="space-y-1.5">
+                            <label className="block text-[9px] font-bold text-lightGray/50 uppercase mb-0.5">Bullet Points</label>
+                            {(exp.bullets || []).map((bullet, bulletIdx) => (
+                              <div key={bulletIdx} className="flex gap-2 items-center">
+                                <textarea
+                                  value={bullet}
+                                  onChange={(e) => {
+                                    const updated = [...resumeData.experience];
+                                    updated[expIdx].bullets[bulletIdx] = e.target.value;
+                                    setResumeData(prev => ({ ...prev, experience: updated }));
+                                  }}
+                                  className="flex-1 bg-background/30 text-white rounded-lg p-2 text-xs border border-white/5 focus:outline-none resize-none h-12 leading-relaxed"
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const updated = [...resumeData.experience];
+                                    updated[expIdx].bullets = updated[expIdx].bullets.filter((_, i) => i !== bulletIdx);
+                                    setResumeData(prev => ({ ...prev, experience: updated }));
+                                  }}
+                                  className="text-lightGray/40 hover:text-red-400 font-bold"
+                                >
+                                  &times;
+                                </button>
+                              </div>
+                            ))}
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const updated = [...resumeData.experience];
+                                updated[expIdx].bullets = [...(updated[expIdx].bullets || []), ""];
+                                setResumeData(prev => ({ ...prev, experience: updated }));
+                              }}
+                              className="mt-1 text-[10px] text-accent hover:underline font-semibold"
+                            >
+                              + Add Bullet Point
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                      <button
+                        type="button"
+                        onClick={() => setResumeData(prev => ({
+                          ...prev,
+                          experience: [...(prev.experience || []), { role: '', company: '', dates: '', bullets: [''] }]
+                        }))}
+                        className="w-full py-2 bg-white/5 border border-dashed border-white/10 hover:border-white/20 text-white rounded-lg text-xs font-semibold transition-all text-center"
+                      >
+                        + Add Work Experience Card
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Projects Tab */}
+                  {editorTab === 'projects' && (
+                    <div className="space-y-6 max-h-[450px] overflow-y-auto pr-2">
+                      {(resumeData.projects || []).map((proj, projIdx) => (
+                        <div key={projIdx} className="p-4 bg-white/5 border border-white/5 rounded-xl space-y-3 relative">
+                          <button
+                            type="button"
+                            onClick={() => setResumeData(prev => ({
+                              ...prev,
+                              projects: prev.projects.filter((_, i) => i !== projIdx)
+                            }))}
+                            className="absolute top-3 right-3 text-lightGray/40 hover:text-red-400 text-xs font-bold"
+                          >
+                            Remove
+                          </button>
+                          
+                          <div>
+                            <label className="block text-[9px] font-bold text-lightGray/50 uppercase mb-0.5">Project Title</label>
+                            <input
+                              type="text"
+                              value={proj.title || ''}
+                              onChange={(e) => {
+                                const updated = [...resumeData.projects];
+                                updated[projIdx].title = e.target.value;
+                                setResumeData(prev => ({ ...prev, projects: updated }));
+                              }}
+                              className="w-full bg-background/50 text-white rounded-lg p-2 text-xs border border-white/5 focus:outline-none"
+                            />
+                          </div>
+
+                          {/* Project Bullets */}
+                          <div className="space-y-1.5">
+                            <label className="block text-[9px] font-bold text-lightGray/50 uppercase mb-0.5">Project Details / Bullets</label>
+                            {(proj.bullets || []).map((bullet, bulletIdx) => (
+                              <div key={bulletIdx} className="flex gap-2 items-center">
+                                <textarea
+                                  value={bullet}
+                                  onChange={(e) => {
+                                    const updated = [...resumeData.projects];
+                                    updated[projIdx].bullets[bulletIdx] = e.target.value;
+                                    setResumeData(prev => ({ ...prev, projects: updated }));
+                                  }}
+                                  className="flex-1 bg-background/30 text-white rounded-lg p-2 text-xs border border-white/5 focus:outline-none resize-none h-12 leading-relaxed"
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    const updated = [...resumeData.projects];
+                                    updated[projIdx].bullets = updated[projIdx].bullets.filter((_, i) => i !== bulletIdx);
+                                    setResumeData(prev => ({ ...prev, projects: updated }));
+                                  }}
+                                  className="text-lightGray/40 hover:text-red-400 font-bold"
+                                >
+                                  &times;
+                                </button>
+                              </div>
+                            ))}
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const updated = [...resumeData.projects];
+                                updated[projIdx].bullets = [...(updated[projIdx].bullets || []), ""];
+                                setResumeData(prev => ({ ...prev, projects: updated }));
+                              }}
+                              className="mt-1 text-[10px] text-accent hover:underline font-semibold"
+                            >
+                              + Add Bullet Point
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                      <button
+                        type="button"
+                        onClick={() => setResumeData(prev => ({
+                          ...prev,
+                          projects: [...(prev.projects || []), { title: '', bullets: [''] }]
+                        }))}
+                        className="w-full py-2 bg-white/5 border border-dashed border-white/10 hover:border-white/20 text-white rounded-lg text-xs font-semibold transition-all text-center"
+                      >
+                        + Add Project Card
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Education Tab */}
+                  {editorTab === 'education' && (
+                    <div className="space-y-6 max-h-[450px] overflow-y-auto pr-2">
+                      {(resumeData.education || []).map((edu, eduIdx) => (
+                        <div key={eduIdx} className="p-4 bg-white/5 border border-white/5 rounded-xl space-y-3 relative">
+                          <button
+                            type="button"
+                            onClick={() => setResumeData(prev => ({
+                              ...prev,
+                              education: prev.education.filter((_, i) => i !== eduIdx)
+                            }))}
+                            className="absolute top-3 right-3 text-lightGray/40 hover:text-red-400 text-xs font-bold"
+                          >
+                            Remove
+                          </button>
+                          
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div>
+                              <label className="block text-[9px] font-bold text-lightGray/50 uppercase mb-0.5">Degree / Course</label>
+                              <input
+                                type="text"
+                                value={edu.degree || ''}
+                                onChange={(e) => {
+                                  const updated = [...resumeData.education];
+                                  updated[eduIdx].degree = e.target.value;
+                                  setResumeData(prev => ({ ...prev, education: updated }));
+                                }}
+                                className="w-full bg-background/50 text-white rounded-lg p-2 text-xs border border-white/5 focus:outline-none"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-[9px] font-bold text-lightGray/50 uppercase mb-0.5">School / University</label>
+                              <input
+                                type="text"
+                                value={edu.school || ''}
+                                onChange={(e) => {
+                                  const updated = [...resumeData.education];
+                                  updated[eduIdx].school = e.target.value;
+                                  setResumeData(prev => ({ ...prev, education: updated }));
+                                }}
+                                className="w-full bg-background/50 text-white rounded-lg p-2 text-xs border border-white/5 focus:outline-none"
+                              />
+                            </div>
+                          </div>
+                          <div>
+                            <label className="block text-[9px] font-bold text-lightGray/50 uppercase mb-0.5">Graduation Date</label>
+                            <input
+                              type="text"
+                              value={edu.dates || ''}
+                              onChange={(e) => {
+                                const updated = [...resumeData.education];
+                                updated[eduIdx].dates = e.target.value;
+                                setResumeData(prev => ({ ...prev, education: updated }));
+                              }}
+                              className="w-full bg-background/50 text-white rounded-lg p-2 text-xs border border-white/5 focus:outline-none"
+                            />
+                          </div>
+                        </div>
+                      ))}
+                      <button
+                        type="button"
+                        onClick={() => setResumeData(prev => ({
+                          ...prev,
+                          education: [...(prev.education || []), { degree: '', school: '', dates: '' }]
+                        }))}
+                        className="w-full py-2 bg-white/5 border border-dashed border-white/10 hover:border-white/20 text-white rounded-lg text-xs font-semibold transition-all text-center"
+                      >
+                        + Add Education Card
+                      </button>
+                    </div>
+                  )}
+
+                </div>
               </div>
+
+              {/* Right Pane: Live A4 Visual Sheet Preview */}
+              <div className="xl:col-span-6 bg-slate-900 border border-white/5 p-4 rounded-xl flex flex-col justify-start overflow-hidden">
+                <span className="text-[10px] font-bold text-lightGray/50 uppercase tracking-widest mb-3 block">Live Sheet Preview</span>
+                
+                {/* Sheet container */}
+                <div className="w-full bg-white text-slate-800 p-8 rounded shadow-2xl font-sans min-h-[500px] border border-slate-300 text-left scale-[0.98] origin-top overflow-y-auto leading-relaxed max-h-[550px]">
+                  
+                  {/* Header */}
+                  <div className="text-center pb-4 border-b border-slate-200">
+                    <h2 className="text-xl font-bold text-slate-900 leading-none mb-1">{resumeData.name || "Candidate Name"}</h2>
+                    <p className="text-[9px] text-slate-500 font-mono tracking-wide">
+                      {[resumeData.email, resumeData.phone, resumeData.website].filter(Boolean).join(" | ")}
+                    </p>
+                  </div>
+
+                  {/* Summary */}
+                  {resumeData.summary && (
+                    <div className="mt-4">
+                      <h3 className="text-[10px] font-bold text-slate-900 uppercase tracking-wider border-b border-slate-200 pb-0.5">Professional Summary</h3>
+                      <p className="text-[9px] text-slate-600 mt-1.5 font-sans leading-relaxed">{resumeData.summary}</p>
+                    </div>
+                  )}
+
+                  {/* Skills */}
+                  {resumeData.skills && resumeData.skills.length > 0 && (
+                    <div className="mt-4">
+                      <h3 className="text-[10px] font-bold text-slate-900 uppercase tracking-wider border-b border-slate-200 pb-0.5">Technical Skills</h3>
+                      <p className="text-[9px] text-slate-600 mt-1.5 font-mono leading-relaxed">
+                        {resumeData.skills.join(", ")}
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Experience */}
+                  {resumeData.experience && resumeData.experience.length > 0 && (
+                    <div className="mt-4">
+                      <h3 className="text-[10px] font-bold text-slate-900 uppercase tracking-wider border-b border-slate-200 pb-0.5">Work Experience</h3>
+                      <div className="space-y-3 mt-2">
+                        {resumeData.experience.map((exp, index) => (
+                          <div key={index} className="space-y-0.5">
+                            <div className="flex justify-between items-center text-[9px] font-bold text-slate-800">
+                              <span>{exp.role || "Role"}</span>
+                              <span className="font-normal text-slate-500">{exp.dates}</span>
+                            </div>
+                            <div className="text-[9px] italic text-slate-500 leading-none">{exp.company}</div>
+                            {exp.bullets && (
+                              <ul className="list-disc pl-3 text-[8.5px] text-slate-600 space-y-0.5 mt-1 font-sans leading-relaxed">
+                                {exp.bullets.map((b, bIdx) => (
+                                  <li key={bIdx}>{b}</li>
+                                ))}
+                              </ul>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Projects */}
+                  {resumeData.projects && resumeData.projects.length > 0 && (
+                    <div className="mt-4">
+                      <h3 className="text-[10px] font-bold text-slate-900 uppercase tracking-wider border-b border-slate-200 pb-0.5">Key Projects</h3>
+                      <div className="space-y-3 mt-2">
+                        {resumeData.projects.map((proj, index) => (
+                          <div key={index} className="space-y-0.5">
+                            <div className="text-[9px] font-bold text-slate-800">{proj.title || "Project Title"}</div>
+                            {proj.bullets && (
+                              <ul className="list-disc pl-3 text-[8.5px] text-slate-600 space-y-0.5 mt-1 font-sans leading-relaxed">
+                                {proj.bullets.map((b, bIdx) => (
+                                  <li key={bIdx}>{b}</li>
+                                ))}
+                              </ul>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Education */}
+                  {resumeData.education && resumeData.education.length > 0 && (
+                    <div className="mt-4">
+                      <h3 className="text-[10px] font-bold text-slate-900 uppercase tracking-wider border-b border-slate-200 pb-0.5">Education</h3>
+                      <div className="space-y-2 mt-2">
+                        {resumeData.education.map((edu, index) => (
+                          <div key={index} className="flex justify-between items-start text-[9px] text-slate-800">
+                            <div>
+                              <div className="font-bold">{edu.degree || "Degree"}</div>
+                              <div className="text-slate-500 leading-none mt-0.5">{edu.school}</div>
+                            </div>
+                            <div className="text-slate-500 font-normal text-[8.5px]">{edu.dates}</div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                </div>
+              </div>
+
             </div>
+
+            {/* Action Buttons */}
+            <div className="border-t border-white/5 pt-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <button
+                type="button"
+                onClick={handleDownloadResume}
+                disabled={autoOptimizing || analyzing}
+                className="px-4 py-2.5 bg-white/5 border border-white/5 hover:bg-white/10 text-white rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 disabled:opacity-50"
+              >
+                Download Optimized Resume (.{fileExtension})
+              </button>
+              <button
+                type="button"
+                onClick={handleRescanEditedText}
+                disabled={analyzing || autoOptimizing}
+                className="px-6 py-3 bg-white text-background hover:bg-lightGray font-black uppercase tracking-wider rounded-lg disabled:opacity-45 transition-all text-xs sm:text-sm flex items-center gap-1.5 shadow-lg"
+              >
+                {analyzing ? 'Re-scanning...' : 'Scan Edited Template & Update Score'}
+              </button>
+            </div>
+
           </motion.div>
         )}
 

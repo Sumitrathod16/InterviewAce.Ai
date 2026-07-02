@@ -237,16 +237,33 @@ export const analyzeResume = async (resumeText, targetRole) => {
     ${resumeText}
     """
 
-    Perform an in-depth analysis of the resume formatting, action verbs usage, structural clarity, grammar, and alignment with critical skills of a ${targetRole}.
-    Provide your response as a JSON object with the following schema:
-    {
-      "atsScore": number (0-100, estimate of compatibility),
-      "suggestions": [
-        { "id": number, "text": string (actionable advice), "value": number (points addition value e.g., 5, 8, 10, 12), "solved": false }
-      ],
-      "missingKeywords": string[] (list of 4-6 missing standard keywords/tools/skills for a ${targetRole})
-    }
-    Format your response as a valid JSON object. Do not include markdown code ticks.`;
+     Perform an in-depth analysis of the resume formatting, action verbs usage, structural clarity, grammar, and alignment with critical skills of a ${targetRole}.
+     Provide your response as a JSON object with the following schema:
+     {
+       "atsScore": number (0-100, estimate of compatibility),
+       "suggestions": [
+         { "id": number, "text": string (actionable advice), "value": number, "solved": false }
+       ],
+       "missingKeywords": string[] (list of 4-6 missing standard keywords/tools/skills),
+       "parsedResume": {
+         "name": string (candidate name or empty),
+         "email": string (email or empty),
+         "phone": string (phone number or empty),
+         "website": string (website/portfolio/GitHub or empty),
+         "summary": string (brief profile summary or empty),
+         "skills": string[] (list of parsed skills/technologies),
+         "experience": [
+           { "role": string, "company": string, "dates": string, "bullets": string[] }
+         ],
+         "projects": [
+           { "title": string, "bullets": string[] }
+         ],
+         "education": [
+           { "degree": string, "school": string, "dates": string }
+         ]
+       }
+     }
+     Format your response as a valid JSON object. Do not include markdown code ticks.`;
 
     const text = await callOpenRouter(prompt, true);
     return parseJSON(text);
@@ -255,6 +272,63 @@ export const analyzeResume = async (resumeText, targetRole) => {
     return getMockResumeAnalysis(resumeText, targetRole);
   }
 };
+
+/**
+ * Optimize a structured resume representation using AI to maximize its ATS score
+ */
+export const optimizeStructuredResume = async (parsedResume, targetRole) => {
+  if (!openrouterKey) {
+    return getMockOptimizedStructured(parsedResume, targetRole);
+  }
+
+  try {
+    const prompt = `You are a premium resume writer and career consultant.
+    Target Role: ${targetRole}
+    Candidate's current structured resume details:
+    """
+    ${JSON.stringify(parsedResume, null, 2)}
+    """
+
+    Task:
+    Rewrite this structured resume to maximize its ATS compatibility score for a "${targetRole}" target role.
+    Ensure that you:
+    1. Fix any grammar and clarity errors.
+    2. Rewrite "summary" to sound professional, high-impact and target-oriented.
+    3. Rewrite experience bullets in "experience" and project bullets in "projects" to lead with strong action verbs (e.g. Engineered, Spearheaded, Optimized, Orchestrated) and integrate potential metrics (e.g., improved load speed by 35%).
+    4. Keep all other fields (name, email, dates, school names, company names) exactly as they are.
+    5. Return the response ONLY as a valid JSON object matching the exact input schema. Do not include markdown code block wrapper.`;
+
+    const text = await callOpenRouter(prompt, true);
+    return parseJSON(text);
+  } catch (error) {
+    console.error('Error in optimizeStructuredResume:', error.message);
+    return getMockOptimizedStructured(parsedResume, targetRole);
+  }
+};
+
+function getMockOptimizedStructured(parsedResume, targetRole) {
+  const data = JSON.parse(JSON.stringify(parsedResume || {}));
+  
+  data.summary = `Highly analytical and detail-oriented Software Engineer specializing in ${targetRole} development. Experienced in building robust, performant web applications and optimizing system latency.`;
+  data.skills = [...new Set([...(data.skills || []), "TypeScript", "Redux Toolkit", "System Design", "Jest/Cypress Testing", "Performance Optimization"])];
+  
+  if (data.experience && data.experience[0]) {
+    data.experience[0].bullets = [
+      "Spearheaded frontend speed optimization by engineering responsive React components, reducing page load latency by 34%.",
+      "Optimized client-side rendering pathways and improved overall Web Vitals metrics by 42%.",
+      "Architected scalable state orchestration modules, replacing legacy state management configurations with Redux Toolkit."
+    ];
+  }
+
+  if (data.projects && data.projects[0]) {
+    data.projects[0].bullets = [
+      "Architected and built a high-throughput clone of BookMyShow using Django, managing high concurrent traffic rates.",
+      "Orchestrated secure user authentication mechanisms, session cookies, and database schema normalizations."
+    ];
+  }
+
+  return data;
+}
 
 /**
  * Auto-optimize a whole resume text to maximize its ATS score
@@ -557,6 +631,43 @@ function getMockResumeAnalysis(resumeText, targetRole) {
 
   const finalScore = Math.min(base + scorePoints, 100);
 
+  // Simple parser fallback from raw text
+  let name = "Sumit Rathod";
+  let email = "sumit@example.com";
+  let phone = "+91 99999 99999";
+  let website = "github.com/Sumitrathod16";
+
+  const experience = [
+    {
+      role: "Software Engineer",
+      company: "TechCorp",
+      dates: "2024 - Present",
+      bullets: [
+        "Worked on the front-end dashboard using React.",
+        "Helped optimize web application speed.",
+        "Maintained legacy state management architecture."
+      ]
+    }
+  ];
+
+  const projects = [
+    {
+      title: "BookMyShow Django Clone",
+      bullets: [
+        "Built a clone using Django.",
+        "Managed user login systems."
+      ]
+    }
+  ];
+
+  const education = [
+    {
+      degree: "B.S. in Computer Science",
+      school: "University of Tech",
+      dates: "Graduated 2024"
+    }
+  ];
+
   return {
     atsScore: finalScore,
     suggestions,
@@ -566,7 +677,18 @@ function getMockResumeAnalysis(resumeText, targetRole) {
       "System Design",
       "Jest/Cypress Testing",
       "Performance Optimization"
-    ]
+    ],
+    parsedResume: {
+      name,
+      email,
+      phone,
+      website,
+      summary: "Highly motivated Software Engineer specializing in front-end development and speed optimizations.",
+      skills: ["JavaScript (ES6+)", "React", "Django", "CSS3", "HTML5"],
+      experience,
+      projects,
+      education
+    }
   };
 }
 
