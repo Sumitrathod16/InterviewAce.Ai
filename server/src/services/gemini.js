@@ -257,6 +257,126 @@ export const analyzeResume = async (resumeText, targetRole) => {
 };
 
 /**
+ * Auto-optimize a whole resume text to maximize its ATS score
+ */
+export const optimizeWholeResume = async (resumeText, targetRole) => {
+  if (!openrouterKey) {
+    return getMockOptimizedResume(resumeText, targetRole);
+  }
+
+  try {
+    const prompt = `You are a premium resume writer and career consultant.
+    Target Role: ${targetRole}
+    Candidate's current resume text details:
+    """
+    ${resumeText}
+    """
+
+    Task:
+    Rewrite this resume details to maximize its ATS compatibility score for a "${targetRole}" target role.
+    Ensure that you:
+    1. Fix any grammar and clarity errors.
+    2. Rewrite experience bullet points to lead with strong action verbs (e.g. Engineered, Spearheaded, Optimized, Orchestrated) and include potential mock metrics templates (e.g. reduced rendering latency by 35%, improved compilation speeds by 42%).
+    3. Include a clear Skills block at the top, grouping critical target keywords like TypeScript, Redux Toolkit, and Jest/Cypress testing.
+    4. Ensure that the candidate name, contact details, experiences, and dates are preserved.
+    5. Respond ONLY with the plain text of the rewritten, optimized resume. Do NOT wrap it in markdown code blocks.`;
+
+    const text = await callOpenRouter(prompt, false);
+    return text.trim();
+  } catch (error) {
+    console.error('Error in optimizeWholeResume:', error.message);
+    return getMockOptimizedResume(resumeText, targetRole);
+  }
+};
+
+function getMockOptimizedResume(resumeText, targetRole) {
+  // Try to cleanly modify weak verbs and append keywords
+  let optimized = (resumeText || '')
+    .replace(/\bWorked on\b/gi, 'Spearheaded engineering of')
+    .replace(/\bHelped optimize\b/gi, 'Optimized client-side rendering and improved')
+    .replace(/\bBuilt a clone\b/gi, 'Architected and built a full-scale clone')
+    .replace(/\bManaged user login\b/gi, 'Orchestrated secure user authentication and session management');
+
+  const expIndex = optimized.indexOf('EXPERIENCE:');
+  const expSection = expIndex !== -1 ? optimized.substring(expIndex) : optimized;
+
+  return `Sumit Rathod
+Software Engineer | Frontend Specialist
+sumit@example.com | github.com/Sumitrathod16
+
+SUMMARY:
+Highly analytical and detail-oriented Software Engineer specializing in ${targetRole} development. Experienced in building robust, performant web applications and optimizing system latency.
+
+TECHNICAL SKILLS & KEYWORDS:
+- Languages: JavaScript (ES6+), TypeScript, HTML5, CSS3
+- Frameworks & Libraries: React, Redux Toolkit, Next.js, Django
+- Tools & Testing: Vite, Webpack, Jest, Cypress, Git, CI/CD
+- Concepts: Software Architecture, RESTful APIs, Performance Optimization, ATS layouts
+
+${expSection}`;
+}
+
+/**
+ * Fix a single specific suggestion in the resume text
+ */
+export const fixResumeSuggestion = async (resumeText, suggestionText, targetRole) => {
+  if (!openrouterKey) {
+    return getMockSuggestionFix(resumeText, suggestionText, targetRole);
+  }
+
+  try {
+    const prompt = `You are an expert resume reviewer and writer.
+    Target Role: ${targetRole}
+    Candidate's current resume text details:
+    """
+    ${resumeText}
+    """
+
+    Task:
+    Modify the resume to address ONLY the following suggestion:
+    "${suggestionText}"
+
+    Ensure that you:
+    1. Fix the specified issue in the resume text.
+    2. Maintain all other parts of the resume, formatting, and details exactly as is.
+    3. Respond ONLY with the plain text of the rewritten, updated resume. Do NOT wrap it in markdown code blocks.`;
+
+    const text = await callOpenRouter(prompt, false);
+    return text.trim();
+  } catch (error) {
+    console.error('Error in fixResumeSuggestion:', error.message);
+    return getMockSuggestionFix(resumeText, suggestionText, targetRole);
+  }
+};
+
+function getMockSuggestionFix(resumeText, suggestionText, targetRole) {
+  const lowerSugg = (suggestionText || '').toLowerCase();
+  let text = resumeText || '';
+
+  if (lowerSugg.includes('weak verbs') || lowerSugg.includes('action verbs')) {
+    text = text
+      .replace(/\bWorked on\b/gi, 'Spearheaded engineering of')
+      .replace(/\bHelped optimize\b/gi, 'Optimized client-side rendering and improved')
+      .replace(/\bBuilt a clone\b/gi, 'Architected and built a full-scale clone')
+      .replace(/\bManaged user login\b/gi, 'Orchestrated secure user authentication and session management');
+  } else if (lowerSugg.includes('quantify') || lowerSugg.includes('metrics')) {
+    text = text.replace(/optimize web application speed\./gi, 'optimized web application speed by 42% through lazy loading.');
+  } else if (lowerSugg.includes('missing') || lowerSugg.includes('skills') || lowerSugg.includes('tools')) {
+    text = text + `\n\nADDITIONAL TECHNICAL SKILLS (ATS RECOMMENDED):
+- Languages: TypeScript, ES6+ JavaScript
+- State Management: Redux Toolkit
+- Testing Tools: Jest, Cypress`;
+  } else if (lowerSugg.includes('summary')) {
+    text = `PROFESSIONAL SUMMARY:
+Experienced ${targetRole} dedicated to building high-fidelity client applications, resolving complex rendering bottlenecks, and optimizing ATS scores.
+
+` + text;
+  }
+
+  return text;
+}
+
+/**
  * Generate Career Roadmap
  */
 export const generateCareerCoachDetails = async (skills, targetRole, education) => {
@@ -414,18 +534,33 @@ function getMockEvaluation(question, answer, track, role) {
 }
 
 function getMockResumeAnalysis(resumeText, targetRole) {
+  const lowerText = (resumeText || '').toLowerCase();
+  
+  const hasStrongVerbs = lowerText.includes('spearheaded') || lowerText.includes('engineered') || lowerText.includes('optimized') || lowerText.includes('orchestrated') || lowerText.includes('architected');
+  const hasMetrics = lowerText.includes('%') || lowerText.includes('latency') || lowerText.includes('speed') || lowerText.includes('rendering');
+  const hasKeywords = lowerText.includes('typescript') || lowerText.includes('redux') || lowerText.includes('jest') || lowerText.includes('cypress');
+  const hasSkillsSummary = lowerText.includes('skills') || lowerText.includes('technologies') || lowerText.includes('summary');
 
-  const base = 62 + Math.floor(Math.random() * 12);
+  const base = 60;
+  const suggestions = [
+    { id: 1, text: "Replace weak verbs ('Worked', 'Helped') with strong action verbs like 'Engineered', 'Spearheaded', 'Optimized'.", value: 8, solved: hasStrongVerbs },
+    { id: 2, text: "Quantify your achievements (e.g., 'optimized latency' -> 'reduced rendering latency by 42%').", value: 12, solved: hasMetrics },
+    { id: 3, text: `Add missing industry-standard tools/skills for a ${targetRole} profile (e.g. Redux Toolkit, TypeScript).`, value: 7, solved: hasKeywords },
+    { id: 4, text: "Convert any double-column layouts or tables to a single-column layout for parsing compatibility.", value: 5, solved: true },
+    { id: 5, text: "Define a summary of skills section near the top of your resume.", value: 4, solved: hasSkillsSummary }
+  ];
+
+  let scorePoints = 0;
+  suggestions.forEach(s => {
+    if (s.solved) scorePoints += s.value;
+  });
+
+  const finalScore = Math.min(base + scorePoints, 100);
+
   return {
-    atsScore: base,
-    suggestions: [
-      { id: 1, text: "Replace weak verbs ('Worked', 'Helped') with strong action verbs like 'Engineered', 'Spearheaded', 'Optimized'.", value: 8, solved: false },
-      { id: 2, text: "Quantify your achievements (e.g., 'optimized latency' -> 'reduced rendering latency by 42%').", value: 12, solved: false },
-      { id: 3, text: `Add missing industry-standard tools/skills for a ${targetRole} profile (e.g. Redux, Webpack, system testing).`, value: 7, solved: false },
-      { id: 4, text: "Convert any double-column layouts or tables to a single-column layout for parsing compatibility.", value: 5, solved: false },
-      { id: 5, text: "Define a summary of skills section near the top of your resume.", value: 4, solved: false }
-    ],
-    missingKeywords: [
+    atsScore: finalScore,
+    suggestions,
+    missingKeywords: hasKeywords ? [] : [
       "TypeScript",
       "Redux Toolkit",
       "System Design",

@@ -51,9 +51,9 @@ export default function Footer() {
             <h4 className="text-xs font-bold text-white uppercase tracking-wider">Product</h4>
             <ul className="space-y-2 text-xs text-lightGray/65">
               <li>
-                <a href="#features" onClick={(e) => handleScroll(e, '#features')} className="hover:text-white transition-colors">
+                <Link to="/features" className="hover:text-white transition-colors">
                   Features
-                </a>
+                </Link>
               </li>
               <li>
                 <a href="#demo" onClick={(e) => handleScroll(e, '#demo')} className="hover:text-white transition-colors">
@@ -66,9 +66,9 @@ export default function Footer() {
                 </a>
               </li>
               <li>
-                <a href="#pricing" onClick={(e) => handleScroll(e, '#pricing')} className="hover:text-white transition-colors">
+                <Link to="/pricing" className="hover:text-white transition-colors">
                   Pricing
-                </a>
+                </Link>
               </li>
             </ul>
           </div>

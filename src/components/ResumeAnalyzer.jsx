@@ -43,6 +43,125 @@ export default function ResumeAnalyzer({ atsScore, onAtsScoreChange }) {
   const [metricTip, setMetricTip] = useState('');
   const [optimizingBullet, setOptimizingBullet] = useState(false);
   const [copied, setCopied] = useState(false);
+  // Resume Editor & AI Auto-Optimizer States
+  const [currentResumeText, setCurrentResumeText] = useState('');
+  const [initialResumeText, setInitialResumeText] = useState('');
+  const [autoOptimizing, setAutoOptimizing] = useState(false);
+  const [fixingSuggestionId, setFixingSuggestionId] = useState(null);
+
+  const handleFixSuggestion = async (id, suggestionText) => {
+    if (!currentResumeText.trim()) {
+      toast.error('No resume content loaded.');
+      return;
+    }
+    setFixingSuggestionId(id);
+    try {
+      const response = await API.post('/resumes/fix-suggestion', {
+        resumeText: currentResumeText,
+        suggestionText
+      });
+      const updatedText = response.data.updatedText;
+      setCurrentResumeText(updatedText);
+      toast.success('AI successfully resolved this suggestion in your resume!');
+      
+      // Trigger re-scan of the updated text immediately
+      setAnalyzing(true);
+      setHasResult(false);
+      
+      const rescanRes = await API.post('/resumes/analyze', {
+        pasteText: updatedText
+      });
+      const data = rescanRes.data;
+      setBaseScore(data.atsScore);
+      setSuggestions(data.suggestions || []);
+      setMissingKeywords(data.missingKeywords || []);
+      setHasResult(true);
+      setCurrentResumeText(data.resumeText || updatedText);
+      setInitialResumeText(data.resumeText || updatedText);
+      
+      if (data.atsScore >= 80) {
+        confetti({
+          particleCount: 50,
+          spread: 45,
+          origin: { y: 0.8 }
+        });
+      }
+      if (onAtsScoreChange) {
+        onAtsScoreChange(data.atsScore, "ATS Resume Scan Complete");
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error(err.response?.data?.message || 'Failed to auto-fix suggestion.');
+    } finally {
+      setFixingSuggestionId(null);
+      setAnalyzing(false);
+    }
+  };
+
+  const handleRescanEditedText = async () => {
+    if (!currentResumeText.trim()) {
+      toast.error('Resume content is empty.');
+      return;
+    }
+    setAnalyzing(true);
+    setHasResult(false);
+    setErrorMsg('');
+    try {
+      const response = await API.post('/resumes/analyze', {
+        pasteText: currentResumeText
+      });
+      const data = response.data;
+      setBaseScore(data.atsScore);
+      setSuggestions(data.suggestions || []);
+      setMissingKeywords(data.missingKeywords || []);
+      setHasResult(true);
+      setCurrentResumeText(data.resumeText || currentResumeText);
+      setInitialResumeText(data.resumeText || currentResumeText);
+      toast.success(`ATS Re-scan Complete! Score: ${data.atsScore}%`);
+      
+      if (data.atsScore >= 80) {
+        confetti({
+          particleCount: 50,
+          spread: 45,
+          origin: { y: 0.8 }
+        });
+      }
+      
+      if (onAtsScoreChange) {
+        onAtsScoreChange(data.atsScore, "ATS Resume Scan Complete");
+      }
+    } catch (error) {
+      console.error('Resume scanning error:', error);
+      const msg = error.response?.data?.message || 'An error occurred during resume scanning.';
+      setErrorMsg(msg);
+      toast.error(msg);
+    } finally {
+      setAnalyzing(false);
+    }
+  };
+
+  const handleAutoOptimizeWholeResume = async () => {
+    if (!currentResumeText.trim()) {
+      toast.error('No resume content to optimize.');
+      return;
+    }
+    setAutoOptimizing(true);
+    setErrorMsg('');
+    try {
+      const response = await API.post('/resumes/auto-optimize', {
+        resumeText: currentResumeText
+      });
+      setCurrentResumeText(response.data.optimizedText);
+      toast.success('Resume auto-optimized by AI!');
+    } catch (err) {
+      console.error(err);
+      const msg = err.response?.data?.message || 'Failed to auto-optimize resume.';
+      setErrorMsg(msg);
+      toast.error(msg);
+    } finally {
+      setAutoOptimizing(false);
+    }
+  };
 
   const handleOptimizeBullet = async () => {
     if (!originalBullet.trim()) return;
@@ -122,6 +241,8 @@ export default function ResumeAnalyzer({ atsScore, onAtsScoreChange }) {
       setSuggestions(data.suggestions || []);
       setMissingKeywords(data.missingKeywords || []);
       setHasResult(true);
+      setCurrentResumeText(data.resumeText || pasteText || '');
+      setInitialResumeText(data.resumeText || pasteText || '');
 
       if (onAtsScoreChange) {
         onAtsScoreChange(data.atsScore, "ATS Resume Scan Complete");
@@ -369,9 +490,31 @@ export default function ResumeAnalyzer({ atsScore, onAtsScoreChange }) {
                                 <Square size={13} className="text-lightGray/40 stroke-[2]" />
                               )}
                             </div>
-                            <span className={item.solved ? 'line-through text-lightGray/50' : 'text-lightGray/90'}>
-                              {item.text}
-                            </span>
+                            <div className="flex flex-col gap-1 w-full text-left">
+                              <span className={item.solved ? 'line-through text-lightGray/50' : 'text-lightGray/90'}>
+                                {item.text}
+                              </span>
+                              {!item.solved && (
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleFixSuggestion(item._id || item.id, item.text);
+                                  }}
+                                  disabled={fixingSuggestionId !== null}
+                                  className="mt-1.5 w-fit px-2 py-0.5 rounded bg-accent/10 border border-accent/25 hover:bg-accent/20 text-[9px] font-bold text-accent transition-all flex items-center gap-1.5 disabled:opacity-50"
+                                >
+                                  {fixingSuggestionId === (item._id || item.id) ? (
+                                    <span className="w-2.5 h-2.5 rounded-full border-2 border-accent border-t-transparent animate-spin" />
+                                  ) : (
+                                    <>
+                                      <Sparkles size={9} />
+                                      Fix with AI
+                                    </>
+                                  )}
+                                </button>
+                              )}
+                            </div>
                           </div>
                         ))}
                       </div>
@@ -416,6 +559,82 @@ export default function ResumeAnalyzer({ atsScore, onAtsScoreChange }) {
           </div>
 
         </div>
+
+        {/* Interactive Resume Editor & AI Auto-Optimizer */}
+        {hasResult && (
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mt-12 p-6 bg-secondaryBg/45 border border-white/5 rounded-xl space-y-6"
+          >
+            <div className="border-b border-white/5 pb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div>
+                <h3 className="text-lg font-bold text-white flex items-center gap-2">
+                  <Sparkles size={18} className="text-accent animate-pulse" /> Optimize & Edit Resume Content
+                </h3>
+                <p className="text-xs text-lightGray/70 mt-1">
+                  Adjust your resume text manually or use AI to rewrite and integrate missing keywords. Re-scan to see your score improvement.
+                </p>
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={handleAutoOptimizeWholeResume}
+                  disabled={autoOptimizing || analyzing}
+                  className="px-4 py-2 bg-accent/20 border border-accent/40 text-white rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 hover:bg-accent/30 disabled:opacity-50"
+                >
+                  {autoOptimizing && <span className="w-3.5 h-3.5 rounded-full border-2 border-white border-t-transparent animate-spin" />}
+                  Auto-Optimize with AI
+                </button>
+                <button
+                  onClick={() => {
+                    setCurrentResumeText(initialResumeText);
+                    toast.success('Editor reset to original scanned text.');
+                  }}
+                  disabled={autoOptimizing || analyzing}
+                  className="px-4 py-2 bg-white/5 border border-white/5 text-lightGray hover:text-white rounded-lg text-xs font-semibold transition-all disabled:opacity-50"
+                >
+                  Reset Text
+                </button>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <textarea
+                value={currentResumeText}
+                onChange={(e) => setCurrentResumeText(e.target.value)}
+                placeholder="Edit your resume content here..."
+                className="w-full h-80 bg-background/50 text-white rounded-lg p-4 text-xs sm:text-sm border border-white/5 focus:outline-none focus:border-accent/30 font-mono resize-y leading-relaxed"
+                disabled={autoOptimizing || analyzing}
+              />
+              <div className="flex justify-between items-center gap-4">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const blob = new Blob([currentResumeText], { type: 'text/plain;charset=utf-8' });
+                    const url = URL.createObjectURL(blob);
+                    const link = document.createElement('a');
+                    link.href = url;
+                    link.download = 'optimized_resume.txt';
+                    link.click();
+                    URL.revokeObjectURL(url);
+                    toast.success('Resume downloaded successfully as optimized_resume.txt!');
+                  }}
+                  disabled={!currentResumeText.trim() || autoOptimizing || analyzing}
+                  className="px-4 py-2.5 bg-white/5 border border-white/5 hover:bg-white/10 text-white rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 disabled:opacity-50"
+                >
+                  Download Optimized Resume (.txt)
+                </button>
+                <button
+                  onClick={handleRescanEditedText}
+                  disabled={analyzing || autoOptimizing || !currentResumeText.trim()}
+                  className="px-6 py-3 bg-white text-background hover:bg-lightGray font-black uppercase tracking-wider rounded-lg disabled:opacity-45 transition-all text-xs sm:text-sm flex items-center gap-1.5 shadow-lg"
+                >
+                  {analyzing ? 'Re-scanning...' : 'Scan Edited Text & Update Score'}
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        )}
 
         {/* Experience Bullet Point Optimizer Section */}
         <div className="mt-12 p-6 bg-secondaryBg/45 border border-white/5 rounded-xl space-y-6">

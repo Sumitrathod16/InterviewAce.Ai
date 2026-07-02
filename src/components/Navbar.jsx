@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Menu, X, Terminal, ArrowRight, LayoutDashboard, Home, Sun, Moon } from 'lucide-react';
 
 export default function Navbar({ currentView, onViewChange, onTabChange, hasUser, theme, toggleTheme }) {
   const [isOpen, setIsOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -14,29 +16,34 @@ export default function Navbar({ currentView, onViewChange, onTabChange, hasUser
   }, []);
 
   const navLinks = hasUser ? [
+    { name: 'Features', href: '/features' },
     { name: 'Mock Interviews', href: '#demo' },
     { name: 'Resume Analyzer', href: '#resume' },
     { name: 'Coding Sandbox', href: '#coding' },
-    { name: 'Pricing & Tiers', href: '#pricing' },
+    { name: 'Pricing & Tiers', href: '/pricing' },
   ] : [
-    { name: 'Features', href: '#features' },
+    { name: 'Features', href: '/features' },
     { name: 'How It Works', href: '#how-it-works' },
     { name: 'Interview Demo', href: '#demo' },
     { name: 'Resume Analyzer', href: '#resume' },
     { name: 'Coding Sandbox', href: '#coding' },
-    { name: 'Pricing', href: '#pricing' },
+    { name: 'Pricing', href: '/pricing' },
   ];
 
   const handleLinkClick = (e, href) => {
     e.preventDefault();
     setIsOpen(false);
     
+    if (href.startsWith('/')) {
+      navigate(href);
+      return;
+    }
+    
     if (hasUser) {
       let tab = '';
       if (href === '#demo') tab = 'interviews';
       else if (href === '#resume') tab = 'resume';
       else if (href === '#coding') tab = 'coding';
-      else if (href === '#pricing') tab = 'billing';
       
       if (tab) {
         if (currentView !== 'dashboard-portal') {

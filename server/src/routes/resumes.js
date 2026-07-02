@@ -5,7 +5,7 @@ import { protect } from '../middleware/auth.js';
 import ResumeReport from '../models/ResumeReport.js';
 import User from '../models/User.js';
 import { uploadFile } from '../services/cloudinary.js';
-import { analyzeResume, optimizeResumeBullet } from '../services/gemini.js';
+import { analyzeResume, optimizeResumeBullet, optimizeWholeResume, fixResumeSuggestion } from '../services/gemini.js';
 
 const router = express.Router();
 
@@ -120,7 +120,10 @@ router.post('/analyze', protect, upload.single('resumeFile'), async (req, res) =
       await User.findByIdAndUpdate(req.user._id, { resumeUrl: fileUrl });
     }
 
-    res.status(201).json(report);
+    res.status(201).json({
+      ...report.toObject(),
+      resumeText: resumeText
+    });
   } catch (error) {
     console.error('Error analyzing resume:', error.message);
     res.status(500).json({ message: 'Server error during resume ATS analysis.' });
@@ -160,6 +163,51 @@ router.post('/optimize-bullet', protect, async (req, res) => {
   } catch (error) {
     console.error('Error optimizing resume bullet:', error.message);
     res.status(500).json({ message: 'Server error during bullet point optimization.' });
+  }
+});
+
+/**
+ * @route   POST /api/resumes/auto-optimize
+ * @desc    Auto-optimize a whole resume for a target role
+ * @access  Private
+ */
+router.post('/auto-optimize', protect, async (req, res) => {
+  const { resumeText } = req.body;
+  if (!resumeText || !resumeText.trim()) {
+    return res.status(400).json({ message: 'Missing resume text details to optimize.' });
+  }
+
+  try {
+    const targetRole = req.user.targetRole || 'Frontend Engineer';
+    const optimizedText = await optimizeWholeResume(resumeText, targetRole);
+    res.json({ optimizedText });
+  } catch (error) {
+    console.error('Error auto-optimizing resume:', error.message);
+    res.status(500).json({ message: 'Server error during resume auto-optimization.' });
+  }
+});
+
+/**
+ * @route   POST /api/resumes/fix-suggestion
+ * @desc    Fix a single suggestion in the resume text
+ * @access  Private
+ */
+router.post('/fix-suggestion', protect, async (req, res) => {
+  const { resumeText, suggestionText } = req.body;
+  if (!resumeText || !resumeText.trim()) {
+    return res.status(400).json({ message: 'Missing resume text details.' });
+  }
+  if (!suggestionText || !suggestionText.trim()) {
+    return res.status(400).json({ message: 'Missing suggestion text.' });
+  }
+
+  try {
+    const targetRole = req.user.targetRole || 'Frontend Engineer';
+    const updatedText = await fixResumeSuggestion(resumeText, suggestionText, targetRole);
+    res.json({ updatedText });
+  } catch (error) {
+    console.error('Error fixing suggestion:', error.message);
+    res.status(500).json({ message: 'Server error during suggestion fix.' });
   }
 });
 
