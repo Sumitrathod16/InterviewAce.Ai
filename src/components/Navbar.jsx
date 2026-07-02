@@ -16,13 +16,11 @@ export default function Navbar({ currentView, onViewChange, onTabChange, hasUser
   }, []);
 
   const navLinks = hasUser ? [
-    { name: 'Features', href: '/features' },
     { name: 'Mock Interviews', href: '#demo' },
     { name: 'Resume Analyzer', href: '#resume' },
     { name: 'Coding Sandbox', href: '#coding' },
     { name: 'Pricing & Tiers', href: '/pricing' },
   ] : [
-    { name: 'Features', href: '/features' },
     { name: 'How It Works', href: '#how-it-works' },
     { name: 'Interview Demo', href: '#demo' },
     { name: 'Resume Analyzer', href: '#resume' },
