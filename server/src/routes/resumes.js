@@ -106,13 +106,22 @@ router.post('/analyze', protect, upload.single('resumeFile'), async (req, res) =
     // Call Gemini AI service to score and get recommendations
     const analysis = await analyzeResume(resumeText, targetRole);
 
+    // Normalize suggestions and missing keywords from LLM response for database validation safety
+    const suggestions = (analysis.suggestions || [])
+      .filter(s => s && s.text)
+      .map(s => ({
+        text: s.text,
+        value: typeof s.value === 'number' ? s.value : 5,
+        solved: !!s.solved
+      }));
+
     // Save report in Database
     const report = await ResumeReport.create({
       userId: req.user._id,
       resumeUrl: fileUrl,
-      atsScore: analysis.atsScore,
-      suggestions: analysis.suggestions,
-      missingKeywords: analysis.missingKeywords
+      atsScore: typeof analysis.atsScore === 'number' ? analysis.atsScore : 70,
+      suggestions: suggestions,
+      missingKeywords: Array.isArray(analysis.missingKeywords) ? analysis.missingKeywords : []
     });
 
     // Update user profile resume url
@@ -122,7 +131,8 @@ router.post('/analyze', protect, upload.single('resumeFile'), async (req, res) =
 
     res.status(201).json({
       ...report.toObject(),
-      resumeText: resumeText
+      resumeText: resumeText,
+      parsedResume: analysis.parsedResume
     });
   } catch (error) {
     console.error('Error analyzing resume:', error.message);
