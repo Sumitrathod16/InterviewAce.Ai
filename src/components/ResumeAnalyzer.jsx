@@ -5,6 +5,7 @@ import confetti from 'canvas-confetti';
 import { toast } from 'react-hot-toast';
 import API from '../services/api';
 import { useAuth } from '../context/AuthContext';
+import { jsPDF } from 'jspdf';
 
 const SAMPLE_RESUME_TEXT = `Sumit Rathod
 Software Engineer | Frontend Specialist
@@ -48,6 +49,7 @@ export default function ResumeAnalyzer({ atsScore, onAtsScoreChange }) {
   const [initialResumeText, setInitialResumeText] = useState('');
   const [autoOptimizing, setAutoOptimizing] = useState(false);
   const [fixingSuggestionId, setFixingSuggestionId] = useState(null);
+  const [fileExtension, setFileExtension] = useState('txt');
 
   const handleFixSuggestion = async (id, suggestionText) => {
     if (!currentResumeText.trim()) {
@@ -95,6 +97,108 @@ export default function ResumeAnalyzer({ atsScore, onAtsScoreChange }) {
     } finally {
       setFixingSuggestionId(null);
       setAnalyzing(false);
+    }
+  };
+
+  const downloadAsTxt = () => {
+    const blob = new Blob([currentResumeText], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'optimized_resume.txt';
+    link.click();
+    URL.revokeObjectURL(url);
+    toast.success('Resume downloaded successfully as optimized_resume.txt!');
+  };
+
+  const handleDownloadResume = () => {
+    if (!currentResumeText.trim()) return;
+
+    if (fileExtension === 'pdf') {
+      try {
+        const doc = new jsPDF({
+          orientation: 'portrait',
+          unit: 'mm',
+          format: 'a4'
+        });
+
+        // Set layout constants
+        const marginX = 20;
+        const pageHeight = 297;
+        const pageWidth = 210;
+        const maxLineWidth = pageWidth - (marginX * 2); // 170mm
+        const lineSpacing = 6;
+        let currentY = 20;
+
+        // Set font style
+        doc.setFont("helvetica", "normal");
+        doc.setFontSize(10.5);
+
+        // Split text by lines
+        const sourceLines = currentResumeText.split('\n');
+
+        sourceLines.forEach((sourceLine) => {
+          // If the line is empty, just insert spacing
+          if (!sourceLine.trim()) {
+            currentY += 4;
+            return;
+          }
+
+          // Split line to fit width
+          const splitLines = doc.splitTextToSize(sourceLine, maxLineWidth);
+          
+          splitLines.forEach((line) => {
+            // Check for page overflow
+            if (currentY + lineSpacing > pageHeight - 20) {
+              doc.addPage();
+              currentY = 20; // reset to top margin
+            }
+            doc.text(line, marginX, currentY);
+            currentY += lineSpacing;
+          });
+        });
+
+        doc.save('optimized_resume.pdf');
+        toast.success('Resume downloaded successfully as optimized_resume.pdf!');
+      } catch (err) {
+        console.error('PDF generation error:', err);
+        toast.error('Failed to compile PDF. Exporting as TXT fallback.');
+        downloadAsTxt();
+      }
+    } else if (fileExtension === 'doc' || fileExtension === 'docx') {
+      try {
+        const docContent = `
+          <html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>
+          <head>
+            <title>Optimized Resume</title>
+            <style>
+              body {
+                font-family: Arial, sans-serif;
+                font-size: 11pt;
+                line-height: 1.5;
+                white-space: pre-wrap;
+              }
+            </style>
+          </head>
+          <body>
+            ${currentResumeText.replace(/\n/g, '<br/>')}
+          </body>
+          </html>
+        `;
+        const blob = new Blob(['\ufeff' + docContent], { type: 'application/msword;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `optimized_resume.${fileExtension}`;
+        link.click();
+        URL.revokeObjectURL(url);
+        toast.success(`Resume downloaded successfully as optimized_resume.${fileExtension}!`);
+      } catch (err) {
+        console.error(err);
+        downloadAsTxt();
+      }
+    } else {
+      downloadAsTxt();
     }
   };
 
@@ -197,6 +301,8 @@ export default function ResumeAnalyzer({ atsScore, onAtsScoreChange }) {
     if (uploadedFile) {
       setFile(uploadedFile);
       setErrorMsg('');
+      const ext = uploadedFile.name.split('.').pop().toLowerCase();
+      setFileExtension(ext);
     }
   };
 
@@ -204,6 +310,7 @@ export default function ResumeAnalyzer({ atsScore, onAtsScoreChange }) {
     setPasteText(SAMPLE_RESUME_TEXT);
     setFile(null);
     setErrorMsg('');
+    setFileExtension('txt');
   };
 
   const triggerAnalysis = async () => {
@@ -359,7 +466,7 @@ export default function ResumeAnalyzer({ atsScore, onAtsScoreChange }) {
                 <label className="block text-xs font-bold text-lightGray/60 uppercase mb-2">Or paste resume text details</label>
                 <textarea
                   value={pasteText}
-                  onChange={(e) => { setPasteText(e.target.value); setFile(null); }}
+                  onChange={(e) => { setPasteText(e.target.value); setFile(null); setFileExtension('txt'); }}
                   placeholder="Paste your professional experience and skills here..."
                   className="w-full h-32 bg-background/50 text-white rounded-lg p-3 text-xs border border-white/5 focus:outline-none focus:border-white/30 resize-none font-sans"
                   disabled={analyzing}
@@ -609,20 +716,11 @@ export default function ResumeAnalyzer({ atsScore, onAtsScoreChange }) {
               <div className="flex justify-between items-center gap-4">
                 <button
                   type="button"
-                  onClick={() => {
-                    const blob = new Blob([currentResumeText], { type: 'text/plain;charset=utf-8' });
-                    const url = URL.createObjectURL(blob);
-                    const link = document.createElement('a');
-                    link.href = url;
-                    link.download = 'optimized_resume.txt';
-                    link.click();
-                    URL.revokeObjectURL(url);
-                    toast.success('Resume downloaded successfully as optimized_resume.txt!');
-                  }}
+                  onClick={handleDownloadResume}
                   disabled={!currentResumeText.trim() || autoOptimizing || analyzing}
                   className="px-4 py-2.5 bg-white/5 border border-white/5 hover:bg-white/10 text-white rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 disabled:opacity-50"
                 >
-                  Download Optimized Resume (.txt)
+                  Download Optimized Resume (.{fileExtension})
                 </button>
                 <button
                   onClick={handleRescanEditedText}
