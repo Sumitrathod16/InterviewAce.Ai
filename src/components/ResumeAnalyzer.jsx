@@ -49,6 +49,7 @@ export default function ResumeAnalyzer({ atsScore, onAtsScoreChange }) {
   const [fixingSuggestionId, setFixingSuggestionId] = useState(null);
   const [fileExtension, setFileExtension] = useState('txt');
   const [editorTab, setEditorTab] = useState('contact');
+  const [selectedTemplate, setSelectedTemplate] = useState('modern');
 
   const DEFAULT_STRUCTURED_RESUME = {
     name: "Sumit Rathod",
@@ -202,162 +203,192 @@ ${edu.degree || ''} - ${edu.school || ''} (${edu.dates || ''})
           }
         };
 
-        // 1. Header (Name, Contact Details)
-        doc.setFont("helvetica", "bold");
-        doc.setFontSize(18);
-        doc.text(resumeData.name || "Candidate", pageWidth / 2, currentY, { align: "center" });
-        currentY += 7;
+        const fontName = selectedTemplate === 'classic' ? 'times' : 'helvetica';
+        const primaryColor = selectedTemplate === 'tech' ? [29, 78, 216] : [15, 23, 42];
+        const textColor = selectedTemplate === 'classic' ? [0, 0, 0] : [51, 65, 85];
 
-        doc.setFont("helvetica", "normal");
-        doc.setFontSize(9);
+        const drawSectionHeader = (title) => {
+          checkPageOverflow(15);
+          doc.setFont(fontName, "bold");
+          doc.setFontSize(10.5);
+          doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+          
+          if (selectedTemplate === 'classic') {
+            currentY += 2;
+            doc.setDrawColor(226, 232, 240);
+            doc.setLineWidth(0.4);
+            doc.line(marginX, currentY, pageWidth - marginX, currentY);
+            currentY += 4.5;
+            
+            doc.text(title.toUpperCase(), pageWidth / 2, currentY, { align: "center" });
+            currentY += 2.5;
+            
+            doc.line(marginX, currentY, pageWidth - marginX, currentY);
+            currentY += 6;
+          } else {
+            doc.text(title.toUpperCase(), marginX, currentY);
+            currentY += 1.5;
+            doc.setDrawColor(selectedTemplate === 'tech' ? 191 : 226, selectedTemplate === 'tech' ? 219 : 232, selectedTemplate === 'tech' ? 254 : 240);
+            doc.setLineWidth(0.4);
+            doc.line(marginX, currentY, pageWidth - marginX, currentY);
+            currentY += 5.5;
+          }
+          doc.setTextColor(textColor[0], textColor[1], textColor[2]);
+        };
+
+        // 1. Header (Name, Contact Details)
+        doc.setFont(fontName, "bold");
+        doc.setFontSize(selectedTemplate === 'classic' ? 18 : 16);
+        doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+        
         const contactInfo = [resumeData.email, resumeData.phone, resumeData.website].filter(Boolean).join("  |  ");
-        doc.text(contactInfo, pageWidth / 2, currentY, { align: "center" });
-        currentY += 12;
+        if (selectedTemplate === 'classic') {
+          doc.text(resumeData.name || "Candidate", pageWidth / 2, currentY, { align: "center" });
+          currentY += 6;
+          doc.setFont(fontName, "normal");
+          doc.setFontSize(9);
+          doc.setTextColor(100, 116, 139);
+          doc.text(contactInfo, pageWidth / 2, currentY, { align: "center" });
+          currentY += 10;
+        } else {
+          doc.text(resumeData.name || "Candidate", marginX, currentY);
+          currentY += 6;
+          doc.setFont(fontName, "normal");
+          doc.setFontSize(9);
+          doc.setTextColor(100, 116, 139);
+          doc.text(contactInfo, marginX, currentY);
+          currentY += 10;
+        }
 
         // 2. Summary
         if (resumeData.summary) {
-          doc.setFont("helvetica", "bold");
-          doc.setFontSize(11);
-          doc.text("PROFESSIONAL SUMMARY", marginX, currentY);
-          currentY += 2;
-          doc.setLineWidth(0.2);
-          doc.line(marginX, currentY, pageWidth - marginX, currentY);
-          currentY += 5;
+          drawSectionHeader("Professional Summary");
+          doc.setFont(fontName, "normal");
+          doc.setFontSize(9);
+          doc.setTextColor(textColor[0], textColor[1], textColor[2]);
 
-          doc.setFont("helvetica", "normal");
-          doc.setFontSize(9.5);
           const summaryLines = doc.splitTextToSize(resumeData.summary, maxLineWidth);
           summaryLines.forEach(line => {
             checkPageOverflow(5);
             doc.text(line, marginX, currentY);
-            currentY += 5;
+            currentY += 4.5;
           });
-          currentY += 5;
+          currentY += 4.5;
         }
 
         // 3. Technical Skills
         if (resumeData.skills && resumeData.skills.length > 0) {
-          checkPageOverflow(15);
-          doc.setFont("helvetica", "bold");
-          doc.setFontSize(11);
-          doc.text("TECHNICAL SKILLS", marginX, currentY);
-          currentY += 2;
-          doc.line(marginX, currentY, pageWidth - marginX, currentY);
-          currentY += 5;
+          drawSectionHeader("Technical Skills");
+          doc.setFont(fontName, "normal");
+          doc.setFontSize(9);
+          doc.setTextColor(textColor[0], textColor[1], textColor[2]);
 
-          doc.setFont("helvetica", "normal");
-          doc.setFontSize(9.5);
           const skillsText = resumeData.skills.join(", ");
           const skillsLines = doc.splitTextToSize(skillsText, maxLineWidth);
           skillsLines.forEach(line => {
             checkPageOverflow(5);
             doc.text(line, marginX, currentY);
-            currentY += 5;
+            currentY += 4.5;
           });
-          currentY += 5;
+          currentY += 4.5;
         }
 
         // 4. Work Experience
         if (resumeData.experience && resumeData.experience.length > 0) {
-          checkPageOverflow(15);
-          doc.setFont("helvetica", "bold");
-          doc.setFontSize(11);
-          doc.text("WORK EXPERIENCE", marginX, currentY);
-          currentY += 2;
-          doc.line(marginX, currentY, pageWidth - marginX, currentY);
-          currentY += 6;
+          drawSectionHeader("Work Experience");
 
           resumeData.experience.forEach(exp => {
-            checkPageOverflow(18);
+            checkPageOverflow(15);
             // Role & Dates
-            doc.setFont("helvetica", "bold");
-            doc.setFontSize(10);
+            doc.setFont(fontName, "bold");
+            doc.setFontSize(9.5);
+            doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
             doc.text(exp.role || "", marginX, currentY);
-            doc.setFont("helvetica", "normal");
+
+            doc.setFont(fontName, "normal");
+            doc.setFontSize(9);
+            doc.setTextColor(100, 116, 139);
             doc.text(exp.dates || "", pageWidth - marginX, currentY, { align: "right" });
-            currentY += 5;
+            currentY += 4.5;
 
             // Company Name
-            doc.setFont("helvetica", "oblique");
-            doc.setFontSize(9.5);
+            doc.setFont(fontName, selectedTemplate === 'classic' ? "italic" : "normal");
+            doc.setFontSize(9);
+            doc.setTextColor(selectedTemplate === 'tech' ? [29, 78, 216] : [71, 85, 105]);
             doc.text(exp.company || "", marginX, currentY);
-            currentY += 5;
+            currentY += 4.5;
 
             // Bullets
-            doc.setFont("helvetica", "normal");
-            doc.setFontSize(9);
+            doc.setFont(fontName, "normal");
+            doc.setFontSize(8.5);
+            doc.setTextColor(textColor[0], textColor[1], textColor[2]);
             if (exp.bullets) {
               exp.bullets.forEach(bullet => {
                 const bulletText = `• ${bullet}`;
                 const bulletLines = doc.splitTextToSize(bulletText, maxLineWidth - 4);
                 bulletLines.forEach(line => {
-                  checkPageOverflow(5);
+                  checkPageOverflow(4.5);
                   doc.text(line, marginX + 4, currentY);
-                  currentY += 5.5;
+                  currentY += 4.5;
                 });
               });
             }
-            currentY += 4;
+            currentY += 3.5;
           });
-          currentY += 2;
         }
 
         // 5. Projects
         if (resumeData.projects && resumeData.projects.length > 0) {
-          checkPageOverflow(15);
-          doc.setFont("helvetica", "bold");
-          doc.setFontSize(11);
-          doc.text("KEY PROJECTS", marginX, currentY);
-          currentY += 2;
-          doc.line(marginX, currentY, pageWidth - marginX, currentY);
-          currentY += 6;
+          drawSectionHeader("Key Projects");
 
           resumeData.projects.forEach(proj => {
             checkPageOverflow(12);
-            doc.setFont("helvetica", "bold");
-            doc.setFontSize(10);
+            doc.setFont(fontName, "bold");
+            doc.setFontSize(9.5);
+            doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
             doc.text(proj.title || "", marginX, currentY);
-            currentY += 5;
+            currentY += 4.5;
 
-            doc.setFont("helvetica", "normal");
-            doc.setFontSize(9);
+            doc.setFont(fontName, "normal");
+            doc.setFontSize(8.5);
+            doc.setTextColor(textColor[0], textColor[1], textColor[2]);
             if (proj.bullets) {
               proj.bullets.forEach(bullet => {
                 const bulletText = `• ${bullet}`;
                 const bulletLines = doc.splitTextToSize(bulletText, maxLineWidth - 4);
                 bulletLines.forEach(line => {
-                  checkPageOverflow(5);
+                  checkPageOverflow(4.5);
                   doc.text(line, marginX + 4, currentY);
-                  currentY += 5.5;
+                  currentY += 4.5;
                 });
               });
             }
-            currentY += 4;
+            currentY += 3.5;
           });
-          currentY += 2;
         }
 
         // 6. Education
         if (resumeData.education && resumeData.education.length > 0) {
-          checkPageOverflow(15);
-          doc.setFont("helvetica", "bold");
-          doc.setFontSize(11);
-          doc.text("EDUCATION", marginX, currentY);
-          currentY += 2;
-          doc.line(marginX, currentY, pageWidth - marginX, currentY);
-          currentY += 6;
+          drawSectionHeader("Education");
 
           resumeData.education.forEach(edu => {
-            checkPageOverflow(12);
-            doc.setFont("helvetica", "bold");
-            doc.setFontSize(10);
+            checkPageOverflow(10);
+            doc.setFont(fontName, "bold");
+            doc.setFontSize(9.5);
+            doc.setTextColor(primaryColor[0], primaryColor[1], primaryColor[2]);
             doc.text(edu.degree || "", marginX, currentY);
-            doc.setFont("helvetica", "normal");
-            doc.text(edu.dates || "", pageWidth - marginX, currentY, { align: "right" });
-            currentY += 5;
 
+            doc.setFont(fontName, "normal");
+            doc.setFontSize(9);
+            doc.setTextColor(100, 116, 139);
+            doc.text(edu.dates || "", pageWidth - marginX, currentY, { align: "right" });
+            currentY += 4.5;
+
+            doc.setFont(fontName, "normal");
+            doc.setFontSize(9);
+            doc.setTextColor(71, 85, 105);
             doc.text(edu.school || "", marginX, currentY);
-            currentY += 8;
+            currentY += 6;
           });
         }
 
@@ -1333,14 +1364,31 @@ ${edu.degree || ''} - ${edu.school || ''} (${edu.dates || ''})
 
               {/* Right Pane: Live A4 Visual Sheet Preview */}
               <div className="xl:col-span-6 bg-slate-900 border border-white/5 p-4 rounded-xl flex flex-col justify-start overflow-hidden">
-                <span className="text-[10px] font-bold text-lightGray/50 uppercase tracking-widest mb-3 block">Live Sheet Preview</span>
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
+                  <span className="text-[10px] font-bold text-lightGray/50 uppercase tracking-widest block">Live Sheet Preview</span>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[10px] text-lightGray/50 uppercase font-bold">Template:</span>
+                    <select
+                      value={selectedTemplate}
+                      onChange={(e) => setSelectedTemplate(e.target.value)}
+                      className="bg-background text-white text-[11px] font-bold py-1.5 px-3 rounded-lg border border-white/5 focus:outline-none focus:border-white/30"
+                    >
+                      <option value="modern">Modern Minimalist (Slate)</option>
+                      <option value="classic">Elegant Classic (Serif)</option>
+                      <option value="tech">Tech Executive (Blue)</option>
+                    </select>
+                  </div>
+                </div>
                 
                 {/* Sheet container */}
-                <div className="w-full bg-white text-slate-800 p-8 rounded shadow-2xl font-sans min-h-[500px] border border-slate-300 text-left scale-[0.98] origin-top overflow-y-auto leading-relaxed max-h-[550px]">
+                <div 
+                  style={{ backgroundColor: '#ffffff', color: '#1e293b' }}
+                  className={`w-full p-8 rounded shadow-2xl ${selectedTemplate === 'classic' ? 'font-serif' : 'font-sans'} min-h-[500px] border border-slate-300 text-left scale-[0.98] origin-top overflow-y-auto leading-relaxed max-h-[550px]`}
+                >
                   
                   {/* Header */}
-                  <div className="text-center pb-4 border-b border-slate-200">
-                    <h2 className="text-xl font-bold text-slate-900 leading-none mb-1">{resumeData.name || "Candidate Name"}</h2>
+                  <div className={`pb-4 border-b ${selectedTemplate === 'tech' ? 'border-blue-200' : 'border-slate-200'} ${selectedTemplate === 'classic' ? 'text-center' : 'text-left'}`}>
+                    <h2 className={`text-xl font-bold ${selectedTemplate === 'tech' ? 'text-blue-900' : 'text-slate-900'} leading-none mb-1`}>{resumeData.name || "Candidate Name"}</h2>
                     <p className="text-[9px] text-slate-500 font-mono tracking-wide">
                       {[resumeData.email, resumeData.phone, resumeData.website].filter(Boolean).join(" | ")}
                     </p>
@@ -1349,15 +1397,23 @@ ${edu.degree || ''} - ${edu.school || ''} (${edu.dates || ''})
                   {/* Summary */}
                   {resumeData.summary && (
                     <div className="mt-4">
-                      <h3 className="text-[10px] font-bold text-slate-900 uppercase tracking-wider border-b border-slate-200 pb-0.5">Professional Summary</h3>
-                      <p className="text-[9px] text-slate-600 mt-1.5 font-sans leading-relaxed">{resumeData.summary}</p>
+                      {selectedTemplate === 'classic' ? (
+                        <h3 className={`text-[10px] font-bold ${selectedTemplate === 'tech' ? 'text-blue-900' : 'text-slate-900'} uppercase tracking-widest text-center border-y ${selectedTemplate === 'tech' ? 'border-blue-200' : 'border-slate-200'} py-1`}>Professional Summary</h3>
+                      ) : (
+                        <h3 className={`text-[10px] font-bold ${selectedTemplate === 'tech' ? 'text-blue-900' : 'text-slate-900'} uppercase tracking-wider border-b ${selectedTemplate === 'tech' ? 'border-blue-200' : 'border-slate-200'} pb-0.5`}>Professional Summary</h3>
+                      )}
+                      <p className="text-[9px] text-slate-600 mt-1.5 leading-relaxed">{resumeData.summary}</p>
                     </div>
                   )}
 
                   {/* Skills */}
                   {resumeData.skills && resumeData.skills.length > 0 && (
                     <div className="mt-4">
-                      <h3 className="text-[10px] font-bold text-slate-900 uppercase tracking-wider border-b border-slate-200 pb-0.5">Technical Skills</h3>
+                      {selectedTemplate === 'classic' ? (
+                        <h3 className={`text-[10px] font-bold ${selectedTemplate === 'tech' ? 'text-blue-900' : 'text-slate-900'} uppercase tracking-widest text-center border-y ${selectedTemplate === 'tech' ? 'border-blue-200' : 'border-slate-200'} py-1`}>Technical Skills</h3>
+                      ) : (
+                        <h3 className={`text-[10px] font-bold ${selectedTemplate === 'tech' ? 'text-blue-900' : 'text-slate-900'} uppercase tracking-wider border-b ${selectedTemplate === 'tech' ? 'border-blue-200' : 'border-slate-200'} pb-0.5`}>Technical Skills</h3>
+                      )}
                       <p className="text-[9px] text-slate-600 mt-1.5 font-mono leading-relaxed">
                         {resumeData.skills.join(", ")}
                       </p>
@@ -1367,17 +1423,21 @@ ${edu.degree || ''} - ${edu.school || ''} (${edu.dates || ''})
                   {/* Experience */}
                   {resumeData.experience && resumeData.experience.length > 0 && (
                     <div className="mt-4">
-                      <h3 className="text-[10px] font-bold text-slate-900 uppercase tracking-wider border-b border-slate-200 pb-0.5">Work Experience</h3>
+                      {selectedTemplate === 'classic' ? (
+                        <h3 className={`text-[10px] font-bold ${selectedTemplate === 'tech' ? 'text-blue-900' : 'text-slate-900'} uppercase tracking-widest text-center border-y ${selectedTemplate === 'tech' ? 'border-blue-200' : 'border-slate-200'} py-1`}>Work Experience</h3>
+                      ) : (
+                        <h3 className={`text-[10px] font-bold ${selectedTemplate === 'tech' ? 'text-blue-900' : 'text-slate-900'} uppercase tracking-wider border-b ${selectedTemplate === 'tech' ? 'border-blue-200' : 'border-slate-200'} pb-0.5`}>Work Experience</h3>
+                      )}
                       <div className="space-y-3 mt-2">
                         {resumeData.experience.map((exp, index) => (
                           <div key={index} className="space-y-0.5">
-                            <div className="flex justify-between items-center text-[9px] font-bold text-slate-800">
+                            <div className={`flex justify-between items-center text-[9px] font-bold ${selectedTemplate === 'tech' ? 'text-blue-900' : 'text-slate-800'}`}>
                               <span>{exp.role || "Role"}</span>
                               <span className="font-normal text-slate-500">{exp.dates}</span>
                             </div>
-                            <div className="text-[9px] italic text-slate-500 leading-none">{exp.company}</div>
+                            <div className={`text-[9px] ${selectedTemplate === 'classic' ? 'italic' : ''} text-slate-500 leading-none`}>{exp.company}</div>
                             {exp.bullets && (
-                              <ul className="list-disc pl-3 text-[8.5px] text-slate-600 space-y-0.5 mt-1 font-sans leading-relaxed">
+                              <ul className="list-disc pl-3 text-[8.5px] text-slate-600 space-y-0.5 mt-1 leading-relaxed">
                                 {exp.bullets.map((b, bIdx) => (
                                   <li key={bIdx}>{b}</li>
                                 ))}
@@ -1392,13 +1452,17 @@ ${edu.degree || ''} - ${edu.school || ''} (${edu.dates || ''})
                   {/* Projects */}
                   {resumeData.projects && resumeData.projects.length > 0 && (
                     <div className="mt-4">
-                      <h3 className="text-[10px] font-bold text-slate-900 uppercase tracking-wider border-b border-slate-200 pb-0.5">Key Projects</h3>
+                      {selectedTemplate === 'classic' ? (
+                        <h3 className={`text-[10px] font-bold ${selectedTemplate === 'tech' ? 'text-blue-900' : 'text-slate-900'} uppercase tracking-widest text-center border-y ${selectedTemplate === 'tech' ? 'border-blue-200' : 'border-slate-200'} py-1`}>Key Projects</h3>
+                      ) : (
+                        <h3 className={`text-[10px] font-bold ${selectedTemplate === 'tech' ? 'text-blue-900' : 'text-slate-900'} uppercase tracking-wider border-b ${selectedTemplate === 'tech' ? 'border-blue-200' : 'border-slate-200'} pb-0.5`}>Key Projects</h3>
+                      )}
                       <div className="space-y-3 mt-2">
                         {resumeData.projects.map((proj, index) => (
                           <div key={index} className="space-y-0.5">
-                            <div className="text-[9px] font-bold text-slate-800">{proj.title || "Project Title"}</div>
+                            <div className={`text-[9px] font-bold ${selectedTemplate === 'tech' ? 'text-blue-900' : 'text-slate-800'}`}>{proj.title || "Project Title"}</div>
                             {proj.bullets && (
-                              <ul className="list-disc pl-3 text-[8.5px] text-slate-600 space-y-0.5 mt-1 font-sans leading-relaxed">
+                              <ul className="list-disc pl-3 text-[8.5px] text-slate-600 space-y-0.5 mt-1 leading-relaxed">
                                 {proj.bullets.map((b, bIdx) => (
                                   <li key={bIdx}>{b}</li>
                                 ))}
@@ -1413,12 +1477,16 @@ ${edu.degree || ''} - ${edu.school || ''} (${edu.dates || ''})
                   {/* Education */}
                   {resumeData.education && resumeData.education.length > 0 && (
                     <div className="mt-4">
-                      <h3 className="text-[10px] font-bold text-slate-900 uppercase tracking-wider border-b border-slate-200 pb-0.5">Education</h3>
+                      {selectedTemplate === 'classic' ? (
+                        <h3 className={`text-[10px] font-bold ${selectedTemplate === 'tech' ? 'text-blue-900' : 'text-slate-900'} uppercase tracking-widest text-center border-y ${selectedTemplate === 'tech' ? 'border-blue-200' : 'border-slate-200'} py-1`}>Education</h3>
+                      ) : (
+                        <h3 className={`text-[10px] font-bold ${selectedTemplate === 'tech' ? 'text-blue-900' : 'text-slate-900'} uppercase tracking-wider border-b ${selectedTemplate === 'tech' ? 'border-blue-200' : 'border-slate-200'} pb-0.5`}>Education</h3>
+                      )}
                       <div className="space-y-2 mt-2">
                         {resumeData.education.map((edu, index) => (
                           <div key={index} className="flex justify-between items-start text-[9px] text-slate-800">
                             <div>
-                              <div className="font-bold">{edu.degree || "Degree"}</div>
+                              <div className={`font-bold ${selectedTemplate === 'tech' ? 'text-blue-900' : ''}`}>{edu.degree || "Degree"}</div>
                               <div className="text-slate-500 leading-none mt-0.5">{edu.school}</div>
                             </div>
                             <div className="text-slate-500 font-normal text-[8.5px]">{edu.dates}</div>
