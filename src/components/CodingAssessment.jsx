@@ -315,7 +315,7 @@ export default function CodingAssessment({
     }
 
     setTestingStatus('running');
-    setConsoleLog(['Transpiling buffers...', 'Connecting to remote Judge0 nodes...', 'Executing assertions...']);
+    setConsoleLog(['Transpiling buffers...', 'Connecting to remote compiler nodes...', 'Executing assertions...']);
     setResults([]);
     setPerfScore(null);
     setErrorMsg('');
@@ -325,10 +325,16 @@ export default function CodingAssessment({
       const response = await API.post('/compiler/run', {
         code: codeText,
         language: selectedLang,
+        problemId: problem.id,
         stdin: problem.tests[0]?.input || ''
       });
 
       const data = response.data;
+
+      // Update test results
+      if (data.results) {
+        setResults(data.results);
+      }
 
       // Log results in the console
       if (data.success) {
@@ -336,7 +342,8 @@ export default function CodingAssessment({
         setConsoleLog(prev => [
           ...prev,
           `Compilation Successful. Status: ${data.status}`,
-          `Stdout: ${data.stdout || '(no output log)'}`
+          `Stdout: ${data.stdout || '(no output log)'}`,
+          `All ${data.results?.length || 0} test cases passed successfully!`
         ]);
         
         // Mock runtime beating percentages
@@ -362,12 +369,41 @@ export default function CodingAssessment({
         });
       } else {
         setTestingStatus('fail');
-        setConsoleLog(prev => [
-          ...prev,
-          `Compilation Error. Status: ${data.status}`,
-          `Errors: ${data.stderr || 'Assertion failed.'}`
-        ]);
-        toast.error('Compilation failed! Test assertion error.', { id: toastId });
+        
+        const logs = [
+          `Execution Failed. Status: ${data.status}`
+        ];
+
+        if (data.errorLine) {
+          logs.push(`⚠️ Runtime/Compilation Error at Line ${data.errorLine}`);
+        }
+
+        if (data.stderr) {
+          logs.push(`Errors:\n${data.stderr}`);
+        } else if (data.stdout) {
+          logs.push(`Console Output:\n${data.stdout}`);
+        }
+
+        if (data.results && data.results.length > 0) {
+          logs.push('\nDetailed Test Case Analysis:');
+          data.results.forEach((res, idx) => {
+            logs.push(`Test Case ${idx + 1}: ${res.passed ? '✅ Passed' : '❌ Failed'} (Expected: ${res.expected}, Got: ${res.actual})`);
+          });
+        }
+
+        setConsoleLog(prev => [...prev, ...logs]);
+
+        // Auto-show AI recommendation if available
+        if (data.aiRecommendation) {
+          setHintData({
+            hint: data.aiRecommendation,
+            complexityAnalysis: data.complexityAnalysis || 'Complexity not assessed.'
+          });
+          setShowHint(true);
+          toast.error('Test cases failed. AI Coach recommendation generated!', { id: toastId });
+        } else {
+          toast.error('Compilation failed! Test assertion error.', { id: toastId });
+        }
       }
     } catch (err) {
       console.error('Compiler execution failure:', err);
@@ -461,55 +497,57 @@ export default function CodingAssessment({
             {/* AI Hint and performance diagnostics */}
             <div className="space-y-4">
               {/* AI Code Hint Panel */}
-              {userProfile?.subscription === 'Premium' ? (
-                <div>
-                  {!showHint ? (
+              {showHint && hintData ? (
+                <div className="p-4 bg-white/5 border border-white/10 rounded-xl space-y-3">
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
+                      <Sparkles size={14} className="text-amber-400 fill-amber-400" /> AI Code Recommendation
+                    </h4>
                     <button
-                      onClick={getAiHint}
-                      disabled={loadingHint}
-                      className="w-full py-2.5 text-xs font-bold bg-white/5 border border-white/10 text-white rounded-xl hover:bg-white/10 transition-all flex items-center justify-center gap-2"
+                      onClick={() => {
+                        setShowHint(false);
+                        setHintData(null);
+                      }}
+                      className="text-[10px] text-lightGray/40 hover:text-white transition-colors"
                     >
-                      {loadingHint ? (
-                        <>
-                          <RefreshCw size={14} className="animate-spin" />
-                          Analyzing Code Logic...
-                        </>
-                      ) : (
-                        <>
-                          <Sparkles size={14} className="text-amber-400 fill-amber-400" />
-                          Request AI Debugging Hint
-                        </>
-                      )}
+                      Hide
                     </button>
-                  ) : (
-                    <div className="p-4 bg-white/5 border border-white/10 rounded-xl space-y-3">
-                      <div className="flex items-center justify-between">
-                        <h4 className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
-                          <Sparkles size={14} className="text-amber-400 fill-amber-400" /> AI Code Hint
-                        </h4>
-                        <button
-                          onClick={() => setShowHint(false)}
-                          className="text-[10px] text-lightGray/40 hover:text-white transition-colors"
-                        >
-                          Hide
-                        </button>
+                  </div>
+                  <div className="space-y-2 text-xs leading-relaxed text-lightGray/85">
+                    <p className="font-semibold text-amber-300">Suggested Action:</p>
+                    <p className="whitespace-pre-wrap">{hintData.hint}</p>
+                    {hintData.complexityAnalysis && (
+                      <div className="text-[10px] text-white/60 font-mono bg-background/50 p-2.5 rounded border border-white/5 mt-2">
+                        {hintData.complexityAnalysis}
                       </div>
-                      {hintData && (
-                        <div className="space-y-2 text-xs leading-relaxed text-lightGray/85">
-                          <p>{hintData.hint}</p>
-                          <div className="text-[10px] text-white/60 font-mono bg-background/50 p-2.5 rounded border border-white/5">
-                            {hintData.complexityAnalysis}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  )}
+                    )}
+                  </div>
+                </div>
+              ) : userProfile?.subscription === 'Premium' ? (
+                <div>
+                  <button
+                    onClick={getAiHint}
+                    disabled={loadingHint}
+                    className="w-full py-2.5 text-xs font-bold bg-white/5 border border-white/10 text-white rounded-xl hover:bg-white/10 transition-all flex items-center justify-center gap-2"
+                  >
+                    {loadingHint ? (
+                      <>
+                        <RefreshCw size={14} className="animate-spin" />
+                        Analyzing Code Logic...
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles size={14} className="text-amber-400 fill-amber-400" />
+                        Request AI Debugging Hint
+                      </>
+                    )}
+                  </button>
                 </div>
               ) : (
                 <div className="p-4 bg-white/5 rounded-xl border border-white/5 text-center space-y-2">
                   <span className="text-[10px] font-bold text-amber-400 uppercase tracking-widest block">AI Coding Mentor</span>
                   <p className="text-[11px] text-lightGray/50 leading-relaxed">
-                    AI debugger hints & complexity insights are available on the Premium tier.
+                    AI debugger hints & complexity insights are available on the Premium tier or generated automatically upon failure.
                   </p>
                 </div>
               )}
