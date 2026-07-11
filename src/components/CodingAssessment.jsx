@@ -230,6 +230,59 @@ const FALLBACK_STARTER = {
   c: `// Write your C code here\n#include <stdio.h>\n\nint main() {\n    printf("Hello from C!\\n");\n    return 0;\n}`
 };
 
+const FUNCTION_NAMES = {
+  twosum: 'twoSum',
+  reversestring: 'reverseString',
+  palindrome: 'isPalindrome',
+  fizzbuzz: 'fizzBuzz',
+  fibonacci: 'fib',
+  mergesorted: 'merge',
+  binarysearch: 'search',
+  containsduplicate: 'containsDuplicate',
+  validparentheses: 'isValid'
+};
+
+const isCodeEmptyOrUnimplemented = (code, language, problemId) => {
+  if (!code || !code.trim()) return true;
+  const lang = language.toLowerCase();
+  const funcName = FUNCTION_NAMES[problemId?.toLowerCase()];
+
+  const normalize = (str) => {
+    let clean = str;
+    if (lang === 'python' || lang === 'py') {
+      clean = clean.replace(/#.*|"""[^]*?"""|'''[^]*?'''/g, '');
+    } else {
+      clean = clean.replace(/\/\/.*|\/\*[^]*?\*\//g, '');
+    }
+    return clean.replace(/\s+/g, ' ').trim();
+  };
+
+  const activeProblems = PROBLEMS;
+  const problem = activeProblems.find(p => p.id === problemId);
+  const starterCode = problem?.starterCode?.[lang] || FALLBACK_STARTER[lang];
+  if (starterCode) {
+    if (normalize(code) === normalize(starterCode)) {
+      return true;
+    }
+  }
+
+  if (funcName) {
+    if (lang === 'javascript' || lang === 'js') {
+      const jsRegex = new RegExp(`function\\s+${funcName}\\s*\\([^)]*\\)\\s*\\{\\s*(?:\\/\\/.*|\\/\\*[^]*?\\*\\/|\\s)*\\}`);
+      if (jsRegex.test(code)) return true;
+    } else if (lang === 'python' || lang === 'py') {
+      const pyRegex = new RegExp(`def\\s+${funcName}\\s*\\([^)]*\\)\\s*:\\s*(?:#.*|"""[^]*?"""|'''[^]*?'''|\\s|pass)*(?:\\n\\s*\\n*|\\s*$|(?=\\n\\S))`);
+      const pyRegexFull = new RegExp(`^\\s*def\\s+${funcName}\\s*\\([^)]*\\)\\s*:\\s*(?:#.*|"""[^]*?"""|'''[^]*?'''|\\s|pass)*$`);
+      if (pyRegex.test(code) || pyRegexFull.test(code)) return true;
+    } else if (lang === 'java') {
+      const javaRegex = new RegExp(`(?:public|private|protected|static|\\s)+[\\w<>\\[\\]]+\\s+${funcName}\\s*\\([^)]*\\)\\s*\\{\\s*(?:\\/\\/.*|\\/\\*[^]*?\\*\\/|\\s|return\\s+new\\s+int\\[\\s*0\\s*\\]\\s*;|return\\s+false\\s*;|return\\s+new\\s+ArrayList<>[^;]*;|return\\s+0\\s*;|return\\s+-1\\s*;|return\\s+null\\s*;|return\\s*;)*\\}`);
+      if (javaRegex.test(code)) return true;
+    }
+  }
+  return false;
+};
+
+
 export default function CodingAssessment({ 
   solvedProblems, 
   onSolveProblem,
@@ -311,6 +364,17 @@ export default function CodingAssessment({
     if (!userProfile) {
       setErrorMsg('Please log in to submit code compilation.');
       toast.error('Please log in to submit code compilation.');
+      return;
+    }
+
+    if (isCodeEmptyOrUnimplemented(codeText, selectedLang, problem.id)) {
+      setTestingStatus('fail');
+      setErrorMsg('The function body is empty. Please implement your solution.');
+      setConsoleLog([
+        'Error: Empty or unimplemented function.',
+        'Please write your solution inside the provided function body.'
+      ]);
+      toast.error('The function body is empty! Please implement your solution.');
       return;
     }
 
