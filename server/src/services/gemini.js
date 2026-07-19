@@ -753,3 +753,41 @@ function getMockCoachDetails(skills, targetRole, education) {
     }
   };
 }
+
+/**
+ * Analyze code submission to verify it is a proper, general algorithmic implementation.
+ * Catches cheating strategies like hardcoding expected outputs or inputs.
+ */
+export const checkSolutionIntegrity = async (code, language, problemTitle, problemDescription) => {
+  if (!openrouterKey) {
+    return { isProper: true, reason: 'Key not set' };
+  }
+
+  try {
+    const prompt = `You are a strict grading assistant for an online coding assessment platform.
+Analyze the candidate's code submission below to verify if it is a general algorithmic solution or if it is "hardcoded" to pass only specific test cases.
+
+Problem Title: ${problemTitle}
+Problem Description: ${problemDescription}
+Language: ${language}
+
+Candidate Code:
+\`\`\`
+${code}
+\`\`\`
+
+If the code simply checks for specific test inputs (e.g. target === 9 or target === 6) and returns the corresponding expected test output statically, or if it hardcodes the return values matching the test cases without implementing the logic generally, it must NOT be accepted.
+
+Format your response as a JSON object with exactly two fields:
+- "isProper": boolean (true if the code is a genuine algorithmic attempt that solves the general case; false if it's hardcoded to pass specific test cases, returns hardcoded answers, or does not implement the actual logic).
+- "reason": string (if isProper is false, provide a friendly reason explaining why the code is not accepted).
+
+Return only the raw JSON. Do not write any markdown wrappers outside the JSON.`;
+
+    const text = await callOpenRouter(prompt, true);
+    return parseJSON(text);
+  } catch (error) {
+    console.error('Error in checkSolutionIntegrity:', error.message);
+    return { isProper: true, reason: 'Failed to analyze' }; // fallback to accept
+  }
+};

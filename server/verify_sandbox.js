@@ -73,6 +73,21 @@ async function testCompilerSandbox() {
     console.log('Test Results:', JSON.stringify(correctResponse.data.results, null, 2));
     console.log('AI Recommendation:', correctResponse.data.aiRecommendation);
 
+    // 5. Test hardcoded cheat two sum code
+    console.log('\n--- TESTING HARDCODED CHEAT CODE ---');
+    const cheatResponse = await axios.post(`${BASE_URL}/compiler/run`, {
+      problemId: 'twosum',
+      language: 'javascript',
+      code: `function twoSum(nums, target) {
+  if (target === 9) return [0, 1];
+  return [1, 2];
+}`
+    }, { headers });
+    console.log('Success:', cheatResponse.data.success);
+    console.log('Status:', cheatResponse.data.status);
+    console.log('Stderr:', cheatResponse.data.stderr);
+    console.log('AI Recommendation:', cheatResponse.data.aiRecommendation);
+
   } catch (error) {
     console.error('Test failed:', error.response?.data || error.message);
   }

@@ -3,7 +3,7 @@ import { protect } from '../middleware/auth.js';
 import { strictLimiter } from '../middleware/rateLimiter.js';
 import { executeCode } from '../services/compiler.js';
 import Problem from '../models/Problem.js';
-import { generateCodingHint } from '../services/gemini.js';
+import { generateCodingHint, checkSolutionIntegrity } from '../services/gemini.js';
 import { wrapCode, parseErrorLine } from '../services/testRunner.js';
 
 const router = express.Router();
@@ -136,8 +136,28 @@ router.post('/run', protect, strictLimiter, async (req, res) => {
       const allPassed = results.length > 0 && results.every(r => r.passed);
       
       if (executionSuccess && allPassed) {
-        report.success = true;
-        report.status = 'Accepted';
+        try {
+          const problem = await Problem.findOne({ problemId });
+          if (problem) {
+            const integrity = await checkSolutionIntegrity(code, language, problem.title, problem.description);
+            if (!integrity.isProper) {
+              report.success = false;
+              report.status = 'Rejected';
+              report.stderr = `Integrity Check Failed: ${integrity.reason || 'Please write a proper general solution instead of hardcoding test cases.'}`;
+              report.aiRecommendation = integrity.reason || 'Hardcoded solution detected. Please implement a general algorithm that solves the problem for any valid input.';
+            } else {
+              report.success = true;
+              report.status = 'Accepted';
+            }
+          } else {
+            report.success = true;
+            report.status = 'Accepted';
+          }
+        } catch (integrityErr) {
+          console.error('Failed to verify solution integrity:', integrityErr.message);
+          report.success = true;
+          report.status = 'Accepted';
+        }
       } else {
         report.success = false;
         if (executionSuccess && results.length > 0) {

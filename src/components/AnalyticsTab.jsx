@@ -26,7 +26,12 @@ ChartJS.register(
   Filler
 );
 
-export default function AnalyticsTab({ interviewsList = [], theme = 'dark' }) {
+export default function AnalyticsTab({ 
+  interviewsList = [], 
+  solvedProblems = new Set(), 
+  userProfile = {}, 
+  theme = 'dark' 
+}) {
   const [useDemo, setUseDemo] = useState(false);
 
   // Define realistic mock/demo data for placeholder view
@@ -122,6 +127,104 @@ export default function AnalyticsTab({ interviewsList = [], theme = 'dark' }) {
   const techAvg = techRounds.length > 0
     ? Math.round(techRounds.reduce((acc, i) => acc + i.score, 0) / techRounds.length)
     : 0;
+
+  const generateInsights = () => {
+    const role = userProfile?.targetRole || 'Software Engineer';
+    const skills = userProfile?.skills || [];
+    const solvedCount = solvedProblems?.size || 0;
+    
+    let communicationStatus = 'Good';
+    let technicalStatus = 'Good';
+    let codingStatus = 'Good';
+    
+    if (avgComm > 0 && avgComm < 75) {
+      communicationStatus = 'Needs Work';
+    }
+    if (avgContent > 0 && avgContent < 75) {
+      technicalStatus = 'Needs Work';
+    }
+    if (solvedCount < 10) {
+      codingStatus = 'Needs Work';
+    }
+
+    const insights = [];
+
+    // Role-specific baseline advice
+    insights.push({
+      type: 'info',
+      title: `Preparation Profile: ${role}`,
+      text: `Your analytics metrics are weighted against standard benchmarks for a ${role}. ${
+        skills.length > 0 
+          ? `We are scanning evaluations targeting your listed skills: ${skills.join(', ')}.` 
+          : 'Update your profile skills list to get granular keyword scans in mock trials.'
+      }`
+    });
+
+    // Communication insight
+    if (communicationStatus === 'Needs Work' && avgComm > 0) {
+      insights.push({
+        type: 'warning',
+        title: 'Communication Delivery Warning',
+        text: `Your average verbal flow score is ${avgComm}%. Benchmark evaluations show minor grammar pauses or pacing imbalances. Focus on the STAR method to structure behavioral answers concisely.`
+      });
+    } else if (avgComm >= 75) {
+      insights.push({
+        type: 'success',
+        title: 'Communication Strengths',
+        text: `Superb verbal pace and structure! With an average of ${avgComm}%, your grammar, tone stability, and presentation skills align cleanly with senior requirements.`
+      });
+    } else {
+      insights.push({
+        type: 'info',
+        title: 'Communication Evaluation Pending',
+        text: 'Complete an interview session featuring voice assessment to unlock verbal delivery velocity and grammar logs.'
+      });
+    }
+
+    // Technical accuracy insight
+    if (technicalStatus === 'Needs Work' && avgContent > 0) {
+      insights.push({
+        type: 'warning',
+        title: 'Technical Precision Gap',
+        text: `Your average technical content accuracy is ${avgContent}%. Some mock trials reported incomplete syntax explanations or inaccurate conceptual definitions. Focus on key core concepts of your stack.`
+      });
+    } else if (avgContent >= 75) {
+      insights.push({
+        type: 'success',
+        title: 'Strong Technical Accuracy',
+        text: `Excellent theoretical precision! Your technical accuracy average of ${avgContent}% shows deep familiarity with core engineering questions.`
+      });
+    } else {
+      insights.push({
+        type: 'info',
+        title: 'Technical Evaluation Pending',
+        text: 'Complete a technical interview session to unlock database, caching, or frontend architecture assessment reports.'
+      });
+    }
+
+    // Coding practice insight
+    if (solvedCount === 0) {
+      insights.push({
+        type: 'alert',
+        title: 'Coding Sandbox Inactive',
+        text: 'You have not solved any algorithm challenges yet. Algorithmic assessments represent 40% of standard technical filter rounds. Select a problem and run it in the Monaco sandbox.'
+      });
+    } else if (solvedCount < 5) {
+      insights.push({
+        type: 'info',
+        title: 'Algorithm Practice Base',
+        text: `You have successfully solved ${solvedCount} challenges in the sandbox. We recommend completing at least 15 distinct problems to develop stable algorithmic intuition.`
+      });
+    } else {
+      insights.push({
+        type: 'success',
+        title: 'Algorithm Practice Active',
+        text: `Great momentum! You have completed ${solvedCount} challenges in the algorithmic sandbox, which increases your overall filter round clearing rate.`
+      });
+    }
+
+    return insights;
+  };
 
   // Global Chart config defaults
   const chartOptions = {
@@ -346,6 +449,28 @@ export default function AnalyticsTab({ interviewsList = [], theme = 'dark' }) {
             <ArrowUpRight size={16} className="text-lightGray/30" />
           </div>
           <p className="text-[9px] text-lightGray/50">Max overall rating achieved</p>
+        </div>
+      </div>
+
+      {/* AI Performance Advisor Insights */}
+      <div className="p-6 bg-secondaryBg/30 border border-white/5 rounded-xl space-y-4">
+        <h4 className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
+          <Sparkles size={13} className="text-accent animate-pulse" /> AI Performance Advisor Insights
+        </h4>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {generateInsights().map((ins, idx) => (
+            <div key={idx} className="p-4 bg-background/50 border border-white/5 rounded-xl space-y-2">
+              <div className="flex items-center gap-1.5">
+                <div className={`w-1.5 h-1.5 rounded-full ${
+                  ins.type === 'warning' ? 'bg-amber-400 animate-pulse' :
+                  ins.type === 'success' ? 'bg-emerald-400' :
+                  ins.type === 'alert' ? 'bg-rose-500 animate-pulse' : 'bg-accent'
+                }`} />
+                <span className="text-xs font-bold text-white tracking-tight">{ins.title}</span>
+              </div>
+              <p className="text-[11px] text-lightGray/70 leading-relaxed font-sans">{ins.text}</p>
+            </div>
+          ))}
         </div>
       </div>
 

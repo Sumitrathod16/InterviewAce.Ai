@@ -57,6 +57,7 @@ export default function DashboardPortal({
   const [dbInterviews, setDbInterviews] = useState([]);
   const [dbResumes, setDbResumes] = useState([]);
   const [problems, setProblems] = useState([]);
+  const [difficultyFilter, setDifficultyFilter] = useState('Easy');
 
   // Fetch candidate history datasets
   const fetchDashboardData = async () => {
@@ -447,19 +448,45 @@ export default function DashboardPortal({
 
                 {/* Challenges listing */}
                 <div className="p-6 bg-secondaryBg/30 border border-white/5 rounded-xl space-y-6">
-                  <div>
-                    <h3 className="text-sm font-bold text-white uppercase tracking-wider">Algorithmic Sandbox Selection</h3>
-                    <p className="text-xs text-lightGray/55 mt-0.5">Select a challenge below and run inside the compiler sandbox</p>
+                  <div className="flex justify-between items-center flex-wrap gap-4 border-b border-white/5 pb-4">
+                    <div>
+                      <h3 className="text-sm font-bold text-white uppercase tracking-wider">Algorithmic Sandbox Selection</h3>
+                      <p className="text-xs text-lightGray/55 mt-0.5">Select a challenge below and run inside the compiler sandbox</p>
+                    </div>
+                    
+                    <div className="flex p-0.5 bg-white/5 border border-white/5 rounded-xl">
+                      {[
+                        { id: 'Easy', name: 'Easy Level' },
+                        { id: 'Medium', name: 'Medium Level' },
+                        { id: 'Hard', name: 'High Level' }
+                      ].map((lvl) => (
+                        <button
+                          key={lvl.id}
+                          type="button"
+                          onClick={() => setDifficultyFilter(lvl.id)}
+                          className={`px-4 py-1.5 text-xs font-bold rounded-lg transition-all ${
+                            difficultyFilter === lvl.id 
+                              ? 'bg-white text-background font-extrabold shadow-md' 
+                              : 'text-lightGray/50 hover:text-white'
+                          }`}
+                        >
+                          {lvl.name}
+                        </button>
+                      ))}
+                    </div>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                    {CHALLENGES.map((ch) => (
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 max-h-[300px] overflow-y-auto pr-1">
+                    {CHALLENGES.filter(ch => ch.difficulty === difficultyFilter).map((ch) => (
                       <div
                         key={ch.id}
                         onClick={() => {
                           onSelectProblem(ch.index);
-                          const el = document.querySelector('#coding');
-                          if (el) el.scrollIntoView({ behavior: 'smooth' });
+                          setActiveTab('coding');
+                          setTimeout(() => {
+                            const el = document.getElementById('coding');
+                            if (el) el.scrollIntoView({ behavior: 'smooth' });
+                          }, 100);
                         }}
                         className="p-4 bg-background/40 border border-white/5 rounded-xl flex items-center justify-between hover:bg-background/80 hover:border-white/20 transition-all cursor-pointer group"
                       >
@@ -467,6 +494,11 @@ export default function DashboardPortal({
                         <ChevronRight size={14} className="text-lightGray/20 group-hover:text-white group-hover:translate-x-0.5 transition-all" />
                       </div>
                     ))}
+                    {CHALLENGES.filter(ch => ch.difficulty === difficultyFilter).length === 0 && (
+                      <div className="col-span-3 text-center py-8 text-lightGray/40 italic">
+                        No problems available in this tier.
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -578,7 +610,12 @@ export default function DashboardPortal({
                 className="space-y-6"
               >
                 <div className="p-6 bg-secondaryBg/30 border border-white/5 rounded-xl">
-                  <AnalyticsTab interviewsList={interviewsList} theme={theme} />
+                  <AnalyticsTab 
+                    interviewsList={interviewsList} 
+                    solvedProblems={solvedProblems}
+                    userProfile={userProfile}
+                    theme={theme} 
+                  />
                 </div>
               </motion.div>
             )}
