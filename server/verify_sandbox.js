@@ -88,6 +88,26 @@ async function testCompilerSandbox() {
     console.log('Stderr:', cheatResponse.data.stderr);
     console.log('AI Recommendation:', cheatResponse.data.aiRecommendation);
 
+    // 6. Test dynamic fallback driver (max_element_v0_1) with correct solution
+    console.log('\n--- TESTING DYNAMIC FALLBACK DRIVER (MAX ELEMENT) ---');
+    const customResponse = await axios.post(`${BASE_URL}/compiler/run`, {
+      problemId: 'max_element_v0_1',
+      language: 'javascript',
+      code: `function getMax(nums) {
+  if (!nums || nums.length === 0) return 0;
+  let max = nums[0];
+  for (let i = 1; i < nums.length; i++) {
+    if (nums[i] > max) {
+      max = nums[i];
+    }
+  }
+  return max;
+}`
+    }, { headers });
+    console.log('Success:', customResponse.data.success);
+    console.log('Status:', customResponse.data.status);
+    console.log('Test Results:', JSON.stringify(customResponse.data.results, null, 2));
+
   } catch (error) {
     console.error('Test failed:', error.response?.data || error.message);
   }

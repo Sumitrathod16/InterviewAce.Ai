@@ -10,9 +10,12 @@ const router = express.Router();
  * @access  Private
  */
 router.post('/roadmap', protect, async (req, res) => {
-  if (req.user.subscription !== 'Premium') {
+  const isPremium = req.user.subscription === 'Premium';
+  const hasUnlockedRoadmap = (req.user.roadmapsAllowedCount || 0) > 0;
+
+  if (!isPremium && !hasUnlockedRoadmap) {
     return res.status(403).json({ 
-      message: 'AI Career Coach roadmap is a Premium plan feature. Please upgrade to unlock custom paths!' 
+      message: 'AI Career Coach roadmap is a Premium plan feature. Please upgrade or redeem XP to unlock custom paths!' 
     });
   }
 
@@ -24,6 +27,12 @@ router.post('/roadmap', protect, async (req, res) => {
     const edu = education || req.user.education || 'Self-Taught / Degree Candidate';
 
     const details = await generateCareerCoachDetails(skillsList, role, edu);
+
+    // Consume 1 unlocked roadmap if they are not Premium
+    if (!isPremium) {
+      req.user.roadmapsAllowedCount = Math.max(0, req.user.roadmapsAllowedCount - 1);
+      await req.user.save();
+    }
     res.json(details);
   } catch (error) {
     console.error('Career Coach generation error:', error.message);

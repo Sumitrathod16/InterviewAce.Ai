@@ -427,7 +427,7 @@ export default function CodingAssessment({
 
         // Trigger solved hooks
         if (onSolveProblem) {
-          onSolveProblem(currentProblemId, problem.title);
+          onSolveProblem(currentProblemId, problem.title, selectedLang);
         }
 
         toast.success('Compilation successful! All tests passed.', { id: toastId });

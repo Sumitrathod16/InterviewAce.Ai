@@ -6,6 +6,7 @@ import {
   CreditCard, User, Sparkles, Building, Compass, Check, Info, Settings, Clock,
   BarChart3
 } from 'lucide-react';
+import { toast } from 'react-hot-toast';
 import API from '../services/api';
 import MockInterviewDemo from './MockInterviewDemo';
 import ResumeAnalyzer from './ResumeAnalyzer';
@@ -14,6 +15,7 @@ import AnalyticsTab from './AnalyticsTab';
 
 export default function DashboardPortal({ 
   solvedProblems, 
+  solvedProblemsDetail,
   onSolveProblem,
   selectedProblemIndex,
   onSelectProblemIndex,
@@ -25,6 +27,7 @@ export default function DashboardPortal({
   onViewChange,
   userProfile,
   onLogout,
+  onRefreshProfile,
   activeTab = 'overview',
   setActiveTab,
   theme
@@ -230,6 +233,31 @@ export default function DashboardPortal({
     ? userProfile.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase()
     : 'US';
 
+  const [redeemingReward, setRedeemingReward] = useState(false);
+
+  const handleRedeemReward = async (rewardType, cost) => {
+    const availableXp = totalXp - (userProfile?.spentXp || 0);
+    if (availableXp < cost) {
+      toast.error('Insufficient XP points to redeem this reward.');
+      return;
+    }
+
+    setRedeemingReward(true);
+    const toastId = toast.loading('Processing redemption...');
+    try {
+      const response = await API.post('/rewards/redeem', { rewardType });
+      toast.success(response.data.message || 'Reward redeemed successfully!', { id: toastId });
+      if (onRefreshProfile) {
+        await onRefreshProfile();
+      }
+    } catch (err) {
+      console.error('Redeem reward error:', err);
+      toast.error(err.response?.data?.message || 'Failed to redeem reward. Please try again.', { id: toastId });
+    } finally {
+      setRedeemingReward(false);
+    }
+  };
+
   const companiesList = [
     { id: 'tcs', name: 'TCS' },
     { id: 'infosys', name: 'Infosys' },
@@ -266,8 +294,8 @@ export default function DashboardPortal({
               <p className="text-sm text-lightGray/60 mt-0.5">{userProfile?.targetRole || 'Technical Preparation Track'}</p>
               <div className="flex flex-wrap items-center gap-3 mt-2 text-xs text-lightGray/40">
                 <span className="flex items-center gap-1">
-                  <Award size={12} className="text-white" />
-                  {totalXp} XP Earned
+                  <Award size={12} className="text-white animate-pulse" />
+                  {totalXp} XP Earned ({totalXp - (userProfile?.spentXp || 0)} Available)
                 </span>
                 <span>•</span>
                 <span>Tier: <strong className="text-white">{userProfile?.subscription || 'Free'}</strong></span>
@@ -305,6 +333,7 @@ export default function DashboardPortal({
             { id: 'coding', name: 'Coding Assessment', icon: Code },
             { id: 'coach', name: 'AI Career Coach', icon: Compass },
             { id: 'company', name: 'Company-Specific Prep', icon: Building },
+            { id: 'rewards', name: 'XP Rewards', icon: Sparkles },
             { id: 'billing', name: 'Billing & Tiers', icon: CreditCard }
           ].map((tab) => {
             const Icon = tab.icon;
@@ -613,6 +642,13 @@ export default function DashboardPortal({
                   <AnalyticsTab 
                     interviewsList={interviewsList} 
                     solvedProblems={solvedProblems}
+                    solvedProblemsDetail={Array.isArray(solvedProblemsDetail) ? solvedProblemsDetail.map(sp => {
+                      const matchedProblem = problems.find(p => p.problemId === sp.problemId);
+                      return {
+                        ...sp,
+                        difficulty: matchedProblem?.difficulty || 'Easy'
+                      };
+                    }) : []}
                     userProfile={userProfile}
                     theme={theme} 
                   />
@@ -1049,6 +1085,103 @@ export default function DashboardPortal({
                   <div className="pt-4 text-[10px] text-lightGray/40 leading-relaxed font-mono flex items-start gap-1.5">
                     <Info size={12} className="flex-shrink-0" />
                     <span>Invoices will dynamically synchronize to your mail inbox upon card authorizations.</span>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+
+            {/* XP REWARDS TAB */}
+            {activeTab === 'rewards' && (
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                className="space-y-6"
+              >
+                <div className="p-6 bg-secondaryBg/30 border border-white/5 rounded-xl space-y-6">
+                  <div>
+                    <h3 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
+                      <Sparkles size={16} className="text-amber-400 animate-pulse" /> Student XP Rewards Shop
+                    </h3>
+                    <p className="text-xs text-lightGray/55 mt-0.5">
+                      Earn XP by compiling code and completing interviews. Spend your XP below to refill usage limits or unlock premium features.
+                    </p>
+                  </div>
+
+                  <div className="p-4 bg-background/50 border border-white/5 rounded-xl flex items-center justify-between">
+                    <div>
+                      <span className="text-[10px] font-bold text-lightGray/40 uppercase">Your Available Points</span>
+                      <div className="text-2xl font-black text-white flex items-center gap-2 mt-0.5">
+                        <Award size={20} className="text-amber-400" />
+                        <span>{totalXp - (userProfile?.spentXp || 0)} XP</span>
+                      </div>
+                      <p className="text-[9px] text-lightGray/50">Total earned: {totalXp} XP | Spent: {userProfile?.spentXp || 0} XP</p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    {/* Reward Card 1: Refill Interviews */}
+                    <div className="p-5 bg-background/45 border border-white/5 rounded-xl space-y-4 flex flex-col justify-between">
+                      <div className="space-y-2">
+                        <div className="flex justify-between items-start">
+                          <span className="text-[10px] font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full uppercase">Refill</span>
+                          <span className="text-xs font-black text-white">500 XP</span>
+                        </div>
+                        <h4 className="text-sm font-bold text-white">Refill Mock Interviews</h4>
+                        <p className="text-xs text-lightGray/60 leading-relaxed font-sans">
+                          Instantly reset your 15-day mock interview count to 0, giving you 3 new AI mock interviews right away.
+                        </p>
+                      </div>
+                      <button 
+                        onClick={() => handleRedeemReward('refill_interviews', 500)}
+                        disabled={redeemingReward || (totalXp - (userProfile?.spentXp || 0)) < 500}
+                        className="w-full py-2 bg-white text-background text-xs font-bold rounded-lg hover:bg-lightGray disabled:opacity-30 disabled:hover:bg-white transition-all"
+                      >
+                        Redeem Refill
+                      </button>
+                    </div>
+
+                    {/* Reward Card 2: Refill Resume Analysis */}
+                    <div className="p-5 bg-background/45 border border-white/5 rounded-xl space-y-4 flex flex-col justify-between">
+                      <div className="space-y-2">
+                        <div className="flex justify-between items-start">
+                          <span className="text-[10px] font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full uppercase">Refill</span>
+                          <span className="text-xs font-black text-white">300 XP</span>
+                        </div>
+                        <h4 className="text-sm font-bold text-white">Refill Resume Limits</h4>
+                        <p className="text-xs text-lightGray/60 leading-relaxed font-sans">
+                          Instantly reset your 15-day ATS resume check count to 0, unlocking 2 additional ATS audits right away.
+                        </p>
+                      </div>
+                      <button 
+                        onClick={() => handleRedeemReward('refill_resumes', 300)}
+                        disabled={redeemingReward || (totalXp - (userProfile?.spentXp || 0)) < 300}
+                        className="w-full py-2 bg-white text-background text-xs font-bold rounded-lg hover:bg-lightGray disabled:opacity-30 disabled:hover:bg-white transition-all"
+                      >
+                        Redeem Refill
+                      </button>
+                    </div>
+
+                    {/* Reward Card 3: Unlock AI Roadmap */}
+                    <div className="p-5 bg-background/45 border border-white/5 rounded-xl space-y-4 flex flex-col justify-between">
+                      <div className="space-y-2">
+                        <div className="flex justify-between items-start">
+                          <span className="text-[10px] font-bold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full uppercase">Unlock</span>
+                          <span className="text-xs font-black text-white">400 XP</span>
+                        </div>
+                        <h4 className="text-sm font-bold text-white">Unlock 1 AI Roadmap</h4>
+                        <p className="text-xs text-lightGray/60 leading-relaxed font-sans">
+                          Generate 1 custom Career Roadmap using the AI Career Coach (premium feature unlock).
+                        </p>
+                      </div>
+                      <button 
+                        onClick={() => handleRedeemReward('unlock_roadmap', 400)}
+                        disabled={redeemingReward || (totalXp - (userProfile?.spentXp || 0)) < 400}
+                        className="w-full py-2 bg-white text-background text-xs font-bold rounded-lg hover:bg-lightGray disabled:opacity-30 disabled:hover:bg-white transition-all"
+                      >
+                        Redeem Unlock
+                      </button>
+                    </div>
                   </div>
                 </div>
               </motion.div>

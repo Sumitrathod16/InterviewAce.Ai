@@ -87,8 +87,9 @@ router.post('/run', protect, strictLimiter, async (req, res) => {
 
   try {
     let starterCode = '';
+    let problem = null;
     if (problemId) {
-      const problem = await Problem.findOne({ problemId });
+      problem = await Problem.findOne({ problemId });
       if (problem) {
         const langKey = language.toLowerCase();
         starterCode = problem.starterCode?.[langKey] || 
@@ -107,7 +108,7 @@ router.post('/run', protect, strictLimiter, async (req, res) => {
 
     let codeToExecute = code;
     if (problemId) {
-      codeToExecute = wrapCode(code, language, problemId);
+      codeToExecute = wrapCode(code, language, problemId, problem);
     }
 
     const report = await executeCode(codeToExecute, language, stdin);
@@ -137,7 +138,6 @@ router.post('/run', protect, strictLimiter, async (req, res) => {
       
       if (executionSuccess && allPassed) {
         try {
-          const problem = await Problem.findOne({ problemId });
           if (problem) {
             const integrity = await checkSolutionIntegrity(code, language, problem.title, problem.description);
             if (!integrity.isProper) {
@@ -148,15 +148,34 @@ router.post('/run', protect, strictLimiter, async (req, res) => {
             } else {
               report.success = true;
               report.status = 'Accepted';
+
+              // Record solved problem in database
+              const alreadySolved = req.user.solvedProblems.some(p => p.problemId === problemId && p.language.toLowerCase() === language.toLowerCase());
+              if (!alreadySolved) {
+                req.user.solvedProblems.push({ problemId, language, solvedAt: new Date() });
+                await req.user.save();
+              }
             }
           } else {
             report.success = true;
             report.status = 'Accepted';
+
+            const alreadySolved = req.user.solvedProblems.some(p => p.problemId === problemId && p.language.toLowerCase() === language.toLowerCase());
+            if (!alreadySolved) {
+              req.user.solvedProblems.push({ problemId, language, solvedAt: new Date() });
+              await req.user.save();
+            }
           }
         } catch (integrityErr) {
           console.error('Failed to verify solution integrity:', integrityErr.message);
           report.success = true;
           report.status = 'Accepted';
+
+          const alreadySolved = req.user.solvedProblems.some(p => p.problemId === problemId && p.language.toLowerCase() === language.toLowerCase());
+          if (!alreadySolved) {
+            req.user.solvedProblems.push({ problemId, language, solvedAt: new Date() });
+            await req.user.save();
+          }
         }
       } else {
         report.success = false;
@@ -171,7 +190,6 @@ router.post('/run', protect, strictLimiter, async (req, res) => {
 
         // Fetch problem detail for AI recommendation
         try {
-          const problem = await Problem.findOne({ problemId });
           if (problem) {
             const consoleOutputForHint = report.stderr || (results.length > 0 ? 'Test cases failed: ' + JSON.stringify(results) : 'Wrong Answer');
             const hintResult = await generateCodingHint(

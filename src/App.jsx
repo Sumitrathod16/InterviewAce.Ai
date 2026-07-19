@@ -33,6 +33,7 @@ import Contact from './components/footer_pages/Contact';
 
 function MainAppLayout({
   solvedProblems,
+  solvedProblemsDetail,
   handleSolveProblem,
   atsScore,
   handleAtsScoreChange,
@@ -43,7 +44,8 @@ function MainAppLayout({
   setCurrentView,
   activeTab,
   setActiveTab,
-  theme
+  theme,
+  onRefreshProfile
 }) {
   const { userProfile, logout } = useAuth();
   const navigate = useNavigate();
@@ -81,6 +83,7 @@ function MainAppLayout({
           {/* User's Dedicated Active Dashboard Workspace */}
           <DashboardPortal 
             solvedProblems={solvedProblems}
+            solvedProblemsDetail={solvedProblemsDetail}
             onSolveProblem={handleSolveProblem}
             selectedProblemIndex={selectedProblemIndex}
             onSelectProblemIndex={setSelectedProblemIndex}
@@ -98,6 +101,7 @@ function MainAppLayout({
             }}
             userProfile={userProfile}
             onLogout={handleLogout}
+            onRefreshProfile={onRefreshProfile}
             activeTab={activeTab}
             setActiveTab={setActiveTab}
             theme={theme}
@@ -109,7 +113,7 @@ function MainAppLayout({
 }
 
 export default function App() {
-  const { userProfile, loading, logout } = useAuth();
+  const { userProfile, loading, logout, refreshUserProfile } = useAuth();
   const navigate = useNavigate();
 
   const [theme, setTheme] = useState(() => {
@@ -138,8 +142,24 @@ export default function App() {
 
   // States synchronized dynamically
   const [solvedProblems, setSolvedProblems] = useState(() => {
-    const saved = localStorage.getItem('interviewace_solved');
-    return saved ? new Set(JSON.parse(saved)) : new Set();
+    const saved = localStorage.getItem('interviewace_solved_detail');
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch (e) {
+        return [];
+      }
+    }
+    const oldSaved = localStorage.getItem('interviewace_solved');
+    if (oldSaved) {
+      try {
+        const parsed = JSON.parse(oldSaved);
+        return parsed.map(id => ({ problemId: id, language: 'javascript' }));
+      } catch (e) {
+        return [];
+      }
+    }
+    return [];
   });
 
   const [atsScore, setAtsScore] = useState(() => {
@@ -149,7 +169,7 @@ export default function App() {
 
   // Sync back to local storage
   useEffect(() => {
-    localStorage.setItem('interviewace_solved', JSON.stringify(Array.from(solvedProblems)));
+    localStorage.setItem('interviewace_solved_detail', JSON.stringify(solvedProblems));
   }, [solvedProblems]);
 
   useEffect(() => {
@@ -163,11 +183,12 @@ export default function App() {
     }
   }, [userProfile]);
 
-  const handleSolveProblem = (id, title) => {
+  const handleSolveProblem = (id, title, language) => {
+    const lang = (typeof language === 'string') ? language : 'javascript';
     setSolvedProblems(prev => {
-      const next = new Set(prev);
-      next.add(id);
-      return next;
+      const exists = prev.some(p => p.problemId === id && p.language === lang);
+      if (exists) return prev;
+      return [...prev, { problemId: id, language: lang }];
     });
   };
 
@@ -244,7 +265,8 @@ export default function App() {
             path="/" 
             element={
               <MainAppLayout
-                solvedProblems={solvedProblems}
+                solvedProblems={new Set(solvedProblems.map(p => p.problemId))}
+                solvedProblemsDetail={solvedProblems}
                 handleSolveProblem={handleSolveProblem}
                 atsScore={atsScore}
                 handleAtsScoreChange={handleAtsScoreChange}
@@ -256,6 +278,7 @@ export default function App() {
                 activeTab={activeTab}
                 setActiveTab={setActiveTab}
                 theme={theme}
+                onRefreshProfile={refreshUserProfile}
               />
             } 
           />

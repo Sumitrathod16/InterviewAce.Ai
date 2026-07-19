@@ -77,6 +77,21 @@ const userSchema = new mongoose.Schema({
   lastActiveDate: {
     type: Date,
     default: Date.now
+  },
+  solvedProblems: [
+    {
+      problemId: { type: String, required: true },
+      language: { type: String, required: true },
+      solvedAt: { type: Date, default: Date.now }
+    }
+  ],
+  spentXp: {
+    type: Number,
+    default: 0
+  },
+  roadmapsAllowedCount: {
+    type: Number,
+    default: 0
   }
 }, {
   timestamps: true

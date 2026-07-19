@@ -1,34 +1,14 @@
 import React, { useState } from 'react';
-import { Line, Bar } from 'react-chartjs-2';
-import {
-  Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  BarElement,
-  Title,
-  Tooltip,
-  Legend,
-  Filler
-} from 'chart.js';
+import { Line, Bar, Doughnut } from 'react-chartjs-2';
+import { Chart as ChartJS, registerables } from 'chart.js';
 import { Award, BarChart3, TrendingUp, Sparkles, Play, ShieldAlert, ArrowUpRight, BookOpen } from 'lucide-react';
 
-ChartJS.register(
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  BarElement,
-  Title,
-  Tooltip,
-  Legend,
-  Filler
-);
+ChartJS.register(...registerables);
 
 export default function AnalyticsTab({ 
   interviewsList = [], 
   solvedProblems = new Set(), 
+  solvedProblemsDetail = [],
   userProfile = {}, 
   theme = 'dark' 
 }) {
@@ -370,6 +350,78 @@ export default function AnalyticsTab({
     ]
   };
 
+  // Aggregate languages solved
+  const langCounts = {};
+  if (solvedProblemsDetail && solvedProblemsDetail.length > 0) {
+    solvedProblemsDetail.forEach(item => {
+      const rawLang = item.language || 'javascript';
+      const cleanLang = rawLang.toLowerCase() === 'js' ? 'JavaScript' :
+                        rawLang.toLowerCase() === 'py' ? 'Python' :
+                        rawLang.toLowerCase() === 'java' ? 'Java' :
+                        rawLang.toLowerCase() === 'cpp' ? 'C++' :
+                        rawLang.toLowerCase() === 'c' ? 'C' :
+                        rawLang.charAt(0).toUpperCase() + rawLang.slice(1);
+      langCounts[cleanLang] = (langCounts[cleanLang] || 0) + 1;
+    });
+  } else if (useDemo || (solvedProblems && solvedProblems.size > 0)) {
+    const totalCount = solvedProblems?.size || 10;
+    langCounts['JavaScript'] = Math.round(totalCount * 0.5) || 5;
+    langCounts['Python'] = Math.round(totalCount * 0.3) || 3;
+    langCounts['Java'] = Math.max(1, totalCount - (Math.round(totalCount * 0.5) || 5) - (Math.round(totalCount * 0.3) || 3)) || 2;
+  }
+
+  const langLabels = Object.keys(langCounts);
+  const langDataValues = Object.values(langCounts);
+  const hasSolvedProblems = langLabels.length > 0;
+
+  const languageChartData = {
+    labels: langLabels,
+    datasets: [
+      {
+        data: langDataValues,
+        backgroundColor: [
+          'rgba(99, 102, 241, 0.8)', // Indigo
+          'rgba(168, 85, 247, 0.8)', // Purple
+          'rgba(236, 72, 153, 0.8)', // Pink
+          'rgba(20, 184, 166, 0.8)', // Teal
+          'rgba(245, 158, 11, 0.8)'  // Amber
+        ],
+        borderColor: theme === 'dark' ? '#1E293B' : '#FFFFFF',
+        borderWidth: 2
+      }
+    ]
+  };
+
+  const doughnutOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    cutout: '70%',
+    plugins: {
+      legend: {
+        position: 'right',
+        labels: {
+          color: theme === 'dark' ? 'rgba(255, 255, 255, 0.7)' : 'rgba(15, 23, 42, 0.7)',
+          font: {
+            family: 'system-ui',
+            size: 11,
+            weight: '600'
+          },
+          usePointStyle: true,
+          boxWidth: 8
+        }
+      },
+      tooltip: {
+        backgroundColor: theme === 'dark' ? '#1E293B' : '#FFFFFF',
+        titleColor: theme === 'dark' ? '#FFFFFF' : '#0F172A',
+        bodyColor: theme === 'dark' ? '#E2E8F0' : '#334155',
+        borderColor: theme === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(15,23,42,0.1)',
+        borderWidth: 1,
+        padding: 10,
+        cornerRadius: 8
+      }
+    }
+  };
+
   return (
     <div className="space-y-8">
       {/* Tab Header */}
@@ -535,6 +587,89 @@ export default function AnalyticsTab({
                 <p className="text-xs font-semibold">Assessment statistics pending</p>
               </div>
             )}
+          </div>
+        </div>
+
+      </div>
+
+      {/* Coding Languages & Practice Breakdown Section */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        
+        {/* Languages Distribution Chart */}
+        <div className="lg:col-span-5 p-5 bg-secondaryBg/30 border border-white/5 rounded-xl space-y-4 flex flex-col justify-between">
+          <div>
+            <h4 className="text-xs font-bold text-white uppercase tracking-wider">Coding Languages Distribution</h4>
+            <p className="text-[10px] text-lightGray/55 mt-0.5">Distribution of challenges solved by programming language</p>
+          </div>
+          <div className="h-56 w-full mt-4 relative flex items-center justify-center">
+            {hasSolvedProblems ? (
+              <div className="h-full w-full">
+                <Doughnut options={doughnutOptions} data={languageChartData} />
+              </div>
+            ) : (
+              <div className="h-full flex flex-col items-center justify-center text-center space-y-2 text-lightGray/40">
+                <ShieldAlert size={28} />
+                <p className="text-xs">Solve challenges in the sandbox to unlock language distribution statistics.</p>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Challenge Categories and Level Breakdown */}
+        <div className="lg:col-span-7 p-5 bg-secondaryBg/30 border border-white/5 rounded-xl space-y-4 flex flex-col justify-between">
+          <div>
+            <h4 className="text-xs font-bold text-white uppercase tracking-wider">Algorithmic Progress Matrix</h4>
+            <p className="text-[10px] text-lightGray/55 mt-0.5">Tracking challenges solved across Easy, Medium, and Hard milestones</p>
+          </div>
+          
+          <div className="space-y-4 py-3">
+            {/* Progress Bar 1: Easy */}
+            <div className="space-y-1">
+              <div className="flex justify-between text-xs font-bold">
+                <span className="text-emerald-400 font-sans">Easy Problems</span>
+                <span className="text-white">
+                  {useDemo ? '6 / 8' : `${solvedProblemsDetail?.filter(p => p.difficulty === 'Easy').length || 0} solved`}
+                </span>
+              </div>
+              <div className="h-2 bg-white/5 rounded-full overflow-hidden">
+                <div 
+                  className="h-full bg-emerald-500 rounded-full transition-all duration-500" 
+                  style={{ width: useDemo ? '75%' : `${Math.min(100, ((solvedProblemsDetail?.filter(p => p.difficulty === 'Easy').length || 0) / 8) * 100)}%` }}
+                />
+              </div>
+            </div>
+
+            {/* Progress Bar 2: Medium */}
+            <div className="space-y-1">
+              <div className="flex justify-between text-xs font-bold">
+                <span className="text-amber-400 font-sans">Medium Problems</span>
+                <span className="text-white">
+                  {useDemo ? '3 / 6' : `${solvedProblemsDetail?.filter(p => p.difficulty === 'Medium').length || 0} solved`}
+                </span>
+              </div>
+              <div className="h-2 bg-white/5 rounded-full overflow-hidden">
+                <div 
+                  className="h-full bg-amber-500 rounded-full transition-all duration-500" 
+                  style={{ width: useDemo ? '50%' : `${Math.min(100, ((solvedProblemsDetail?.filter(p => p.difficulty === 'Medium').length || 0) / 6) * 100)}%` }}
+                />
+              </div>
+            </div>
+
+            {/* Progress Bar 3: Hard */}
+            <div className="space-y-1">
+              <div className="flex justify-between text-xs font-bold">
+                <span className="text-rose-400 font-sans">Hard Problems</span>
+                <span className="text-white">
+                  {useDemo ? '1 / 4' : `${solvedProblemsDetail?.filter(p => p.difficulty === 'Hard').length || 0} solved`}
+                </span>
+              </div>
+              <div className="h-2 bg-white/5 rounded-full overflow-hidden">
+                <div 
+                  className="h-full bg-rose-500 rounded-full transition-all duration-500" 
+                  style={{ width: useDemo ? '25%' : `${Math.min(100, ((solvedProblemsDetail?.filter(p => p.difficulty === 'Hard').length || 0) / 4) * 100)}%` }}
+                />
+              </div>
+            </div>
           </div>
         </div>
 

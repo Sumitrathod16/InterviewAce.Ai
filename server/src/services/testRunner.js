@@ -554,25 +554,315 @@ class Main {
   }
 };
 
+const extractFunctionNameJS = (starterCode) => {
+  if (!starterCode) return null;
+  const match = starterCode.match(/function\s+(\w+)\s*\(/);
+  return match ? match[1] : null;
+};
+
+const generateJSDriver = (problem, starterCode) => {
+  const funcName = extractFunctionNameJS(starterCode) || 'solve';
+  const testsJson = JSON.stringify(problem.tests || []);
+  
+  return `
+// --- DYNAMIC TEST DRIVER ---
+const normalizeAndCompare = (actual, expectedStr) => {
+  if (actual === undefined) return expectedStr === "undefined";
+  if (actual === null) return expectedStr === "null";
+  let expectedVal;
+  try {
+    expectedVal = JSON.parse(expectedStr);
+  } catch (e) {
+    expectedVal = expectedStr;
+  }
+  if (typeof actual === 'object') {
+    try {
+      const actStr = JSON.stringify(actual);
+      const expStr = JSON.stringify(expectedVal);
+      return actStr.replace(/\\s+/g, '') === expStr.replace(/\\s+/g, '');
+    } catch (e) {
+      return false;
+    }
+  }
+  return String(actual).trim() === String(expectedVal).trim();
+};
+
+const testsData = ${testsJson};
+
+const results = [];
+for (let i = 0; i < testsData.length; i++) {
+  try {
+    const t = testsData[i];
+    const rawInputs = t.input.split('\\n');
+    const parsedArgs = rawInputs.map(inp => {
+      if (!inp.trim()) return undefined;
+      try {
+        return JSON.parse(inp);
+      } catch(e) {
+        return inp;
+      }
+    }).filter(x => x !== undefined);
+    
+    const actual = ${funcName}(...parsedArgs);
+    const passed = normalizeAndCompare(actual, t.expected);
+    results.push({
+      id: i,
+      passed,
+      actual: typeof actual === 'object' ? JSON.stringify(actual) : String(actual),
+      expected: t.expected
+    });
+  } catch (e) {
+    results.push({
+      id: i,
+      passed: false,
+      actual: e.message,
+      expected: testsData[i].expected
+    });
+  }
+}
+console.log('---TEST_RESULTS---' + JSON.stringify(results));
+`;
+};
+
+const extractFunctionNamePy = (starterCode) => {
+  if (!starterCode) return null;
+  const match = starterCode.match(/def\s+(\w+)\s*\(/);
+  return match ? match[1] : null;
+};
+
+const generatePyDriver = (problem, starterCode) => {
+  const funcName = extractFunctionNamePy(starterCode) || 'solve';
+  const testsJson = JSON.stringify(problem.tests || []);
+  
+  return `
+# --- DYNAMIC TEST DRIVER ---
+import json
+
+def normalize_and_compare(actual, expected_str):
+    if actual is None:
+        return expected_str == "None" or expected_str == "null"
+    try:
+        expected_val = json.loads(expected_str)
+    except Exception:
+        expected_val = expected_str
+    
+    if expected_str == "true":
+        expected_val = True
+    elif expected_str == "false":
+        expected_val = False
+        
+    if isinstance(actual, (list, dict)):
+        try:
+            act_str = json.dumps(actual, separators=(',', ':'))
+            exp_str = json.dumps(expected_val, separators=(',', ':'))
+            return act_str == exp_str
+        except Exception:
+            return False
+    return str(actual).strip() == str(expected_val).strip()
+
+tests_data = ${testsJson}
+
+results = []
+for i, t in enumerate(tests_data):
+    try:
+        raw_inputs = t["input"].split('\\n')
+        parsed_args = []
+        for inp in raw_inputs:
+            if not inp.strip():
+                continue
+            try:
+                parsed_args.append(json.loads(inp))
+            except Exception:
+                parsed_args.append(inp)
+                
+        actual = ${funcName}(*parsed_args)
+        passed = normalize_and_compare(actual, t["expected"])
+        results.append({
+            "id": i,
+            "passed": passed,
+            "actual": json.dumps(actual) if isinstance(actual, (list, dict)) else str(actual),
+            "expected": t["expected"]
+        })
+    except Exception as e:
+        results.append({
+            "id": i,
+            "passed": False,
+            "actual": str(e),
+            "expected": t["expected"]
+        })
+print('---TEST_RESULTS---' + json.dumps(results))
+`;
+};
+
+const parseJavaSignature = (starterCode) => {
+  if (!starterCode) return null;
+  const clean = starterCode.replace(/class\s+Solution\s*\{/, '');
+  const match = clean.match(/(public|private|protected|static|\s)+\s+([\w<>\[\]]+)\s+(\w+)\s*\(([^)]*)\)/);
+  if (!match) return null;
+  
+  const returnType = match[2].trim();
+  const methodName = match[3].trim();
+  const paramsStr = match[4].trim();
+  
+  const params = paramsStr ? paramsStr.split(',').map(p => {
+    const parts = p.trim().split(/\s+/);
+    return {
+      type: parts[parts.length - 2].trim(),
+      name: parts[parts.length - 1].trim()
+    };
+  }) : [];
+  
+  return { returnType, methodName, params };
+};
+
+const generateJavaDriver = (problem, starterCode) => {
+  const sig = parseJavaSignature(starterCode);
+  if (!sig) return '';
+  
+  const { returnType, methodName, params } = sig;
+  const tests = problem.tests || [];
+  
+  let sb = '';
+  sb += 'import java.util.*;\n';
+  sb += 'class Main {\n';
+  
+  sb += `
+  private static int[] parseIntArray(String s) {
+      s = s.trim();
+      if (s.startsWith("[")) s = s.substring(1);
+      if (s.endsWith("]")) s = s.substring(0, s.length() - 1);
+      if (s.trim().isEmpty()) return new int[0];
+      String[] parts = s.split(",");
+      int[] res = new int[parts.length];
+      for (int i = 0; i < parts.length; i++) {
+          res[i] = Integer.parseInt(parts[i].trim());
+      }
+      return res;
+  }
+  
+  private static String parseString(String s) {
+      s = s.trim();
+      if (s.startsWith("\\"") && s.endsWith("\\"")) {
+          s = s.substring(1, s.length() - 1);
+      }
+      return s;
+  }
+  
+  private static char[] parseCharArray(String s) {
+      s = s.trim();
+      if (s.startsWith("[")) s = s.substring(1);
+      if (s.endsWith("]")) s = s.substring(0, s.length() - 1);
+      if (s.trim().isEmpty()) return new char[0];
+      String[] parts = s.split(",");
+      char[] res = new char[parts.length];
+      for (int i = 0; i < parts.length; i++) {
+          String p = parts[i].trim();
+          if (p.startsWith("\\"") && p.endsWith("\\"")) p = p.substring(1, p.length() - 1);
+          if (p.startsWith("'") && p.endsWith("'")) p = p.substring(1, p.length() - 1);
+          res[i] = p.length() > 0 ? p.charAt(0) : ' ';
+      }
+      return res;
+  }
+  
+  private static boolean compare(String actual, String expected) {
+      if (actual == null) return expected == null || expected.equals("null");
+      actual = actual.trim().replaceAll("\\\\s+", "");
+      expected = expected.trim().replaceAll("\\\\s+", "");
+      return actual.equals(expected);
+  }
+  `;
+  
+  sb += '  public static void main(String[] args) {\n';
+  sb += '    Solution sol = new Solution();\n';
+  sb += '    StringBuilder sb = new StringBuilder();\n';
+  sb += '    sb.append("---TEST_RESULTS---[");\n';
+  
+  tests.forEach((test, idx) => {
+    if (idx > 0) sb += '    sb.append(",");\n';
+    sb += '    try {\n';
+    
+    const inputLines = test.input.split('\n');
+    params.forEach((param, pIdx) => {
+      const lineVal = (inputLines[pIdx] || '').replace(/"/g, '\\"').replace(/\\/g, '\\\\');
+      if (param.type === 'int[]') {
+        sb += `      int[] p${pIdx} = parseIntArray("${lineVal}");\n`;
+      } else if (param.type === 'int') {
+        sb += `      int p${pIdx} = Integer.parseInt("${lineVal}".trim());\n`;
+      } else if (param.type === 'double') {
+        sb += `      double p${pIdx} = Double.parseDouble("${lineVal}".trim());\n`;
+      } else if (param.type === 'boolean') {
+        sb += `      boolean p${pIdx} = Boolean.parseBoolean("${lineVal}".trim());\n`;
+      } else if (param.type === 'String') {
+        sb += `      String p${pIdx} = parseString("${lineVal}");\n`;
+      } else if (param.type === 'char[]') {
+        sb += `      char[] p${pIdx} = parseCharArray("${lineVal}");\n`;
+      } else {
+        sb += `      String p${pIdx} = "${lineVal}";\n`;
+      }
+    });
+    
+    const argsCall = params.map((_, pIdx) => `p${pIdx}`).join(', ');
+    sb += `      ${returnType} ans = sol.${methodName}(${argsCall});\n`;
+    
+    let actualStr = '';
+    if (returnType === 'int[]') {
+      actualStr = 'java.util.Arrays.toString(ans)';
+    } else if (returnType === 'char[]') {
+      actualStr = 'java.util.Arrays.toString(ans)';
+    } else if (returnType === 'String') {
+      actualStr = 'ans';
+    } else {
+      actualStr = 'String.valueOf(ans)';
+    }
+    
+    sb += `      String actualVal = ${actualStr};\n`;
+    sb += `      boolean passed = compare(actualVal, "${test.expected.replace(/"/g, '\\"').replace(/\\/g, '\\\\')}");\n`;
+    sb += `      sb.append("{\\"id\\":${idx},\\"passed\\":" + passed + ",\\"actual\\":\\"" + (actualVal != null ? actualVal.replace("\\"", "\\\\\\\"") : "null") + "\\",\\"expected\\":\\"${test.expected.replace(/"/g, '\\"')}\\"}");\n`;
+    
+    sb += '    } catch (Exception e) {\n';
+    sb += `      sb.append("{\\"id\\":${idx},\\"passed\\":false,\\"actual\\":\\"" + (e.getMessage() != null ? e.getMessage().replace("\\"", "\\\\\\\"") : "Exception") + "\\",\\"expected\\":\\"${test.expected.replace(/"/g, '\\"')}\\"}");\n`;
+    sb += '    }\n';
+  });
+  
+  sb += '    sb.append("]");\n';
+  sb += '    System.out.println(sb.toString());\n';
+  sb += '  }\n';
+  sb += '}\n';
+  
+  return sb;
+};
+
 /**
  * Wrap candidate code with test runner drivers
  * @param {string} code 
  * @param {string} language 
  * @param {string} problemId 
+ * @param {object} problem 
  * @returns {string} The combined code ready for compilation
  */
-export const wrapCode = (code, language, problemId) => {
+export const wrapCode = (code, language, problemId, problem = null) => {
   const langKey = language.toLowerCase();
   const probKey = problemId.toLowerCase();
 
   const langDrivers = DRIVERS[langKey] || DRIVERS[langKey === 'js' ? 'javascript' : langKey === 'py' ? 'python' : ''];
-  const driver = langDrivers ? langDrivers[probKey] : null;
+  let driver = langDrivers ? langDrivers[probKey] : null;
 
-  if (!driver) {
-    return code; // Fallback to raw code
+  if (!driver && problem) {
+    const starterCode = problem.starterCode?.[langKey] || 
+                        problem.starterCode?.[langKey === 'js' ? 'javascript' : langKey === 'py' ? 'python' : ''] || '';
+    if (langKey === 'javascript' || langKey === 'js') {
+      driver = generateJSDriver(problem, starterCode);
+    } else if (langKey === 'python' || langKey === 'py') {
+      driver = generatePyDriver(problem, starterCode);
+    } else if (langKey === 'java') {
+      driver = generateJavaDriver(problem, starterCode);
+    }
   }
 
-  // Append driver at the bottom to preserve candidate line numbers
+  if (!driver) {
+    return code;
+  }
+
   return `${code}\n${driver}`;
 };
 
@@ -586,32 +876,25 @@ export const parseErrorLine = (stderr, language) => {
   if (!stderr) return null;
   const langKey = language.toLowerCase();
 
-  // JavaScript Node error matching
   if (langKey === 'javascript' || langKey === 'js') {
-    // Specifically match prog.js:LINE or main.js:LINE or similar .js files to avoid node:internal modules
     const match = stderr.match(/[\w-]+\.js:(\d+)/i);
     if (match) return parseInt(match[1], 10);
   }
 
-  // Python error matching
   if (langKey === 'python' || langKey === 'py') {
-    // Specifically look for file containing "prog.py" or "main.py" to avoid other lines
     const match = stderr.match(/File\s+"[^"]*prog\.py",\s+line\s+(\d+)/i) || 
                   stderr.match(/File\s+"[^"]*main\.py",\s+line\s+(\d+)/i) ||
                   stderr.match(/line (\d+)/i);
     if (match) return parseInt(match[1], 10);
   }
 
-  // Java error matching
   if (langKey === 'java') {
-    // Looks like: Solution.java:12: error: ...
     const match = stderr.match(/Solution\.java:(\d+)/i) || 
                   stderr.match(/Main\.java:(\d+)/i) ||
                   stderr.match(/:(\d+): error:/i);
     if (match) return parseInt(match[1], 10);
   }
 
-  // Generic match as fallback
   const genericMatch = stderr.match(/[\w-]+\.(?:js|py|java):(\d+)/i) || stderr.match(/(?:line|:)\s*(\d+)/i);
   if (genericMatch) return parseInt(genericMatch[1], 10);
 
