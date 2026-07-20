@@ -32,7 +32,7 @@ const checkAndResetFreeRefills = async (user) => {
  * @access  Public (or verified via client payload)
  */
 router.post('/sync', async (req, res) => {
-  const { firebaseId, email, name, role = 'Student', targetRole = 'Frontend Engineer' } = req.body;
+  const { firebaseId, email, name, role = 'Student', targetRole = 'Frontend Engineer', localSolvedProblems } = req.body;
 
   if (!firebaseId || !email) {
     return res.status(400).json({ message: 'Missing sync credentials details (firebaseId and email).' });
@@ -42,6 +42,9 @@ router.post('/sync', async (req, res) => {
     let user = await User.findOne({ firebaseId });
 
     if (!user) {
+      const sanitizedProblems = (localSolvedProblems || []).filter(
+        p => p && typeof p.problemId === 'string' && typeof p.language === 'string'
+      );
       user = await User.create({
         firebaseId,
         email,
@@ -49,22 +52,39 @@ router.post('/sync', async (req, res) => {
         role: email.includes('admin@interviewace.ai') ? 'Admin' : role,
         targetRole,
         subscription: 'Premium',
-        freeRefillDate: new Date()
+        freeRefillDate: new Date(),
+        solvedProblems: sanitizedProblems
       });
       console.log(`Created new synced MongoDB user: ${user.email}`);
     } else {
       // Sync names/roles if updated
       if (name && user.name !== name) {
         user.name = name;
-        await user.save();
+      }
+      // Merge local solved problems into DB
+      if (Array.isArray(localSolvedProblems) && localSolvedProblems.length > 0) {
+        localSolvedProblems.forEach(localProb => {
+          if (localProb && typeof localProb.problemId === 'string' && typeof localProb.language === 'string') {
+            const exists = user.solvedProblems.some(
+              p => p.problemId === localProb.problemId && 
+              p.language.toLowerCase() === localProb.language.toLowerCase()
+            );
+            if (!exists) {
+              user.solvedProblems.push({
+                problemId: localProb.problemId,
+                language: localProb.language,
+                solvedAt: new Date()
+              });
+            }
+          }
+        });
       }
       // Auto-upgrade existing free tier users to Premium for the free launch
       if (user.subscription === 'Free') {
         user.subscription = 'Premium';
-        await user.save();
-        console.log(`Auto-upgraded existing free user to Premium: ${user.email}`);
       }
       user = await checkAndResetFreeRefills(user);
+      await user.save();
     }
 
     // Update candidate practice/login streak
@@ -94,7 +114,9 @@ router.post('/sync', async (req, res) => {
         resumeCountToday: user.resumeCountToday,
         freeRefillDate: user.freeRefillDate || user.createdAt,
         streakCount: user.streakCount,
-        lastActiveDate: user.lastActiveDate
+        lastActiveDate: user.lastActiveDate,
+        solvedProblems: user.solvedProblems || [],
+        spentXp: user.spentXp || 0
       }
     });
   } catch (error) {

@@ -23,7 +23,7 @@ router.post('/redeem', protect, async (req, res) => {
     const solvedCount = user.solvedProblems?.length || 0;
     const interviewCount = await Interview.countDocuments({ userId: user._id, completed: true });
     
-    const totalXp = (solvedCount * 100) + (interviewCount * 200);
+    const totalXp = (solvedCount * 10) + (interviewCount * 200);
     const spentXp = user.spentXp || 0;
     const availableXp = totalXp - spentXp;
 

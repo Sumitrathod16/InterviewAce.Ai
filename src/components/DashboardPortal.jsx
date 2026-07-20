@@ -205,7 +205,7 @@ export default function DashboardPortal({
     ? Math.round(interviewsList.reduce((acc, curr) => acc + curr.score, 0) / interviewsList.length)
     : 84;
 
-  const totalXp = (solvedProblems.size * 100) + (interviewsList.length * 200);
+  const totalXp = (solvedProblems.size * 10) + (interviewsList.length * 200);
   const practiceStreak = userProfile?.streakCount || 0;
 
   const CHALLENGES = problems.length > 0

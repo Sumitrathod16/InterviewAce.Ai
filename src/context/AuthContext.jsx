@@ -25,12 +25,23 @@ export const AuthProvider = ({ children }) => {
   // Sync token and profile with our backend DB
   const syncWithBackend = async (firebaseUser, token, customDetails = {}) => {
     try {
+      let localSolved = [];
+      try {
+        const saved = localStorage.getItem('interviewace_solved_detail');
+        if (saved) {
+          localSolved = JSON.parse(saved);
+        }
+      } catch (e) {
+        console.error('Error parsing local solved problems:', e);
+      }
+
       const response = await API.post('/auth/sync', {
         firebaseId: firebaseUser.uid,
         email: firebaseUser.email,
         name: customDetails.name || firebaseUser.displayName || firebaseUser.email.split('@')[0],
         role: customDetails.role || 'Student',
-        targetRole: customDetails.targetRole || 'Frontend Engineer'
+        targetRole: customDetails.targetRole || 'Frontend Engineer',
+        localSolvedProblems: localSolved
       });
 
       const { token: jwtToken, user } = response.data;

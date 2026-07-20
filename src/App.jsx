@@ -145,7 +145,10 @@ export default function App() {
     const saved = localStorage.getItem('interviewace_solved_detail');
     if (saved) {
       try {
-        return JSON.parse(saved);
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) {
+          return parsed.filter(p => p && typeof p.problemId === 'string' && typeof p.language === 'string');
+        }
       } catch (e) {
         return [];
       }
@@ -154,7 +157,11 @@ export default function App() {
     if (oldSaved) {
       try {
         const parsed = JSON.parse(oldSaved);
-        return parsed.map(id => ({ problemId: id, language: 'javascript' }));
+        if (Array.isArray(parsed)) {
+          return parsed
+            .filter(id => typeof id === 'string')
+            .map(id => ({ problemId: id, language: 'javascript' }));
+        }
       } catch (e) {
         return [];
       }
@@ -180,6 +187,32 @@ export default function App() {
   useEffect(() => {
     if (userProfile && currentView === 'landing') {
       setCurrentView('dashboard-portal');
+    }
+  }, [userProfile]);
+
+  // Synchronize local solved problems state with database user profile
+  useEffect(() => {
+    if (userProfile && Array.isArray(userProfile.solvedProblems)) {
+      setSolvedProblems(prev => {
+        const merged = [...prev];
+        let hasNew = false;
+        userProfile.solvedProblems.forEach(dbProblem => {
+          if (dbProblem && typeof dbProblem.problemId === 'string' && typeof dbProblem.language === 'string') {
+            const exists = merged.some(
+              p => p.problemId === dbProblem.problemId && 
+              p.language.toLowerCase() === dbProblem.language.toLowerCase()
+            );
+            if (!exists) {
+              merged.push({ 
+                problemId: dbProblem.problemId, 
+                language: dbProblem.language 
+              });
+              hasNew = true;
+            }
+          }
+        });
+        return hasNew ? merged : prev;
+      });
     }
   }, [userProfile]);
 

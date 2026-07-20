@@ -45,16 +45,12 @@ async function testRewardsFlow() {
       console.log('Success (Expected failure): Received error response:', err.response?.data?.message);
     }
 
-    // 4. Inject 6 Solved Problems in DB directly to grant 600 XP
-    console.log('\nInjecting 6 solved problems in MongoDB to grant 600 XP...');
-    userInDb.solvedProblems = [
-      { problemId: 'p1', language: 'javascript' },
-      { problemId: 'p2', language: 'javascript' },
-      { problemId: 'p3', language: 'javascript' },
-      { problemId: 'p4', language: 'javascript' },
-      { problemId: 'p5', language: 'javascript' },
-      { problemId: 'p6', language: 'javascript' }
-    ];
+    // 4. Inject 60 Solved Problems in DB directly to grant 600 XP
+    console.log('\nInjecting 60 solved problems in MongoDB to grant 600 XP...');
+    userInDb.solvedProblems = Array.from({ length: 60 }, (_, i) => ({
+      problemId: `p${i + 1}`,
+      language: 'javascript'
+    }));
     await userInDb.save();
     console.log('Tester now has 600 XP.');
 
@@ -75,15 +71,12 @@ async function testRewardsFlow() {
       console.log('Success (Expected failure): Received error response:', err.response?.data?.message);
     }
 
-    // 7. Inject 4 more solved problems (Adding 400 XP, 500 XP total available now)
-    console.log('\nInjecting 4 more solved problems (total available 500 XP)...');
+    // 7. Inject 40 more solved problems (Adding 400 XP, 500 XP total available now)
+    console.log('\nInjecting 40 more solved problems (total available 500 XP)...');
     const updatedUser = await User.findById(userId);
-    updatedUser.solvedProblems.push(
-      { problemId: 'p7', language: 'javascript' },
-      { problemId: 'p8', language: 'javascript' },
-      { problemId: 'p9', language: 'javascript' },
-      { problemId: 'p10', language: 'javascript' }
-    );
+    for (let i = 60; i < 100; i++) {
+      updatedUser.solvedProblems.push({ problemId: `p${i + 1}`, language: 'javascript' });
+    }
     await updatedUser.save();
 
     // 8. Redeem roadmap unlock (Cost 400 XP)
