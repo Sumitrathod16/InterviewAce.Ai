@@ -1,6 +1,7 @@
 import express from 'express';
 import multer from 'multer';
 import pdfParse from 'pdf-parse';
+import mammoth from 'mammoth';
 import { protect } from '../middleware/auth.js';
 import ResumeReport from '../models/ResumeReport.js';
 import User from '../models/User.js';
@@ -73,11 +74,12 @@ router.post('/analyze', protect, upload.single('resumeFile'), async (req, res) =
 
     // 1. Check if file is uploaded
     if (req.file) {
-      const originalName = req.file.originalname;
-      const isPdf = originalName.toLowerCase().endsWith('.pdf');
+      const originalName = req.file.originalname.toLowerCase();
+      const isPdf = originalName.endsWith('.pdf');
+      const isDocx = originalName.endsWith('.docx');
 
       // Upload file (to Cloudinary or local folder fallback)
-      fileUrl = await uploadFile(req.file.buffer, originalName);
+      fileUrl = await uploadFile(req.file.buffer, req.file.originalname);
 
       if (isPdf) {
         try {
@@ -87,7 +89,16 @@ router.post('/analyze', protect, upload.single('resumeFile'), async (req, res) =
           console.warn('pdf-parse failed, falling back to raw buffer string:', pdfErr.message);
           resumeText = req.file.buffer.toString('utf-8');
         }
+      } else if (isDocx) {
+        try {
+          const docxData = await mammoth.extractRawText({ buffer: req.file.buffer });
+          resumeText = docxData.value;
+        } catch (docxErr) {
+          console.warn('mammoth failed to parse docx, falling back to raw buffer string:', docxErr.message);
+          resumeText = req.file.buffer.toString('utf-8');
+        }
       } else {
+        // Fallback for .txt, .rtf, .md etc.
         resumeText = req.file.buffer.toString('utf-8');
       }
     } 

@@ -1,0 +1,27 @@
+Sumit Rathod
+Software Engineer | Frontend Specialist
+sumit@example.com | github.com/Sumitrathod16
+
+SUMMARY:
+Highly motivated Software Engineer specializing in front-end development and speed optimizations.
+
+TECHNICAL SKILLS:
+- Languages: JavaScript (ES6+), TypeScript, HTML5, CSS3
+- Frameworks & Libraries: React.js, Redux Toolkit, Next.js, Django
+- Tools & Testing: Vite, Webpack, Jest, Cypress, Git, CI/CD
+- Concepts: Software Architecture, RESTful APIs, Performance Optimization, Responsive Design
+
+EXPERIENCE:
+Software Engineer at TechCorp (2024 - Present)
+- Spearheaded front-end optimization by engineering responsive React components, improving client-side page rendering speed by 34% and increasing user retention.
+- Optimized client-side rendering pathways and improved overall Web Vitals metrics by 42%.
+- Architected scalable state orchestration modules, replacing legacy state management configurations with Redux Toolkit.
+
+PROJECTS:
+BookMyShow Django Clone
+- Architected and built a high-throughput clone of BookMyShow using Django, managing high concurrent traffic rates.
+- Orchestrated secure user authentication mechanisms, session cookies, and database schema normalizations.
+
+EDUCATION:
+B.S. in Computer Science (Graduated 2024)
+University of Tech

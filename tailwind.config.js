@@ -12,6 +12,7 @@ export default {
         white: "rgb(var(--white) / <alpha-value>)",
         lightGray: "rgb(var(--light-gray) / <alpha-value>)",
         accent: "rgb(var(--accent) / <alpha-value>)",
+        secondary: "rgb(var(--secondary) / <alpha-value>)",
       },
       fontFamily: {
         sans: ["Inter", "sans-serif"],

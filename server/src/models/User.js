@@ -48,6 +48,10 @@ const userSchema = new mongoose.Schema({
     type: String,
     default: ''
   },
+  profilePic: {
+    type: String,
+    default: ''
+  },
   // Rate-limiting stats
   interviewCountToday: {
     type: Number,

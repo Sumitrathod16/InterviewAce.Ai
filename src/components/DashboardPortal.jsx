@@ -53,6 +53,7 @@ export default function DashboardPortal({
   const [targetRole, setTargetRole] = useState(userProfile?.targetRole || 'Frontend Engineer');
   const [education, setEducation] = useState(userProfile?.education || '');
   const [skillsText, setSkillsText] = useState(userProfile?.skills?.join(', ') || '');
+  const [profilePic, setProfilePic] = useState(userProfile?.profilePic || '');
   const [updatingProfile, setUpdatingProfile] = useState(false);
   const [profileMsg, setProfileMsg] = useState('');
 
@@ -61,6 +62,33 @@ export default function DashboardPortal({
   const [dbResumes, setDbResumes] = useState([]);
   const [problems, setProblems] = useState([]);
   const [difficultyFilter, setDifficultyFilter] = useState('Easy');
+
+  // Handle photo conversion to base64
+  const handleImageChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      if (file.size > 1.5 * 1024 * 1024) {
+        toast.error("Profile picture size must be under 1.5MB.");
+        return;
+      }
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setProfilePic(reader.result);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  // Sync profile details when userProfile changes
+  useEffect(() => {
+    if (userProfile) {
+      setName(userProfile.name || '');
+      setTargetRole(userProfile.targetRole || 'Frontend Engineer');
+      setEducation(userProfile.education || '');
+      setSkillsText(userProfile.skills?.join(', ') || '');
+      setProfilePic(userProfile.profilePic || '');
+    }
+  }, [userProfile]);
 
   // Fetch candidate history datasets
   const fetchDashboardData = async () => {
@@ -154,14 +182,19 @@ export default function DashboardPortal({
         name,
         targetRole,
         education,
-        skills: skillsArray
+        skills: skillsArray,
+        profilePic
       });
       
       // Update local storage user profile sync
       const savedUser = JSON.parse(localStorage.getItem('interviewace_user') || '{}');
-      const updatedUser = { ...savedUser, name, targetRole, education, skills: skillsArray };
+      const updatedUser = { ...savedUser, name, targetRole, education, skills: skillsArray, profilePic };
       localStorage.setItem('interviewace_user', JSON.stringify(updatedUser));
       
+      if (onRefreshProfile) {
+        await onRefreshProfile();
+      }
+
       setProfileMsg('Profile updated successfully!');
     } catch (err) {
       setProfileMsg('Failed to sync profile changes.');
@@ -233,6 +266,10 @@ export default function DashboardPortal({
     ? userProfile.name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase()
     : 'US';
 
+  const initialsPreview = name
+    ? name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase()
+    : 'US';
+
   const [redeemingReward, setRedeemingReward] = useState(false);
 
   const handleRedeemReward = async (rewardType, cost) => {
@@ -270,11 +307,15 @@ export default function DashboardPortal({
     <div className="pt-28 pb-20 bg-background min-h-screen">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
         
-        {/* Candidate Profile Summary card */}
-        <div className="p-6 bg-secondaryBg/45 border border-white/5 rounded-2xl flex flex-col md:flex-row items-center justify-between gap-6">
+        {/* Candidate Profile Summary card - Nordic Redesign */}
+        <div className="p-6 bg-secondaryBg/80 dark:bg-secondaryBg/45 border border-slate-200/50 dark:border-white/5 shadow-[0_8px_30px_rgb(0,0,0,0.015)] dark:shadow-none hover:shadow-[0_8px_30px_rgb(0,0,0,0.035)] transition-all duration-300 rounded-2xl flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="flex flex-col sm:flex-row items-center gap-4 text-center sm:text-left">
-            <div className="w-16 h-16 rounded-full bg-white text-background flex items-center justify-center font-bold text-xl select-none">
-              {nameInitials}
+            <div className="w-16 h-16 rounded-full overflow-hidden bg-gradient-to-br from-accent to-secondary text-white flex items-center justify-center font-bold text-xl select-none shadow-[0_4px_16px_rgba(var(--accent),0.25)]">
+              {userProfile?.profilePic ? (
+                <img src={userProfile.profilePic} alt="Profile" className="w-full h-full object-cover" />
+              ) : (
+                nameInitials
+              )}
             </div>
             <div>
               <div className="flex items-center gap-2 justify-center sm:justify-start">
@@ -284,7 +325,7 @@ export default function DashboardPortal({
                 {userProfile?.role === 'Admin' && (
                   <button 
                     onClick={() => onViewChange('admin')}
-                    className="flex items-center gap-1 px-2 py-0.5 rounded bg-white text-background text-[9px] font-bold uppercase transition-colors"
+                    className="flex items-center gap-1 px-2 py-0.5 rounded bg-accent text-white text-[9px] font-bold uppercase transition-colors hover:bg-accent/80"
                   >
                     <Shield size={10} />
                     Admin
@@ -294,8 +335,8 @@ export default function DashboardPortal({
               <p className="text-sm text-lightGray/60 mt-0.5">{userProfile?.targetRole || 'Technical Preparation Track'}</p>
               <div className="flex flex-wrap items-center gap-3 mt-2 text-xs text-lightGray/40">
                 <span className="flex items-center gap-1">
-                  <Award size={12} className="text-white animate-pulse" />
-                  {totalXp} XP Earned ({totalXp - (userProfile?.spentXp || 0)} Available)
+                  <Award size={12} className="text-secondary animate-bounce" />
+                  <span className="text-secondary font-bold">{totalXp} XP</span> Earned ({totalXp - (userProfile?.spentXp || 0)} Available)
                 </span>
                 <span>•</span>
                 <span>Tier: <strong className="text-white">{userProfile?.subscription || 'Free'}</strong></span>
@@ -307,7 +348,7 @@ export default function DashboardPortal({
             <button
               onClick={() => setActiveTab('profile')}
               className={`px-4 py-2 text-xs font-semibold rounded-lg flex items-center gap-1.5 border transition-all ${
-                activeTab === 'profile' ? 'bg-white text-background border-white' : 'text-lightGray/70 border-white/5 hover:bg-white/5'
+                activeTab === 'profile' ? 'bg-accent text-white border-accent shadow-[0_4px_10px_rgba(var(--accent),0.15)]' : 'text-lightGray/70 border-slate-200/60 dark:border-white/5 hover:bg-white/5 dark:hover:bg-white/5'
               }`}
             >
               <Settings size={13} />
@@ -315,7 +356,7 @@ export default function DashboardPortal({
             </button>
             <button
               onClick={onLogout}
-              className="px-4 py-2 text-xs font-semibold text-lightGray/70 hover:text-white border border-white/5 rounded-lg flex items-center gap-2 transition-colors hover:bg-white/5"
+              className="px-4 py-2 text-xs font-semibold text-lightGray/70 hover:text-white border border-slate-200/60 dark:border-white/5 rounded-lg flex items-center gap-2 transition-all hover:bg-white/5 dark:hover:bg-white/5"
             >
               <LogOut size={13} />
               Sign Out
@@ -324,7 +365,7 @@ export default function DashboardPortal({
         </div>
 
         {/* Dashboard Navigation Tabs */}
-        <div className="flex border-b border-white/5 overflow-x-auto gap-2 pb-1">
+        <div className="flex border-b border-slate-200/60 dark:border-white/5 overflow-x-auto gap-2 pb-1">
           {[
             { id: 'overview', name: 'Workspace Overview', icon: Activity },
             { id: 'analytics', name: 'Performance Analytics', icon: BarChart3 },
@@ -343,7 +384,7 @@ export default function DashboardPortal({
                 onClick={() => setActiveTab(tab.id)}
                 className={`flex items-center gap-2 px-4 py-3 text-xs font-bold uppercase tracking-wider border-b-2 whitespace-nowrap transition-all ${
                   activeTab === tab.id
-                    ? 'border-white text-white'
+                    ? 'border-accent text-accent'
                     : 'border-transparent text-lightGray/40 hover:text-lightGray'
                 }`}
               >
@@ -370,14 +411,21 @@ export default function DashboardPortal({
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                   {stats.map((stat, idx) => {
                     const Icon = stat.icon;
+                    const iconColorClasses = [
+                      'bg-accent/10 text-accent',
+                      'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400',
+                      'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400',
+                      'bg-secondary/10 text-secondary'
+                    ][idx] || 'bg-accent/10 text-accent';
+
                     return (
-                      <div key={idx} className="p-5 bg-secondaryBg/40 border border-white/5 rounded-xl flex items-center justify-between">
+                      <div key={idx} className="p-5 bg-secondaryBg/80 dark:bg-secondaryBg/40 border border-slate-200/50 dark:border-white/5 shadow-[0_8px_30px_rgb(0,0,0,0.015)] dark:shadow-none hover:shadow-[0_8px_30px_rgb(0,0,0,0.035)] transition-all duration-300 rounded-2xl flex items-center justify-between">
                         <div className="space-y-1">
                           <span className="text-xs font-semibold text-lightGray/50 uppercase">{stat.title}</span>
                           <div className="text-2xl font-extrabold text-white">{stat.value}</div>
                           <div className="text-[10px] text-lightGray/40">{stat.desc}</div>
                         </div>
-                        <div className="p-3 bg-white/5 rounded-lg text-white">
+                        <div className={`p-3 rounded-xl ${iconColorClasses}`}>
                           <Icon size={18} />
                         </div>
                       </div>
@@ -386,9 +434,9 @@ export default function DashboardPortal({
                 </div>
 
                 {userProfile?.subscription === 'Free' && (
-                  <div className="p-5 bg-emerald-950/20 border border-emerald-900/40 rounded-xl flex flex-col sm:flex-row items-center justify-between gap-4 text-xs">
+                  <div className="p-5 bg-emerald-500/10 border border-emerald-500/20 text-emerald-800 dark:bg-emerald-950/20 dark:border-emerald-900/40 dark:text-emerald-400 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-4 text-xs">
                     <div className="space-y-1">
-                      <div className="flex items-center gap-1.5 text-emerald-400 font-bold">
+                      <div className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 font-bold">
                         <Sparkles size={14} className="animate-pulse" />
                         15-Day Free Student Usage Tracker
                       </div>
@@ -405,7 +453,7 @@ export default function DashboardPortal({
 
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
                   {/* Contribution heat activity log */}
-                  <div className="lg:col-span-8 p-6 bg-secondaryBg/30 border border-white/5 rounded-xl space-y-4">
+                  <div className="lg:col-span-8 p-6 bg-secondaryBg/80 dark:bg-secondaryBg/40 border border-slate-200/50 dark:border-white/5 shadow-[0_8px_30px_rgb(0,0,0,0.015)] dark:shadow-none hover:shadow-[0_8px_30px_rgb(0,0,0,0.035)] transition-all duration-300 rounded-2xl space-y-4">
                     <div>
                       <h3 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
                         <Activity size={16} /> Completed Interview Rounds Log
@@ -416,7 +464,7 @@ export default function DashboardPortal({
                     <div className="space-y-3.5 max-h-72 overflow-y-auto pr-1">
                       {interviewsList.length > 0 ? (
                         interviewsList.map((int, idx) => (
-                          <div key={int._id || idx} className="p-4 bg-background/50 border border-white/5 rounded-lg flex items-center justify-between">
+                          <div key={int._id || idx} className="p-4 bg-background/40 hover:bg-background/80 border border-slate-200/40 dark:border-white/5 rounded-xl flex items-center justify-between transition-all duration-200">
                             <div>
                               <div className="text-xs font-bold text-white">{int.track || int.type} Round</div>
                               <div className="text-[10px] text-lightGray/40 mt-1">Date: {new Date(int.createdAt).toLocaleDateString()} • {int.questions.length} questions</div>
@@ -425,7 +473,7 @@ export default function DashboardPortal({
                               <div className="text-right">
                                 <span className="text-xs font-bold text-white/90">Score: {int.score}%</span>
                               </div>
-                              <span className="px-2 py-0.5 rounded bg-white text-background text-[9px] font-black uppercase">Completed</span>
+                              <span className="px-2.5 py-0.5 rounded-full bg-accent/10 text-accent text-[9px] font-bold uppercase tracking-wider">Completed</span>
                             </div>
                           </div>
                         ))
@@ -438,7 +486,7 @@ export default function DashboardPortal({
                   </div>
 
                   {/* Sidebar activities */}
-                  <div className="lg:col-span-4 p-6 bg-secondaryBg/30 border border-white/5 rounded-xl flex flex-col justify-between">
+                  <div className="lg:col-span-4 p-6 bg-secondaryBg/80 dark:bg-secondaryBg/40 border border-slate-200/50 dark:border-white/5 shadow-[0_8px_30px_rgb(0,0,0,0.015)] dark:shadow-none hover:shadow-[0_8px_30px_rgb(0,0,0,0.035)] transition-all duration-300 rounded-2xl flex flex-col justify-between">
                     <div>
                       <h3 className="text-sm font-bold text-white uppercase tracking-wider mb-4 flex items-center gap-2">
                         <UserCheck size={16} /> Resume Audits Log
@@ -447,12 +495,12 @@ export default function DashboardPortal({
                       <div className="space-y-3 max-h-52 overflow-y-auto pr-1">
                         {dbResumes.length > 0 ? (
                           dbResumes.map((rep, idx) => (
-                            <div key={rep._id || idx} className="p-3 bg-background/40 border border-white/5 rounded-lg flex items-center justify-between text-xs">
+                            <div key={rep._id || idx} className="p-3 bg-background/30 hover:bg-background/60 border border-slate-200/40 dark:border-white/5 rounded-xl flex items-center justify-between text-xs transition-all duration-200">
                               <div>
                                 <div className="font-semibold text-white">ATS Scanned Report</div>
                                 <div className="text-[9px] text-lightGray/40 mt-0.5">{new Date(rep.createdAt).toLocaleDateString()}</div>
                               </div>
-                              <span className="px-2 py-0.5 bg-white text-background text-[9px] font-black rounded">{rep.atsScore}/100</span>
+                              <span className={`px-2.5 py-0.5 rounded-full text-[9px] font-bold tracking-wider ${rep.atsScore >= 80 ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' : rep.atsScore >= 65 ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400' : 'bg-rose-500/10 text-rose-600 dark:text-rose-400'}`}>{rep.atsScore}/100</span>
                             </div>
                           ))
                         ) : (
@@ -468,7 +516,7 @@ export default function DashboardPortal({
                         const el = document.querySelector('#resume');
                         if (el) el.scrollIntoView({ behavior: 'smooth' });
                       }}
-                      className="w-full mt-6 py-2 text-xs font-bold glassmorphism text-white rounded-lg hover:bg-white/5 transition-all text-center"
+                      className="w-full mt-6 py-2.5 text-xs font-bold bg-accent text-white rounded-lg hover:bg-accent/90 transition-all text-center shadow-[0_4px_12px_rgba(var(--accent),0.15)]"
                     >
                       Audit Resume Now
                     </button>
@@ -476,14 +524,14 @@ export default function DashboardPortal({
                 </div>
 
                 {/* Challenges listing */}
-                <div className="p-6 bg-secondaryBg/30 border border-white/5 rounded-xl space-y-6">
-                  <div className="flex justify-between items-center flex-wrap gap-4 border-b border-white/5 pb-4">
+                <div className="p-6 bg-secondaryBg/80 dark:bg-secondaryBg/40 border border-slate-200/50 dark:border-white/5 shadow-[0_8px_30px_rgb(0,0,0,0.015)] dark:shadow-none hover:shadow-[0_8px_30px_rgb(0,0,0,0.035)] transition-all duration-300 rounded-2xl space-y-6">
+                  <div className="flex justify-between items-center flex-wrap gap-4 border-b border-slate-200/60 dark:border-white/5 pb-4">
                     <div>
                       <h3 className="text-sm font-bold text-white uppercase tracking-wider">Algorithmic Sandbox Selection</h3>
                       <p className="text-xs text-lightGray/55 mt-0.5">Select a challenge below and run inside the compiler sandbox</p>
                     </div>
                     
-                    <div className="flex p-0.5 bg-white/5 border border-white/5 rounded-xl">
+                    <div className="flex p-0.5 bg-slate-200/50 dark:bg-white/5 border border-slate-200/40 dark:border-white/5 rounded-xl">
                       {[
                         { id: 'Easy', name: 'Easy Level' },
                         { id: 'Medium', name: 'Medium Level' },
@@ -495,8 +543,8 @@ export default function DashboardPortal({
                           onClick={() => setDifficultyFilter(lvl.id)}
                           className={`px-4 py-1.5 text-xs font-bold rounded-lg transition-all ${
                             difficultyFilter === lvl.id 
-                              ? 'bg-white text-background font-extrabold shadow-md' 
-                              : 'text-lightGray/50 hover:text-white'
+                              ? 'bg-accent text-white font-extrabold shadow-md' 
+                              : 'text-lightGray/50 hover:text-lightGray'
                           }`}
                         >
                           {lvl.name}
@@ -517,10 +565,10 @@ export default function DashboardPortal({
                             if (el) el.scrollIntoView({ behavior: 'smooth' });
                           }, 100);
                         }}
-                        className="p-4 bg-background/40 border border-white/5 rounded-xl flex items-center justify-between hover:bg-background/80 hover:border-white/20 transition-all cursor-pointer group"
+                        className="p-4 bg-background/40 border border-slate-200/40 dark:border-white/5 rounded-xl flex items-center justify-between hover:bg-background/80 hover:border-slate-200/80 dark:hover:border-white/10 transition-all cursor-pointer group"
                       >
-                        <div className="text-xs font-bold text-white group-hover:text-white transition-colors">{ch.title}</div>
-                        <ChevronRight size={14} className="text-lightGray/20 group-hover:text-white group-hover:translate-x-0.5 transition-all" />
+                        <div className="text-xs font-bold text-white group-hover:text-accent transition-colors">{ch.title}</div>
+                        <ChevronRight size={14} className="text-lightGray/20 group-hover:text-accent group-hover:translate-x-0.5 transition-all" />
                       </div>
                     ))}
                     {CHALLENGES.filter(ch => ch.difficulty === difficultyFilter).length === 0 && (
@@ -533,7 +581,7 @@ export default function DashboardPortal({
 
                 {/* Plans / Active subscription tier */}
                 {userProfile?.subscription === 'Free' ? (
-                  <div className="p-6 bg-secondaryBg/30 border border-white/5 rounded-xl space-y-6">
+                  <div className="p-6 bg-secondaryBg/80 dark:bg-secondaryBg/40 border border-slate-200/50 dark:border-white/5 shadow-[0_8px_30px_rgb(0,0,0,0.015)] dark:shadow-none hover:shadow-[0_8px_30px_rgb(0,0,0,0.035)] rounded-2xl space-y-6">
                     <div>
                       <h3 className="text-sm font-bold text-white uppercase tracking-wider">SaaS Premium Billing Matrix</h3>
                       <p className="text-xs text-lightGray/55 mt-0.5">Select and unlock advanced AI configurations</p>
@@ -541,7 +589,7 @@ export default function DashboardPortal({
 
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 items-stretch">
                       {/* Free */}
-                      <div className="p-5 bg-background/50 border border-white/5 rounded-xl flex flex-col justify-between text-xs">
+                      <div className="p-5 bg-background/30 dark:bg-background/50 border border-slate-200/40 dark:border-white/5 rounded-2xl flex flex-col justify-between text-xs hover:border-slate-300 dark:hover:border-white/10 transition-all">
                         <div className="space-y-4">
                           <div>
                             <div className="font-bold text-white">Free Plan</div>
@@ -556,14 +604,14 @@ export default function DashboardPortal({
                         </div>
                         <button 
                           disabled 
-                          className="w-full mt-6 py-2 bg-white/5 text-lightGray/40 font-bold rounded border border-white/5 cursor-not-allowed"
+                          className="w-full mt-6 py-2 bg-accent/10 text-accent font-bold rounded-lg border border-accent/20 cursor-not-allowed"
                         >
                           Active Tier
                         </button>
                       </div>
 
                       {/* Pro */}
-                      <div className="p-5 bg-background/60 border border-white/5 rounded-xl flex flex-col justify-between text-xs relative">
+                      <div className="p-5 bg-background/40 dark:bg-background/60 border border-slate-200/40 dark:border-white/5 rounded-2xl flex flex-col justify-between text-xs relative hover:border-slate-300 dark:hover:border-white/10 transition-all">
                         <div className="space-y-4">
                           <div>
                             <div className="font-bold text-white">Pro Plan</div>
@@ -580,14 +628,14 @@ export default function DashboardPortal({
                         <button
                           onClick={() => handleSubscribe('Pro')}
                           disabled={upgrading}
-                          className="w-full mt-6 py-2 bg-white text-background hover:bg-lightGray font-bold rounded transition-colors disabled:opacity-40"
+                          className="w-full mt-6 py-2 bg-accent hover:bg-accent/90 text-white font-bold rounded-lg transition-colors shadow-[0_4px_12px_rgba(var(--accent),0.15)] disabled:opacity-40"
                         >
                           Upgrade to Pro
                         </button>
                       </div>
 
                       {/* Premium */}
-                      <div className="p-5 bg-background/60 border border-white/5 rounded-xl flex flex-col justify-between text-xs relative">
+                      <div className="p-5 bg-background/40 dark:bg-background/60 border border-slate-200/40 dark:border-white/5 rounded-2xl flex flex-col justify-between text-xs relative hover:border-slate-300 dark:hover:border-white/10 transition-all">
                         <div className="space-y-4">
                           <div>
                             <div className="font-bold text-white">Premium Plan</div>
@@ -604,7 +652,7 @@ export default function DashboardPortal({
                         <button
                           onClick={() => handleSubscribe('Premium')}
                           disabled={upgrading}
-                          className="w-full mt-6 py-2 bg-white text-background hover:bg-lightGray font-bold rounded transition-colors disabled:opacity-40"
+                          className="w-full mt-6 py-2 bg-accent hover:bg-accent/90 text-white font-bold rounded-lg transition-colors shadow-[0_4px_12px_rgba(var(--accent),0.15)] disabled:opacity-40"
                         >
                           Upgrade Premium
                         </button>
@@ -612,9 +660,9 @@ export default function DashboardPortal({
                     </div>
                   </div>
                 ) : (
-                  <div className="p-6 bg-gradient-to-r from-emerald-950/20 to-secondaryBg/30 border border-emerald-900/40 rounded-xl flex flex-col sm:flex-row items-center justify-between gap-4">
+                  <div className="p-6 bg-gradient-to-r from-emerald-500/10 to-secondaryBg/60 dark:from-emerald-950/20 dark:to-secondaryBg/30 border border-emerald-500/20 dark:border-emerald-900/40 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-4">
                     <div className="flex items-center gap-3">
-                      <div className="p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-lg text-emerald-400">
+                      <div className="p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-xl text-emerald-600 dark:text-emerald-400">
                         <Sparkles size={20} className="animate-pulse" />
                       </div>
                       <div>
@@ -622,7 +670,7 @@ export default function DashboardPortal({
                         <p className="text-xs text-lightGray/60 mt-0.5">Thank you for supporting us! You have unlocked all premium preparation features.</p>
                       </div>
                     </div>
-                    <div className="px-4 py-1.5 bg-emerald-950 border border-emerald-800 rounded-full text-xs font-semibold text-emerald-400">
+                    <div className="px-4 py-1.5 bg-emerald-500/10 border border-emerald-500/30 rounded-full text-xs font-semibold text-emerald-600 dark:text-emerald-400">
                       Active Pack: {userProfile?.subscription}
                     </div>
                   </div>
@@ -638,7 +686,7 @@ export default function DashboardPortal({
                 exit={{ opacity: 0, y: -10 }}
                 className="space-y-6"
               >
-                <div className="p-6 bg-secondaryBg/30 border border-white/5 rounded-xl">
+                <div className="p-6 bg-secondaryBg/80 dark:bg-secondaryBg/40 border border-slate-200/50 dark:border-white/5 shadow-[0_8px_30px_rgb(0,0,0,0.015)] dark:shadow-none hover:shadow-[0_8px_30px_rgb(0,0,0,0.035)] transition-all duration-300 rounded-2xl">
                   <AnalyticsTab 
                     interviewsList={interviewsList} 
                     solvedProblems={solvedProblems}
@@ -664,7 +712,7 @@ export default function DashboardPortal({
                 exit={{ opacity: 0, y: -10 }}
                 className="space-y-6"
               >
-                <div className="p-6 bg-secondaryBg/30 border border-white/5 rounded-xl">
+                <div className="p-6 bg-secondaryBg/80 dark:bg-secondaryBg/40 border border-slate-200/50 dark:border-white/5 shadow-[0_8px_30px_rgb(0,0,0,0.015)] dark:shadow-none hover:shadow-[0_8px_30px_rgb(0,0,0,0.035)] transition-all duration-300 rounded-2xl">
                   <MockInterviewDemo 
                     onInterviewComplete={() => {
                       fetchDashboardData();
@@ -683,7 +731,7 @@ export default function DashboardPortal({
                 exit={{ opacity: 0, y: -10 }}
                 className="space-y-6"
               >
-                <div className="p-6 bg-secondaryBg/30 border border-white/5 rounded-xl">
+                <div className="p-6 bg-secondaryBg/80 dark:bg-secondaryBg/40 border border-slate-200/50 dark:border-white/5 shadow-[0_8px_30px_rgb(0,0,0,0.015)] dark:shadow-none hover:shadow-[0_8px_30px_rgb(0,0,0,0.035)] transition-all duration-300 rounded-2xl">
                   <ResumeAnalyzer 
                     atsScore={atsScore} 
                     onAtsScoreChange={(newScore) => {
@@ -703,7 +751,7 @@ export default function DashboardPortal({
                 exit={{ opacity: 0, y: -10 }}
                 className="space-y-6"
               >
-                <div className="p-6 bg-secondaryBg/30 border border-white/5 rounded-xl">
+                <div className="p-6 bg-secondaryBg/80 dark:bg-secondaryBg/40 border border-slate-200/50 dark:border-white/5 shadow-[0_8px_30px_rgb(0,0,0,0.015)] dark:shadow-none hover:shadow-[0_8px_30px_rgb(0,0,0,0.035)] transition-all duration-300 rounded-2xl">
                   <CodingAssessment 
                     solvedProblems={solvedProblems} 
                     onSolveProblem={onSolveProblem} 
@@ -722,9 +770,9 @@ export default function DashboardPortal({
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}
-                className="p-6 bg-secondaryBg/30 border border-white/5 rounded-xl space-y-6"
+                className="p-6 bg-secondaryBg/80 dark:bg-secondaryBg/40 border border-slate-200/50 dark:border-white/5 shadow-[0_8px_30px_rgb(0,0,0,0.015)] dark:shadow-none hover:shadow-[0_8px_30px_rgb(0,0,0,0.035)] transition-all duration-300 rounded-2xl space-y-6"
               >
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/5 pb-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200/60 dark:border-white/5 pb-4">
                   <div>
                     <h3 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
                       <Compass size={16} /> AI Career Coach Roadmap
@@ -735,7 +783,7 @@ export default function DashboardPortal({
                     <button
                       onClick={handleGenerateRoadmap}
                       disabled={loadingCoach}
-                      className="px-4 py-2 text-xs font-bold bg-white text-background hover:bg-lightGray rounded-lg disabled:opacity-40 transition-colors"
+                      className="px-4 py-2 text-xs font-bold bg-accent hover:bg-accent/90 text-white rounded-lg disabled:opacity-40 transition-all shadow-[0_4px_12px_rgba(var(--accent),0.15)]"
                     >
                       {loadingCoach ? 'Analyzing Profile...' : 'Generate AI Roadmap'}
                     </button>
@@ -751,7 +799,7 @@ export default function DashboardPortal({
                     </p>
                     <button
                       onClick={() => setActiveTab('billing')}
-                      className="px-6 py-2.5 text-xs font-bold bg-white text-background hover:bg-lightGray rounded-lg transition-colors"
+                      className="px-6 py-2.5 text-xs font-bold bg-accent hover:bg-accent/90 text-white rounded-lg transition-all shadow-[0_4px_12px_rgba(var(--accent),0.15)]"
                     >
                       View Premium Plans
                     </button>
@@ -763,15 +811,15 @@ export default function DashboardPortal({
                       <h4 className="text-xs font-bold text-white uppercase mb-3.5 flex items-center gap-1.5"><Calendar size={13} /> Target Timeline Checklist</h4>
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                         {coachData.roadmap.map((phase, idx) => (
-                          <div key={idx} className="p-4 bg-background/50 border border-white/5 rounded-xl space-y-2">
+                          <div key={idx} className="p-4 bg-background/30 hover:bg-background/60 border border-slate-200/40 dark:border-white/5 rounded-xl space-y-2 transition-all duration-250">
                             <div className="flex justify-between items-center text-xs">
                               <span className="font-bold text-white">{phase.phase}</span>
-                              <span className="px-2 py-0.5 bg-white/5 rounded text-[9px] font-mono text-lightGray/70">{phase.duration}</span>
+                              <span className="px-2 py-0.5 bg-accent/10 rounded text-[9px] font-mono text-accent">{phase.duration}</span>
                             </div>
                             <ul className="space-y-1.5 text-[11px] text-lightGray/70">
                               {phase.goals.map((g, i) => (
                                 <li key={i} className="flex gap-1.5 items-start">
-                                  <Check size={11} className="text-white mt-0.5 flex-shrink-0" />
+                                  <Check size={11} className="text-accent mt-0.5 flex-shrink-0" />
                                   <span>{g}</span>
                                 </li>
                               ))}
@@ -782,16 +830,16 @@ export default function DashboardPortal({
                     </div>
 
                     {/* Skill Gaps & Salary */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-white/5">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-slate-200/60 dark:border-white/5">
                       {/* Skill Gap Analysis */}
                       <div className="space-y-3">
                         <h4 className="text-xs font-bold text-white uppercase flex items-center gap-1.5"><Info size={13} /> Skill Gap Analysis</h4>
-                        <div className="p-4 bg-background/40 border border-white/5 rounded-xl space-y-3">
+                        <div className="p-4 bg-background/30 border border-slate-200/40 dark:border-white/5 rounded-xl space-y-3">
                           <div>
                             <span className="text-[10px] text-lightGray/50 font-bold uppercase">Identified Strengths</span>
                             <div className="flex flex-wrap gap-1 mt-1.5">
                               {coachData.skillGapAnalysis.strengths.map((str, i) => (
-                                <span key={i} className="px-2 py-0.5 rounded bg-emerald-950/25 border border-emerald-800/40 text-[10px] text-emerald-400 font-medium">{str}</span>
+                                <span key={i} className="px-2.5 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/25 text-[10px] text-emerald-600 dark:text-emerald-400 font-medium">{str}</span>
                               ))}
                             </div>
                           </div>
@@ -799,7 +847,7 @@ export default function DashboardPortal({
                             <span className="text-[10px] text-lightGray/50 font-bold uppercase">Gaps to Address</span>
                             <div className="flex flex-wrap gap-1 mt-1.5">
                               {coachData.skillGapAnalysis.gaps.map((gap, i) => (
-                                <span key={i} className="px-2 py-0.5 rounded bg-rose-950/25 border border-rose-800/40 text-[10px] text-rose-400 font-medium">{gap}</span>
+                                <span key={i} className="px-2.5 py-0.5 rounded-full bg-rose-500/10 border border-rose-500/25 text-[10px] text-rose-600 dark:text-rose-400 font-medium">{gap}</span>
                               ))}
                             </div>
                           </div>
@@ -809,22 +857,22 @@ export default function DashboardPortal({
                       {/* Salary Benchmarks */}
                       <div className="space-y-3">
                         <h4 className="text-xs font-bold text-white uppercase flex items-center gap-1.5"><CreditCard size={13} /> Salary & Market Outlook</h4>
-                        <div className="p-4 bg-background/40 border border-white/5 rounded-xl text-xs space-y-2.5">
-                          <div className="flex justify-between border-b border-white/5 pb-2">
+                        <div className="p-4 bg-background/30 border border-slate-200/40 dark:border-white/5 rounded-xl text-xs space-y-2.5">
+                          <div className="flex justify-between border-b border-slate-200/50 dark:border-white/5 pb-2">
                             <span className="text-lightGray/60">Entry-Level Range</span>
                             <span className="font-bold text-white">{coachData.salaryInsights.entryLevel}</span>
                           </div>
-                          <div className="flex justify-between border-b border-white/5 pb-2">
+                          <div className="flex justify-between border-b border-slate-200/50 dark:border-white/5 pb-2">
                             <span className="text-lightGray/60">Mid-Level Range</span>
                             <span className="font-bold text-white">{coachData.salaryInsights.midLevel}</span>
                           </div>
-                          <div className="flex justify-between border-b border-white/5 pb-2">
+                          <div className="flex justify-between border-b border-slate-200/50 dark:border-white/5 pb-2">
                             <span className="text-lightGray/60">Senior-Level Range</span>
                             <span className="font-bold text-white">{coachData.salaryInsights.seniorLevel}</span>
                           </div>
                           <div className="flex justify-between items-center pt-1">
                             <span className="text-lightGray/60">Global Market Demand</span>
-                            <span className="px-2.5 py-0.5 bg-white text-background text-[9px] font-black rounded uppercase">{coachData.salaryInsights.marketDemand}</span>
+                            <span className="px-2.5 py-0.5 bg-accent/10 text-accent text-[9px] font-bold rounded-full uppercase tracking-wider">{coachData.salaryInsights.marketDemand}</span>
                           </div>
                         </div>
                       </div>
@@ -845,9 +893,9 @@ export default function DashboardPortal({
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}
-                className="p-6 bg-secondaryBg/30 border border-white/5 rounded-xl space-y-6"
+                className="p-6 bg-secondaryBg/80 dark:bg-secondaryBg/40 border border-slate-200/50 dark:border-white/5 shadow-[0_8px_30px_rgb(0,0,0,0.015)] dark:shadow-none hover:shadow-[0_8px_30px_rgb(0,0,0,0.035)] transition-all duration-300 rounded-2xl space-y-6"
               >
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/5 pb-4">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-200/60 dark:border-white/5 pb-4">
                   <div>
                     <h3 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
                       <Building size={16} /> Company-Specific Preparation Tracks
@@ -861,10 +909,10 @@ export default function DashboardPortal({
                         <button
                           key={c.id}
                           onClick={() => setSelectedCompany(c.id)}
-                          className={`px-3 py-1.5 text-xs font-bold rounded ${
+                          className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${
                             selectedCompany === c.id 
-                              ? 'bg-white text-background' 
-                              : 'bg-background/50 text-lightGray border border-white/5 hover:bg-white/5'
+                              ? 'bg-accent text-white shadow-[0_4px_10px_rgba(var(--accent),0.15)]' 
+                              : 'bg-background/50 text-lightGray border border-slate-200/40 dark:border-white/5 hover:bg-white/5'
                           }`}
                         >
                           {c.name}
@@ -883,7 +931,7 @@ export default function DashboardPortal({
                     </p>
                     <button
                       onClick={() => setActiveTab('billing')}
-                      className="px-6 py-2.5 text-xs font-bold bg-white text-background hover:bg-lightGray rounded-lg transition-colors"
+                      className="px-6 py-2.5 text-xs font-bold bg-accent hover:bg-accent/90 text-white rounded-lg transition-all shadow-[0_4px_12px_rgba(var(--accent),0.15)]"
                     >
                       View Billing Options
                     </button>
@@ -894,34 +942,34 @@ export default function DashboardPortal({
                   </div>
                 ) : companyPrepData ? (
                   <div className="space-y-6 animate-in fade-in duration-200">
-                    <div className="flex justify-between items-center p-4 bg-background/50 border border-white/5 rounded-xl text-xs">
+                    <div className="flex justify-between items-center p-4 bg-background/40 border border-slate-200/40 dark:border-white/5 rounded-xl text-xs">
                       <div>
                         <div className="font-bold text-white text-sm">{companyPrepData.name} Modules</div>
                         <div className="text-lightGray/60 mt-1">{companyPrepData.roundDetails}</div>
                       </div>
-                      <span className="px-2.5 py-0.5 bg-white text-background text-[9px] font-black rounded uppercase">Difficulty: {companyPrepData.difficulty}</span>
+                      <span className="px-2.5 py-0.5 bg-accent/10 text-accent text-[9px] font-bold rounded-full uppercase tracking-wider">Difficulty: {companyPrepData.difficulty}</span>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-xs">
                       {/* Aptitude */}
-                      <div className="p-4 bg-background/40 border border-white/5 rounded-xl space-y-3">
-                        <h4 className="font-bold text-white uppercase tracking-wider pb-2 border-b border-white/5">1. Quantitative Aptitude</h4>
+                      <div className="p-4 bg-background/30 border border-slate-200/40 dark:border-white/5 rounded-xl space-y-3">
+                        <h4 className="font-bold text-white uppercase tracking-wider pb-2 border-b border-slate-200/50 dark:border-white/5">1. Quantitative Aptitude</h4>
                         <ul className="space-y-2 text-lightGray/70">
                           {companyPrepData.aptitudePrep.map((a, i) => <li key={i} className="leading-relaxed">• {a}</li>)}
                         </ul>
                       </div>
 
                       {/* Technical */}
-                      <div className="p-4 bg-background/40 border border-white/5 rounded-xl space-y-3">
-                        <h4 className="font-bold text-white uppercase tracking-wider pb-2 border-b border-white/5">2. Tech Round Questions</h4>
+                      <div className="p-4 bg-background/30 border border-slate-200/40 dark:border-white/5 rounded-xl space-y-3">
+                        <h4 className="font-bold text-white uppercase tracking-wider pb-2 border-b border-slate-200/50 dark:border-white/5">2. Tech Round Questions</h4>
                         <ul className="space-y-2 text-lightGray/70">
                           {companyPrepData.technicalQuestions.map((t, i) => <li key={i} className="leading-relaxed">• {t}</li>)}
                         </ul>
                       </div>
 
                       {/* HR */}
-                      <div className="p-4 bg-background/40 border border-white/5 rounded-xl space-y-3">
-                        <h4 className="font-bold text-white uppercase tracking-wider pb-2 border-b border-white/5">3. HR Behavioral Puzzles</h4>
+                      <div className="p-4 bg-background/30 border border-slate-200/40 dark:border-white/5 rounded-xl space-y-3">
+                        <h4 className="font-bold text-white uppercase tracking-wider pb-2 border-b border-slate-200/50 dark:border-white/5">3. HR Behavioral Puzzles</h4>
                         <ul className="space-y-2 text-lightGray/70">
                           {companyPrepData.hrQuestions.map((h, i) => <li key={i} className="leading-relaxed">• {h}</li>)}
                         </ul>
@@ -941,7 +989,7 @@ export default function DashboardPortal({
                 className="grid grid-cols-1 lg:grid-cols-12 gap-8"
               >
                 {/* Billing details / Plans */}
-                <div className="lg:col-span-8 p-6 bg-secondaryBg/30 border border-white/5 rounded-xl space-y-6">
+                <div className="lg:col-span-8 p-6 bg-secondaryBg/80 dark:bg-secondaryBg/40 border border-slate-200/50 dark:border-white/5 shadow-[0_8px_30px_rgb(0,0,0,0.015)] dark:shadow-none hover:shadow-[0_8px_30px_rgb(0,0,0,0.035)] transition-all duration-300 rounded-2xl space-y-6">
                   {userProfile?.subscription === 'Free' ? (
                     <>
                       <div>
@@ -951,7 +999,7 @@ export default function DashboardPortal({
 
                       <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 items-stretch">
                         {/* Free */}
-                        <div className="p-5 bg-background/50 border border-white/5 rounded-xl flex flex-col justify-between text-xs">
+                        <div className="p-5 bg-background/30 dark:bg-background/50 border border-slate-200/40 dark:border-white/5 rounded-2xl flex flex-col justify-between text-xs hover:border-slate-300 dark:hover:border-white/10 transition-all">
                           <div className="space-y-4">
                             <div>
                               <div className="font-bold text-white">Free Plan</div>
@@ -966,14 +1014,14 @@ export default function DashboardPortal({
                           </div>
                           <button 
                             disabled 
-                            className="w-full mt-6 py-2 bg-secondaryBg text-lightGray/40 font-bold rounded border border-white/5 cursor-not-allowed"
+                            className="w-full mt-6 py-2 bg-accent/10 text-accent font-bold rounded-lg border border-accent/20 cursor-not-allowed"
                           >
                             Active Tier
                           </button>
                         </div>
 
                         {/* Pro */}
-                        <div className="p-5 bg-background/60 border border-white/5 rounded-xl flex flex-col justify-between text-xs relative">
+                        <div className="p-5 bg-background/40 dark:bg-background/60 border border-slate-200/40 dark:border-white/5 rounded-2xl flex flex-col justify-between text-xs relative hover:border-slate-300 dark:hover:border-white/10 transition-all">
                           <div className="space-y-4">
                             <div>
                               <div className="font-bold text-white">Pro Plan</div>
@@ -990,14 +1038,14 @@ export default function DashboardPortal({
                           <button
                             onClick={() => handleSubscribe('Pro')}
                             disabled={upgrading}
-                            className="w-full mt-6 py-2 bg-white text-background hover:bg-lightGray font-bold rounded transition-colors disabled:opacity-40"
+                            className="w-full mt-6 py-2 bg-accent hover:bg-accent/90 text-white font-bold rounded-lg transition-colors shadow-[0_4px_12px_rgba(var(--accent),0.15)] disabled:opacity-40"
                           >
                             Upgrade to Pro
                           </button>
                         </div>
 
                         {/* Premium */}
-                        <div className="p-5 bg-background/60 border border-white/5 rounded-xl flex flex-col justify-between text-xs relative">
+                        <div className="p-5 bg-background/40 dark:bg-background/60 border border-slate-200/40 dark:border-white/5 rounded-2xl flex flex-col justify-between text-xs relative hover:border-slate-300 dark:hover:border-white/10 transition-all">
                           <div className="space-y-4">
                             <div>
                               <div className="font-bold text-white">Premium Plan</div>
@@ -1014,7 +1062,7 @@ export default function DashboardPortal({
                           <button
                             onClick={() => handleSubscribe('Premium')}
                             disabled={upgrading}
-                            className="w-full mt-6 py-2 bg-white text-background hover:bg-lightGray font-bold rounded transition-colors disabled:opacity-40"
+                            className="w-full mt-6 py-2 bg-accent hover:bg-accent/90 text-white font-bold rounded-lg transition-colors shadow-[0_4px_12px_rgba(var(--accent),0.15)] disabled:opacity-40"
                           >
                             Upgrade Premium
                           </button>
@@ -1022,8 +1070,8 @@ export default function DashboardPortal({
                       </div>
                     </>
                   ) : (
-                    <div className="p-8 bg-gradient-to-br from-emerald-950/20 to-background border border-emerald-900/40 rounded-2xl text-center space-y-5">
-                      <div className="w-12 h-12 rounded-full bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 mx-auto">
+                    <div className="p-8 bg-gradient-to-br from-emerald-500/10 to-secondaryBg/60 dark:from-emerald-950/20 dark:to-background border border-emerald-500/20 dark:border-emerald-900/40 rounded-2xl text-center space-y-5">
+                      <div className="w-12 h-12 rounded-full bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-600 dark:text-emerald-400 mx-auto">
                         <Sparkles size={24} className="animate-pulse" />
                       </div>
                       <div className="space-y-2">
@@ -1032,7 +1080,7 @@ export default function DashboardPortal({
                           Thank you for purchasing the {userProfile.subscription} access tier. You now have unlimited access to AI Mock Interviews, ATS Resume Audits, and the Coding Compilation Sandbox.
                         </p>
                       </div>
-                      <div className="p-4 bg-emerald-950/40 rounded-xl border border-emerald-900/60 text-xs text-emerald-400 font-mono max-w-xs mx-auto">
+                      <div className="p-4 bg-emerald-500/10 border border-emerald-500/30 rounded-xl text-xs text-emerald-600 dark:text-emerald-400 font-mono max-w-xs mx-auto">
                         SUBSCRIPTION STATUS: ACTIVE
                       </div>
                       <div className="text-[10px] text-lightGray/40 leading-relaxed font-sans">
@@ -1042,10 +1090,10 @@ export default function DashboardPortal({
                   )}
 
                   {userProfile?.subscription !== 'Free' && (
-                    <div className="pt-4 border-t border-white/5 flex justify-end">
+                    <div className="pt-4 border-t border-slate-200/50 dark:border-white/5 flex justify-end">
                       <button
                         onClick={handleCancelSub}
-                        className="text-xs text-rose-400/80 hover:text-rose-400 font-medium transition-colors"
+                        className="text-xs text-rose-500/80 hover:text-rose-500 font-medium transition-colors"
                       >
                         Cancel Active Subscription Tier
                       </button>
@@ -1054,7 +1102,7 @@ export default function DashboardPortal({
                 </div>
 
                 {/* Billing invoice history logs */}
-                <div className="lg:col-span-4 p-6 bg-secondaryBg/30 border border-white/5 rounded-xl flex flex-col justify-between">
+                <div className="lg:col-span-4 p-6 bg-secondaryBg/80 dark:bg-secondaryBg/40 border border-slate-200/50 dark:border-white/5 shadow-[0_8px_30px_rgb(0,0,0,0.015)] dark:shadow-none hover:shadow-[0_8px_30px_rgb(0,0,0,0.035)] rounded-2xl flex flex-col justify-between">
                   <div>
                     <h3 className="text-sm font-bold text-white uppercase tracking-wider mb-4 flex items-center gap-2">
                       <Clock size={16} /> Invoices History
@@ -1063,14 +1111,14 @@ export default function DashboardPortal({
                     <div className="space-y-3.5 text-xs max-h-56 overflow-y-auto pr-1">
                       {billingInfo.history.length > 0 ? (
                         billingInfo.history.map((inv) => (
-                          <div key={inv.id} className="p-3 bg-background/50 border border-white/5 rounded-lg flex items-center justify-between">
+                          <div key={inv.id} className="p-3 bg-background/30 hover:bg-background/60 border border-slate-200/40 dark:border-white/5 rounded-xl flex items-center justify-between transition-all duration-200">
                             <div>
                               <div className="font-bold text-white/90">{inv.plan}</div>
                               <div className="text-[9px] text-lightGray/40 mt-1">Date: {inv.date}</div>
                             </div>
                             <div className="text-right">
                               <div className="font-bold text-white">{inv.amount}</div>
-                              <span className="text-[9px] text-emerald-400 font-semibold uppercase">Paid</span>
+                              <span className="text-[9px] text-emerald-600 dark:text-emerald-400 font-semibold uppercase">Paid</span>
                             </div>
                           </div>
                         ))
@@ -1082,7 +1130,7 @@ export default function DashboardPortal({
                     </div>
                   </div>
 
-                  <div className="pt-4 text-[10px] text-lightGray/40 leading-relaxed font-mono flex items-start gap-1.5">
+                  <div className="pt-4 text-[10px] text-lightGray/40 leading-relaxed font-mono flex items-start gap-1.5 border-t border-slate-200/60 dark:border-white/5 mt-4">
                     <Info size={12} className="flex-shrink-0" />
                     <span>Invoices will dynamically synchronize to your mail inbox upon card authorizations.</span>
                   </div>
@@ -1098,7 +1146,7 @@ export default function DashboardPortal({
                 exit={{ opacity: 0, y: -10 }}
                 className="space-y-6"
               >
-                <div className="p-6 bg-secondaryBg/30 border border-white/5 rounded-xl space-y-6">
+                <div className="p-6 bg-secondaryBg/80 dark:bg-secondaryBg/40 border border-slate-200/50 dark:border-white/5 shadow-[0_8px_30px_rgb(0,0,0,0.015)] dark:shadow-none hover:shadow-[0_8px_30px_rgb(0,0,0,0.035)] transition-all duration-300 rounded-2xl space-y-6">
                   <div>
                     <h3 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
                       <Sparkles size={16} className="text-amber-400 animate-pulse" /> Student XP Rewards Shop
@@ -1108,11 +1156,11 @@ export default function DashboardPortal({
                     </p>
                   </div>
 
-                  <div className="p-4 bg-background/50 border border-white/5 rounded-xl flex items-center justify-between">
+                  <div className="p-4 bg-background/40 border border-slate-200/40 dark:border-white/5 rounded-2xl flex items-center justify-between">
                     <div>
                       <span className="text-[10px] font-bold text-lightGray/40 uppercase">Your Available Points</span>
                       <div className="text-2xl font-black text-white flex items-center gap-2 mt-0.5">
-                        <Award size={20} className="text-amber-400" />
+                        <Award size={20} className="text-amber-400 animate-bounce" />
                         <span>{totalXp - (userProfile?.spentXp || 0)} XP</span>
                       </div>
                       <p className="text-[9px] text-lightGray/50">Total earned: {totalXp} XP | Spent: {userProfile?.spentXp || 0} XP</p>
@@ -1121,10 +1169,10 @@ export default function DashboardPortal({
 
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     {/* Reward Card 1: Refill Interviews */}
-                    <div className="p-5 bg-background/45 border border-white/5 rounded-xl space-y-4 flex flex-col justify-between">
+                    <div className="p-5 bg-background/30 hover:bg-background/50 border border-slate-200/40 dark:border-white/5 rounded-2xl space-y-4 flex flex-col justify-between shadow-sm hover:shadow-md transition-all duration-300">
                       <div className="space-y-2">
                         <div className="flex justify-between items-start">
-                          <span className="text-[10px] font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full uppercase">Refill</span>
+                          <span className="text-[10px] font-bold text-emerald-600 bg-emerald-500/10 dark:text-emerald-400 px-2 py-0.5 rounded-full uppercase tracking-wider">Refill</span>
                           <span className="text-xs font-black text-white">500 XP</span>
                         </div>
                         <h4 className="text-sm font-bold text-white">Refill Mock Interviews</h4>
@@ -1135,17 +1183,17 @@ export default function DashboardPortal({
                       <button 
                         onClick={() => handleRedeemReward('refill_interviews', 500)}
                         disabled={redeemingReward || (totalXp - (userProfile?.spentXp || 0)) < 500}
-                        className="w-full py-2 bg-white text-background text-xs font-bold rounded-lg hover:bg-lightGray disabled:opacity-30 disabled:hover:bg-white transition-all"
+                        className="w-full py-2 bg-accent hover:bg-accent/90 text-white text-xs font-bold rounded-lg shadow-[0_4px_10px_rgba(var(--accent),0.15)] disabled:opacity-30 disabled:hover:bg-accent transition-all"
                       >
                         Redeem Refill
                       </button>
                     </div>
 
                     {/* Reward Card 2: Refill Resume Analysis */}
-                    <div className="p-5 bg-background/45 border border-white/5 rounded-xl space-y-4 flex flex-col justify-between">
+                    <div className="p-5 bg-background/30 hover:bg-background/50 border border-slate-200/40 dark:border-white/5 rounded-2xl space-y-4 flex flex-col justify-between shadow-sm hover:shadow-md transition-all duration-300">
                       <div className="space-y-2">
                         <div className="flex justify-between items-start">
-                          <span className="text-[10px] font-bold text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-full uppercase">Refill</span>
+                          <span className="text-[10px] font-bold text-emerald-600 bg-emerald-500/10 dark:text-emerald-400 px-2 py-0.5 rounded-full uppercase tracking-wider">Refill</span>
                           <span className="text-xs font-black text-white">300 XP</span>
                         </div>
                         <h4 className="text-sm font-bold text-white">Refill Resume Limits</h4>
@@ -1156,17 +1204,17 @@ export default function DashboardPortal({
                       <button 
                         onClick={() => handleRedeemReward('refill_resumes', 300)}
                         disabled={redeemingReward || (totalXp - (userProfile?.spentXp || 0)) < 300}
-                        className="w-full py-2 bg-white text-background text-xs font-bold rounded-lg hover:bg-lightGray disabled:opacity-30 disabled:hover:bg-white transition-all"
+                        className="w-full py-2 bg-accent hover:bg-accent/90 text-white text-xs font-bold rounded-lg shadow-[0_4px_10px_rgba(var(--accent),0.15)] disabled:opacity-30 disabled:hover:bg-accent transition-all"
                       >
                         Redeem Refill
                       </button>
                     </div>
 
                     {/* Reward Card 3: Unlock AI Roadmap */}
-                    <div className="p-5 bg-background/45 border border-white/5 rounded-xl space-y-4 flex flex-col justify-between">
+                    <div className="p-5 bg-background/30 hover:bg-background/50 border border-slate-200/40 dark:border-white/5 rounded-2xl space-y-4 flex flex-col justify-between shadow-sm hover:shadow-md transition-all duration-300">
                       <div className="space-y-2">
                         <div className="flex justify-between items-start">
-                          <span className="text-[10px] font-bold text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full uppercase">Unlock</span>
+                          <span className="text-[10px] font-bold text-amber-600 bg-amber-500/10 dark:text-amber-400 px-2 py-0.5 rounded-full uppercase tracking-wider">Unlock</span>
                           <span className="text-xs font-black text-white">400 XP</span>
                         </div>
                         <h4 className="text-sm font-bold text-white">Unlock 1 AI Roadmap</h4>
@@ -1177,7 +1225,7 @@ export default function DashboardPortal({
                       <button 
                         onClick={() => handleRedeemReward('unlock_roadmap', 400)}
                         disabled={redeemingReward || (totalXp - (userProfile?.spentXp || 0)) < 400}
-                        className="w-full py-2 bg-white text-background text-xs font-bold rounded-lg hover:bg-lightGray disabled:opacity-30 disabled:hover:bg-white transition-all"
+                        className="w-full py-2 bg-accent hover:bg-accent/90 text-white text-xs font-bold rounded-lg shadow-[0_4px_10px_rgba(var(--accent),0.15)] disabled:opacity-30 disabled:hover:bg-accent transition-all"
                       >
                         Redeem Unlock
                       </button>
@@ -1193,9 +1241,9 @@ export default function DashboardPortal({
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -10 }}
-                className="max-w-xl mx-auto p-6 bg-secondaryBg/30 border border-white/5 rounded-xl"
+                className="max-w-xl mx-auto p-6 bg-secondaryBg/80 dark:bg-secondaryBg/40 border border-slate-200/50 dark:border-white/5 shadow-[0_8px_30px_rgb(0,0,0,0.015)] dark:shadow-none hover:shadow-[0_8px_30px_rgb(0,0,0,0.035)] transition-all duration-300 rounded-2xl"
               >
-                <div className="border-b border-white/5 pb-4 mb-6">
+                <div className="border-b border-slate-200/60 dark:border-white/5 pb-4 mb-6">
                   <h3 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
                     <User size={16} /> Edit Profile Credentials
                   </h3>
@@ -1204,10 +1252,41 @@ export default function DashboardPortal({
 
                 <form onSubmit={handleProfileSubmit} className="space-y-4 text-xs">
                   {profileMsg && (
-                    <div className="p-3 bg-white/5 border border-white/10 rounded-lg text-center font-semibold text-white">
+                    <div className="p-3 bg-accent/10 border border-accent/25 rounded-lg text-center font-bold text-accent">
                       {profileMsg}
                     </div>
                   )}
+
+                  {/* Profile Picture Upload Section */}
+                  <div className="flex flex-col items-center gap-3 mb-6 pb-6 border-b border-slate-200/60 dark:border-white/5">
+                    <div className="relative group cursor-pointer w-24 h-24 rounded-full overflow-hidden border-2 border-accent shadow-md bg-gradient-to-br from-accent to-secondary text-white flex items-center justify-center text-3xl font-black transition-all hover:scale-105">
+                      {profilePic ? (
+                        <img src={profilePic} alt="Profile Preview" className="w-full h-full object-cover" />
+                      ) : (
+                        initialsPreview
+                      )}
+                      <label className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center text-[10px] font-bold text-white transition-opacity cursor-pointer">
+                        <User size={16} className="mb-1" />
+                        <span>Upload Photo</span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={handleImageChange}
+                          className="hidden"
+                        />
+                      </label>
+                    </div>
+                    {profilePic && (
+                      <button
+                        type="button"
+                        onClick={() => setProfilePic('')}
+                        className="text-[10px] text-rose-500 hover:text-rose-600 font-bold transition-colors uppercase tracking-wider"
+                      >
+                        Remove Photo
+                      </button>
+                    )}
+                    <span className="text-[9px] text-lightGray/40">Supported formats: JPG, PNG, GIF (Max size: 1.5MB)</span>
+                  </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div className="space-y-1">
@@ -1216,7 +1295,7 @@ export default function DashboardPortal({
                         type="text"
                         value={name}
                         onChange={(e) => setName(e.target.value)}
-                        className="w-full bg-background/50 text-white rounded-lg p-3 border border-white/5 focus:outline-none focus:border-white/30"
+                        className="w-full bg-background/50 text-white rounded-lg p-3 border border-slate-200/40 dark:border-white/5 focus:outline-none focus:border-accent/40"
                       />
                     </div>
                     <div className="space-y-1">
@@ -1224,7 +1303,7 @@ export default function DashboardPortal({
                       <select
                         value={targetRole}
                         onChange={(e) => setTargetRole(e.target.value)}
-                        className="w-full bg-background/50 text-white rounded-lg p-3 border border-white/5 focus:outline-none focus:border-white/30 appearance-none font-sans"
+                        className="w-full bg-background/50 text-white rounded-lg p-3 border border-slate-200/40 dark:border-white/5 focus:outline-none focus:border-accent/40 appearance-none font-sans"
                       >
                         <option value="Frontend Engineer">Frontend Engineer</option>
                         <option value="Backend Engineer">Backend Engineer</option>
@@ -1241,7 +1320,7 @@ export default function DashboardPortal({
                       value={education}
                       onChange={(e) => setEducation(e.target.value)}
                       placeholder="e.g. B.S. in Computer Science from Stanford (Graduated 2024)"
-                      className="w-full bg-background/50 text-white rounded-lg p-3 border border-white/5 focus:outline-none focus:border-white/30"
+                      className="w-full bg-background/50 text-white rounded-lg p-3 border border-slate-200/40 dark:border-white/5 focus:outline-none focus:border-accent/40"
                     />
                   </div>
 
@@ -1251,17 +1330,17 @@ export default function DashboardPortal({
                       value={skillsText}
                       onChange={(e) => setSkillsText(e.target.value)}
                       placeholder="React, JavaScript, TypeScript, Redux, TailwindCSS, Django"
-                      className="w-full h-24 bg-background/50 text-white rounded-lg p-3 border border-white/5 focus:outline-none focus:border-white/30 resize-none font-sans"
+                      className="w-full h-24 bg-background/50 text-white rounded-lg p-3 border border-slate-200/40 dark:border-white/5 focus:outline-none focus:border-accent/40 resize-none font-sans"
                     />
                   </div>
 
                   <button
                     type="submit"
                     disabled={updatingProfile}
-                    className="w-full py-3 bg-white text-background hover:bg-lightGray font-black uppercase text-[11px] rounded-lg transition-all text-center flex items-center justify-center gap-1.5"
+                    className="w-full py-3 bg-accent hover:bg-accent/90 text-white font-black uppercase text-[11px] rounded-lg transition-all text-center flex items-center justify-center gap-1.5 shadow-[0_4px_12px_rgba(var(--accent),0.15)]"
                   >
-                    {updatingProfile && <span className="w-3.5 h-3.5 rounded-full border-2 border-background border-t-transparent animate-spin" />}
-                    Save Profile Synchronization
+                    {updatingProfile && <span className="w-3.5 h-3.5 rounded-full border-2 border-white border-t-transparent animate-spin" />}
+                    Save Profile Signature
                   </button>
                 </form>
               </motion.div>

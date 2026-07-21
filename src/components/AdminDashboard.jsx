@@ -59,10 +59,10 @@ export default function AdminDashboard({ onLogout }) {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
         
         {/* Header Title */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-white/5 pb-6">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-slate-200/60 dark:border-white/5 pb-6">
           <div>
             <div className="flex items-center gap-2 text-white mb-1">
-              <Shield className="text-white" size={20} />
+              <Shield className="text-accent" size={20} />
               <span className="text-xs font-bold uppercase tracking-widest text-lightGray/60">Administrative Panel</span>
             </div>
             <h1 className="text-2xl sm:text-3xl font-extrabold text-white">System Analytics Dashboard</h1>
@@ -70,14 +70,14 @@ export default function AdminDashboard({ onLogout }) {
           <div className="flex gap-3">
             <button
               onClick={fetchAdminData}
-              className="px-4 py-2 text-xs font-semibold text-lightGray/70 hover:text-white border border-white/5 rounded-lg flex items-center gap-2 transition-colors hover:bg-white/5"
+              className="px-4 py-2 text-xs font-semibold text-lightGray/70 hover:text-white border border-slate-200/60 dark:border-white/5 rounded-lg flex items-center gap-2 transition-all hover:bg-white/5 dark:hover:bg-white/5"
             >
               <RefreshCw size={13} />
               Refresh
             </button>
             <button
               onClick={onLogout}
-              className="px-4 py-2 text-xs font-semibold text-background bg-white hover:bg-lightGray rounded-lg flex items-center gap-2 transition-colors"
+              className="px-4 py-2 text-xs font-semibold text-white bg-accent hover:bg-accent/90 rounded-lg flex items-center gap-2 transition-all shadow-[0_4px_12px_rgba(var(--accent),0.15)]"
             >
               Logout Admin
             </button>
@@ -85,7 +85,7 @@ export default function AdminDashboard({ onLogout }) {
         </div>
 
         {error && (
-          <div className="p-4 bg-orange-950/20 border border-orange-900/40 rounded-xl text-xs text-orange-200 leading-relaxed text-center">
+          <div className="p-4 bg-orange-500/10 border border-orange-500/20 rounded-xl text-xs text-orange-600 dark:text-orange-200 leading-relaxed text-center">
             {error} (Using local developer metrics details fallback).
           </div>
         )}
@@ -94,14 +94,21 @@ export default function AdminDashboard({ onLogout }) {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           {stats.map((stat, idx) => {
             const Icon = stat.icon;
+            const iconColorClasses = [
+              'bg-accent/10 text-accent',
+              'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400',
+              'bg-secondary/10 text-secondary',
+              'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400'
+            ][idx] || 'bg-accent/10 text-accent';
+
             return (
-              <div key={idx} className="p-5 bg-secondaryBg/40 border border-white/5 rounded-xl flex items-center justify-between shadow-sm">
+              <div key={idx} className="p-5 bg-secondaryBg/80 dark:bg-secondaryBg/40 border border-slate-200/50 dark:border-white/5 rounded-2xl flex items-center justify-between shadow-[0_8px_30px_rgb(0,0,0,0.015)] dark:shadow-none hover:shadow-[0_8px_30px_rgb(0,0,0,0.035)] transition-all duration-300">
                 <div className="space-y-1">
                   <span className="text-[10px] font-bold text-lightGray/50 uppercase">{stat.title}</span>
                   <div className="text-2xl font-black text-white">{stat.value}</div>
                   <div className="text-[10px] text-lightGray/40">{stat.desc}</div>
                 </div>
-                <div className="p-3 bg-white/5 rounded-lg text-white">
+                <div className={`p-3 rounded-xl ${iconColorClasses}`}>
                   <Icon size={18} />
                 </div>
               </div>
@@ -113,7 +120,7 @@ export default function AdminDashboard({ onLogout }) {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
           
           {/* User List Panel */}
-          <div className="lg:col-span-8 p-6 bg-secondaryBg/30 border border-white/5 rounded-xl space-y-6">
+          <div className="lg:col-span-8 p-6 bg-secondaryBg/80 dark:bg-secondaryBg/40 border border-slate-200/50 dark:border-white/5 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.015)] dark:shadow-none hover:shadow-[0_8px_30px_rgb(0,0,0,0.035)] transition-all duration-300 space-y-6">
             <div>
               <h2 className="text-sm font-bold text-white uppercase tracking-wider">Registered Candidate Registry</h2>
               <p className="text-xs text-lightGray/55 mt-0.5">Manage details and preparation tracks of candidate profiles</p>
@@ -122,7 +129,7 @@ export default function AdminDashboard({ onLogout }) {
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs border-collapse">
                 <thead>
-                  <tr className="border-b border-white/5 text-lightGray/40 uppercase font-semibold text-[10px] tracking-wider pb-3">
+                  <tr className="border-b border-slate-200/60 dark:border-white/5 text-lightGray/40 uppercase font-semibold text-[10px] tracking-wider pb-3">
                     <th className="py-3 px-4">Name</th>
                     <th className="py-3 px-4">Email</th>
                     <th className="py-3 px-4">Role</th>
@@ -130,14 +137,16 @@ export default function AdminDashboard({ onLogout }) {
                     <th className="py-3 px-4">Joined Date</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-white/5">
+                <tbody className="divide-y divide-slate-200/60 dark:divide-white/5">
                   {users.map((user) => (
-                    <tr key={user._id} className="hover:bg-white/[0.02] transition-colors">
+                    <tr key={user._id} className="hover:bg-background/40 transition-colors">
                       <td className="py-3 px-4 font-bold text-white">{user.name}</td>
                       <td className="py-3 px-4 text-lightGray/70">{user.email}</td>
                       <td className="py-3 px-4">
-                        <span className={`px-2 py-0.5 rounded text-[9px] font-bold uppercase ${
-                          user.role === 'Admin' ? 'bg-white text-background' : 'bg-secondaryBg text-lightGray/60 border border-white/5'
+                        <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold uppercase ${
+                          user.role === 'Admin' 
+                            ? 'bg-accent/15 text-accent border border-accent/25' 
+                            : 'bg-background text-lightGray/60 border border-slate-200/50 dark:border-white/5'
                         }`}>
                           {user.role}
                         </span>
@@ -145,10 +154,10 @@ export default function AdminDashboard({ onLogout }) {
                       <td className="py-3 px-4">
                         <span className={`px-2.5 py-0.5 rounded-full text-[9px] font-bold uppercase ${
                           user.subscription === 'Premium' 
-                            ? 'bg-white text-background' 
+                            ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20' 
                             : user.subscription === 'Pro' 
-                              ? 'bg-lightGray text-background' 
-                              : 'bg-secondaryBg text-lightGray/40 border border-white/5'
+                              ? 'bg-accent/10 text-accent border border-accent/20' 
+                              : 'bg-background text-lightGray/40 border border-slate-200/50 dark:border-white/5'
                         }`}>
                           {user.subscription}
                         </span>
@@ -164,7 +173,7 @@ export default function AdminDashboard({ onLogout }) {
           </div>
 
           {/* AI Custom System Prompts Configuration Panel */}
-          <div className="lg:col-span-4 p-6 bg-secondaryBg/30 border border-white/5 rounded-xl flex flex-col justify-between space-y-6">
+          <div className="lg:col-span-4 p-6 bg-secondaryBg/80 dark:bg-secondaryBg/40 border border-slate-200/50 dark:border-white/5 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.015)] dark:shadow-none hover:shadow-[0_8px_30px_rgb(0,0,0,0.035)] transition-all duration-300 flex flex-col justify-between space-y-6">
             <div className="space-y-4">
               <div>
                 <h2 className="text-sm font-bold text-white uppercase tracking-wider">AI Prompts Manager</h2>
@@ -176,14 +185,14 @@ export default function AdminDashboard({ onLogout }) {
                   <label className="text-[10px] font-bold text-lightGray/50 uppercase">HR Behavioral Prompt</label>
                   <textarea
                     defaultValue="You are a professional behavioral interviewer utilizing the STAR framework to analyze candidate communication, confidence, and professionalism ratios..."
-                    className="w-full h-20 bg-background/50 text-white rounded-lg p-2.5 text-[11px] border border-white/5 focus:outline-none focus:border-white/30 resize-none font-sans"
+                    className="w-full h-20 bg-background/50 text-white rounded-lg p-2.5 text-[11px] border border-slate-200/45 dark:border-white/5 focus:outline-none focus:border-accent/40 resize-none font-sans"
                   />
                 </div>
                 <div className="space-y-1">
                   <label className="text-[10px] font-bold text-lightGray/50 uppercase">Technical Parsing Prompt</label>
                   <textarea
                     defaultValue="Evaluate standard coding files, checking key execution runtimes, memory usage profiles, and deep coding optimizations for specific job targets..."
-                    className="w-full h-20 bg-background/50 text-white rounded-lg p-2.5 text-[11px] border border-white/5 focus:outline-none focus:border-white/30 resize-none font-sans"
+                    className="w-full h-20 bg-background/50 text-white rounded-lg p-2.5 text-[11px] border border-slate-200/45 dark:border-white/5 focus:outline-none focus:border-accent/40 resize-none font-sans"
                   />
                 </div>
               </div>
@@ -191,7 +200,7 @@ export default function AdminDashboard({ onLogout }) {
 
             <button
               onClick={() => alert('AI prompt configs updated successfully!')}
-              className="w-full py-2.5 text-xs font-bold bg-white text-background hover:bg-lightGray rounded-lg transition-all text-center"
+              className="w-full py-2.5 text-xs font-bold bg-accent hover:bg-accent/90 text-white rounded-lg transition-all text-center shadow-[0_4px_12px_rgba(var(--accent),0.15)]"
             >
               Save Prompt Configurations
             </button>

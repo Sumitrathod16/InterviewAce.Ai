@@ -149,7 +149,7 @@ router.get('/profile', protect, async (req, res) => {
  * @access  Private
  */
 router.put('/profile', protect, async (req, res) => {
-  const { name, targetRole, education, skills, resumeUrl } = req.body;
+  const { name, targetRole, education, skills, resumeUrl, profilePic } = req.body;
 
   try {
     const user = await User.findById(req.user._id);
@@ -162,6 +162,7 @@ router.put('/profile', protect, async (req, res) => {
     if (education !== undefined) user.education = education;
     if (skills) user.skills = skills;
     if (resumeUrl) user.resumeUrl = resumeUrl;
+    if (profilePic !== undefined) user.profilePic = profilePic;
 
     const updatedUser = await user.save();
     res.json(updatedUser);
