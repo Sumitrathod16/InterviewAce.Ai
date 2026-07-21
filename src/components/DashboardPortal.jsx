@@ -4,7 +4,7 @@ import {
   Award, FileText, CheckSquare, Calendar, ChevronRight, Activity, 
   Code, UserCheck, AlertCircle, ArrowRight, LogOut, Shield,
   CreditCard, User, Sparkles, Building, Compass, Check, Info, Settings, Clock,
-  BarChart3
+  BarChart3, History
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import API from '../services/api';
@@ -238,8 +238,71 @@ export default function DashboardPortal({
     ? Math.round(interviewsList.reduce((acc, curr) => acc + curr.score, 0) / interviewsList.length)
     : 84;
 
-  const totalXp = (solvedProblems.size * 10) + (interviewsList.length * 200);
+  let interviewXp = 0;
+  interviewsList.forEach(interview => {
+    const qCount = interview.questions?.length || 0;
+    if (qCount <= 3) {
+      interviewXp += 100;
+    } else if (qCount <= 5) {
+      interviewXp += 150;
+    } else {
+      interviewXp += 200;
+    }
+  });
+
+  const totalXp = (solvedProblems.size * 10) + interviewXp;
   const practiceStreak = userProfile?.streakCount || 0;
+
+  // Combine all XP transaction histories (earnings + spendings)
+  const xpTransactionsList = [];
+
+  // 1. Solved Problems (Earnings)
+  if (userProfile?.solvedProblems && Array.isArray(userProfile.solvedProblems)) {
+    userProfile.solvedProblems.forEach(p => {
+      xpTransactionsList.push({
+        description: `Solved Algorithm Challenge (${p.problemId})`,
+        amount: 10,
+        timestamp: p.solvedAt || new Date()
+      });
+    });
+  }
+
+  // 2. Completed Interviews (Earnings)
+  interviewsList.filter(i => i.completed).forEach(i => {
+    const qCount = i.questions?.length || 0;
+    let earned = 200;
+    if (qCount <= 3) earned = 100;
+    else if (qCount <= 5) earned = 150;
+
+    xpTransactionsList.push({
+      description: `Completed Mock Interview (${i.track || i.type || 'General'} - ${qCount} Qs)`,
+      amount: earned,
+      timestamp: i.updatedAt || i.createdAt || new Date()
+    });
+  });
+
+  // 3. Redemptions (Spendings)
+  if (userProfile?.redemptions && Array.isArray(userProfile.redemptions)) {
+    userProfile.redemptions.forEach(r => {
+      xpTransactionsList.push({
+        description: r.description || `Redeemed ${r.rewardType}`,
+        amount: r.amount,
+        timestamp: r.timestamp || new Date()
+      });
+    });
+  }
+
+  // Sort oldest first to calculate running balance
+  xpTransactionsList.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+
+  let runningBalance = 0;
+  xpTransactionsList.forEach(tx => {
+    runningBalance += tx.amount;
+    tx.runningBalance = runningBalance;
+  });
+
+  // Re-sort latest first for rendering
+  xpTransactionsList.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
 
   const CHALLENGES = problems.length > 0
     ? problems.map((p, idx) => ({ id: p.problemId || p.id, title: p.title, difficulty: p.difficulty, index: idx }))
@@ -336,7 +399,7 @@ export default function DashboardPortal({
               <div className="flex flex-wrap items-center gap-3 mt-2 text-xs text-lightGray/40">
                 <span className="flex items-center gap-1">
                   <Award size={12} className="text-secondary animate-bounce" />
-                  <span className="text-secondary font-bold">{totalXp} XP</span> Earned ({totalXp - (userProfile?.spentXp || 0)} Available)
+                  <span className="text-secondary font-bold">{totalXp - (userProfile?.spentXp || 0)} XP Balance</span> (Total Earned: {totalXp} XP)
                 </span>
                 <span>•</span>
                 <span>Tier: <strong className="text-white">{userProfile?.subscription || 'Free'}</strong></span>
@@ -1158,7 +1221,7 @@ export default function DashboardPortal({
 
                   <div className="p-4 bg-background/40 border border-slate-200/40 dark:border-white/5 rounded-2xl flex items-center justify-between">
                     <div>
-                      <span className="text-[10px] font-bold text-lightGray/40 uppercase">Your Available Points</span>
+                      <span className="text-[10px] font-bold text-lightGray/40 uppercase">Your Balance XP Points</span>
                       <div className="text-2xl font-black text-white flex items-center gap-2 mt-0.5">
                         <Award size={20} className="text-amber-400 animate-bounce" />
                         <span>{totalXp - (userProfile?.spentXp || 0)} XP</span>
@@ -1231,6 +1294,44 @@ export default function DashboardPortal({
                       </button>
                     </div>
                   </div>
+
+                  {/* XP Points History */}
+                  <div className="space-y-4 pt-6 border-t border-slate-200/40 dark:border-white/5">
+                    <h3 className="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-2">
+                      <History size={14} className="text-lightGray/60" /> Points Transaction History ({totalXp - (userProfile?.spentXp || 0)} XP Balance)
+                    </h3>
+                    
+                    <div className="bg-background/20 border border-slate-200/40 dark:border-white/5 rounded-2xl overflow-hidden">
+                      {xpTransactionsList.length === 0 ? (
+                        <div className="p-6 text-center text-xs text-lightGray/40 italic">
+                          No points transactions logged yet. Complete challenges or interviews to earn XP!
+                        </div>
+                      ) : (
+                        <div className="divide-y divide-slate-200/40 dark:divide-white/5 max-h-60 overflow-y-auto">
+                          {xpTransactionsList.map((tx, idx) => (
+                            <div key={idx} className="p-4 flex items-center justify-between hover:bg-white/[0.01] transition-colors">
+                              <div className="space-y-1 text-left">
+                                <div className="text-xs font-bold text-white leading-none">{tx.description}</div>
+                                <div className="text-[10px] text-lightGray/40 font-mono leading-none mt-1">{new Date(tx.timestamp).toLocaleString()}</div>
+                              </div>
+                              <div className="flex items-center gap-4">
+                                <div className="text-right">
+                                  <span className={`text-xs font-black px-2 py-0.5 rounded ${
+                                    tx.amount > 0 
+                                      ? 'text-emerald-400 bg-emerald-500/10' 
+                                      : 'text-rose-400 bg-rose-500/10'
+                                  }`}>
+                                    {tx.amount > 0 ? `+${tx.amount}` : tx.amount} XP
+                                  </span>
+                                  <div className="text-[9px] text-lightGray/45 mt-1">Balance: {tx.runningBalance} XP</div>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
                 </div>
               </motion.div>
             )}
@@ -1243,11 +1344,18 @@ export default function DashboardPortal({
                 exit={{ opacity: 0, y: -10 }}
                 className="max-w-xl mx-auto p-6 bg-secondaryBg/80 dark:bg-secondaryBg/40 border border-slate-200/50 dark:border-white/5 shadow-[0_8px_30px_rgb(0,0,0,0.015)] dark:shadow-none hover:shadow-[0_8px_30px_rgb(0,0,0,0.035)] transition-all duration-300 rounded-2xl"
               >
-                <div className="border-b border-slate-200/60 dark:border-white/5 pb-4 mb-6">
-                  <h3 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
-                    <User size={16} /> Edit Profile Credentials
-                  </h3>
-                  <p className="text-xs text-lightGray/55 mt-0.5">Customize target roles, education structures, and skill stacks</p>
+                <div className="border-b border-slate-200/60 dark:border-white/5 pb-4 mb-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                  <div>
+                    <h3 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
+                      <User size={16} /> Edit Profile Credentials
+                    </h3>
+                    <p className="text-xs text-lightGray/55 mt-0.5">Customize target roles, education structures, and skill stacks</p>
+                  </div>
+                  <div className="flex items-center gap-1.5 px-3 py-1.5 bg-background/50 border border-slate-200/40 dark:border-white/5 rounded-full text-xs self-start sm:self-center">
+                    <Award size={14} className="text-secondary animate-bounce" />
+                    <span className="text-secondary font-bold">{totalXp - (userProfile?.spentXp || 0)} XP</span>
+                    <span className="text-lightGray/60">Balance</span>
+                  </div>
                 </div>
 
                 <form onSubmit={handleProfileSubmit} className="space-y-4 text-xs">

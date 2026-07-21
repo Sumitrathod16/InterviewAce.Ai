@@ -59,7 +59,7 @@ export default function SecurityPolicy() {
               <Cpu size={18} className="text-white/60" /> 2. AI Execution Safeguards
             </h2>
             <p>
-              When evaluating user answers or generating custom learning roadmap modules, data sent to external AI processing services is routed via secure TLS gateways. We mandate strict zero-data-retention parameters, meaning our AI suppliers (Google Gemini and OpenRouter) cannot retain, reuse, or train their model architectures on the transcripts of your interview assessments.
+              When evaluating user answers or generating custom learning roadmap modules, data sent to external AI processing services is routed via secure TLS gateways. We mandate strict zero-data-retention parameters, meaning our AI supplier (Google Gemini) cannot retain, reuse, or train its model architectures on the transcripts of your interview assessments.
             </p>
           </section>
 

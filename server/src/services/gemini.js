@@ -1,12 +1,14 @@
-import axios from 'axios';
+import { GoogleGenerativeAI } from '@google/generative-ai';
 
-const openrouterKey = process.env.OPENROUTER_API_KEY;
-const openrouterModel = process.env.OPENROUTER_MODEL || 'google/gemini-2.5-flash';
+const geminiKey = process.env.GEMINI_API_KEY;
+const geminiModel = process.env.GEMINI_MODEL || 'gemini-3.5-flash';
 
-if (openrouterKey) {
-  console.log(`OpenRouter Service Initialized successfully (Model: ${openrouterModel}).`);
+let genAI = null;
+if (geminiKey) {
+  genAI = new GoogleGenerativeAI(geminiKey);
+  console.log(`Google Gemini SDK Initialized successfully (Model: ${geminiModel}).`);
 } else {
-  console.warn('OPENROUTER_API_KEY is not set. LLM service will run in offline Mock Fallback Mode.');
+  console.warn('GEMINI_API_KEY is not set. LLM service will run in offline Mock Fallback Mode.');
 }
 
 /**
@@ -29,46 +31,32 @@ const parseJSON = (text) => {
 };
 
 /**
- * Helper to call OpenRouter Chat Completion API
+ * Helper to call Google Gemini API via SDK
  */
-const callOpenRouter = async (prompt, forceJson = false) => {
-  const headers = {
-    'Authorization': `Bearer ${openrouterKey}`,
-    'Content-Type': 'application/json',
-    'HTTP-Referer': process.env.CLIENT_URL || 'http://localhost:5173',
-    'X-Title': 'InterviewAce.AI'
-  };
+const callGemini = async (prompt, forceJson = false) => {
+  if (!genAI) {
+    throw new Error('Gemini API key is not configured.');
+  }
 
-  const data = {
-    model: openrouterModel,
-    messages: [
-      {
-        role: 'user',
-        content: prompt
-      }
-    ]
-  };
-
+  const config = {};
   if (forceJson) {
-    data.response_format = { type: 'json_object' };
+    config.responseMimeType = 'application/json';
   }
 
-  const response = await axios.post(
-    'https://openrouter.ai/api/v1/chat/completions',
-    data,
-    { headers }
-  );
+  const model = genAI.getGenerativeModel({
+    model: geminiModel,
+    generationConfig: config
+  });
 
-  if (!response.data || !response.data.choices || response.data.choices.length === 0) {
-    throw new Error('Empty response from OpenRouter');
+  const result = await model.generateContent(prompt);
+  const response = await result.response;
+  const text = response.text();
+
+  if (!text) {
+    throw new Error('Empty response from Gemini API');
   }
 
-  const content = response.data.choices[0].message.content;
-  if (!content) {
-    throw new Error('OpenRouter returned an empty message content or request was refused/rate-limited.');
-  }
-
-  return content;
+  return text;
 };
 
 /**
@@ -77,7 +65,7 @@ const callOpenRouter = async (prompt, forceJson = false) => {
 export const generateQuestions = async (params) => {
   const { track, experienceLevel, role, count = 3 } = params;
 
-  if (!openrouterKey) {
+  if (!geminiKey) {
     return getMockQuestions(track, role, count);
   }
 
@@ -90,7 +78,7 @@ export const generateQuestions = async (params) => {
     Format your response as a JSON array of strings containing only the questions. Do not write any markdown outside the JSON. Example:
     ["Question 1", "Question 2", "Question 3"]`;
 
-    const text = await callOpenRouter(prompt, false);
+    const text = await callGemini(prompt, false);
     return parseJSON(text);
   } catch (error) {
     console.error('Error in generateQuestions:', error.message);
@@ -102,7 +90,7 @@ export const generateQuestions = async (params) => {
  * Evaluate a user answer to a specific question
  */
 export const evaluateAnswer = async (question, answer, track, role) => {
-  if (!openrouterKey) {
+  if (!geminiKey) {
     return getMockEvaluation(question, answer, track, role);
   }
 
@@ -132,7 +120,7 @@ export const evaluateAnswer = async (question, answer, track, role) => {
     }
     Format your response as a valid JSON object. Do not include any markdown format wrapper outside.`;
 
-    const text = await callOpenRouter(prompt, true);
+    const text = await callGemini(prompt, true);
     return parseJSON(text);
   } catch (error) {
     console.error('Error in evaluateAnswer:', error.message);
@@ -144,7 +132,7 @@ export const evaluateAnswer = async (question, answer, track, role) => {
  * Generate a conceptual coding hint & complexity analysis
  */
 export const generateCodingHint = async (problemTitle, problemDescription, code, language, consoleOutput) => {
-  if (!openrouterKey) {
+  if (!geminiKey) {
     return {
       hint: "Review your loop boundary or conditional check. Ensure you are not accessing indices outside the array bounds.",
       complexityAnalysis: "Time Complexity: O(N) | Space Complexity: O(1)"
@@ -171,7 +159,7 @@ export const generateCodingHint = async (problemTitle, problemDescription, code,
     }
     Format your response as a valid JSON object.`;
 
-    const text = await callOpenRouter(prompt, true);
+    const text = await callGemini(prompt, true);
     return parseJSON(text);
   } catch (error) {
     console.error('Error in generateCodingHint:', error.message);
@@ -186,7 +174,7 @@ export const generateCodingHint = async (problemTitle, problemDescription, code,
  * Optimize resume bullet points for high impact and action verbs
  */
 export const optimizeResumeBullet = async (bulletPoint, targetRole) => {
-  if (!openrouterKey) {
+  if (!geminiKey) {
     return {
       optimized: `Spearheaded front-end optimization by engineering responsive React components, improving client-side page rendering speed by 34% and increasing user retention.`,
       verbUsed: "Spearheaded, Engineered",
@@ -209,7 +197,7 @@ export const optimizeResumeBullet = async (bulletPoint, targetRole) => {
     }
     Format your response as a valid JSON object.`;
 
-    const text = await callOpenRouter(prompt, true);
+    const text = await callGemini(prompt, true);
     return parseJSON(text);
   } catch (error) {
     console.error('Error in optimizeResumeBullet:', error.message);
@@ -225,7 +213,7 @@ export const optimizeResumeBullet = async (bulletPoint, targetRole) => {
  * Analyze a resume for ATS score and keywords
  */
 export const analyzeResume = async (resumeText, targetRole) => {
-  if (!openrouterKey) {
+  if (!geminiKey) {
     return getMockResumeAnalysis(resumeText, targetRole);
   }
 
@@ -265,7 +253,7 @@ export const analyzeResume = async (resumeText, targetRole) => {
      }
      Format your response as a valid JSON object. Do not include markdown code ticks.`;
 
-    const text = await callOpenRouter(prompt, true);
+    const text = await callGemini(prompt, true);
     return parseJSON(text);
   } catch (error) {
     console.error('Error in analyzeResume:', error.message);
@@ -277,7 +265,7 @@ export const analyzeResume = async (resumeText, targetRole) => {
  * Optimize a structured resume representation using AI to maximize its ATS score
  */
 export const optimizeStructuredResume = async (parsedResume, targetRole) => {
-  if (!openrouterKey) {
+  if (!geminiKey) {
     return getMockOptimizedStructured(parsedResume, targetRole);
   }
 
@@ -298,7 +286,7 @@ export const optimizeStructuredResume = async (parsedResume, targetRole) => {
     4. Keep all other fields (name, email, dates, school names, company names) exactly as they are.
     5. Return the response ONLY as a valid JSON object matching the exact input schema. Do not include markdown code block wrapper.`;
 
-    const text = await callOpenRouter(prompt, true);
+    const text = await callGemini(prompt, true);
     return parseJSON(text);
   } catch (error) {
     console.error('Error in optimizeStructuredResume:', error.message);
@@ -334,7 +322,7 @@ function getMockOptimizedStructured(parsedResume, targetRole) {
  * Auto-optimize a whole resume text to maximize its ATS score
  */
 export const optimizeWholeResume = async (resumeText, targetRole) => {
-  if (!openrouterKey) {
+  if (!geminiKey) {
     return getMockOptimizedResume(resumeText, targetRole);
   }
 
@@ -355,7 +343,7 @@ export const optimizeWholeResume = async (resumeText, targetRole) => {
     4. Ensure that the candidate name, contact details, experiences, and dates are preserved.
     5. Respond ONLY with the plain text of the rewritten, optimized resume. Do NOT wrap it in markdown code blocks.`;
 
-    const text = await callOpenRouter(prompt, false);
+    const text = await callGemini(prompt, false);
     return text.trim();
   } catch (error) {
     console.error('Error in optimizeWholeResume:', error.message);
@@ -394,7 +382,7 @@ ${expSection}`;
  * Fix a single specific suggestion in the resume text
  */
 export const fixResumeSuggestion = async (resumeText, suggestionText, targetRole) => {
-  if (!openrouterKey) {
+  if (!geminiKey) {
     return getMockSuggestionFix(resumeText, suggestionText, targetRole);
   }
 
@@ -415,7 +403,7 @@ export const fixResumeSuggestion = async (resumeText, suggestionText, targetRole
     2. Maintain all other parts of the resume, formatting, and details exactly as is.
     3. Respond ONLY with the plain text of the rewritten, updated resume. Do NOT wrap it in markdown code blocks.`;
 
-    const text = await callOpenRouter(prompt, false);
+    const text = await callGemini(prompt, false);
     return text.trim();
   } catch (error) {
     console.error('Error in fixResumeSuggestion:', error.message);
@@ -454,7 +442,7 @@ Experienced ${targetRole} dedicated to building high-fidelity client application
  * Generate Career Roadmap
  */
 export const generateCareerCoachDetails = async (skills, targetRole, education) => {
-  if (!openrouterKey) {
+  if (!geminiKey) {
     return getMockCoachDetails(skills, targetRole, education);
   }
 
@@ -485,7 +473,7 @@ export const generateCareerCoachDetails = async (skills, targetRole, education) 
     }
     Format your response as a valid JSON object.`;
 
-    const text = await callOpenRouter(prompt, true);
+    const text = await callGemini(prompt, true);
     return parseJSON(text);
   } catch (error) {
     console.error('Error in generateCareerCoachDetails:', error.message);
@@ -759,7 +747,7 @@ function getMockCoachDetails(skills, targetRole, education) {
  * Catches cheating strategies like hardcoding expected outputs or inputs.
  */
 export const checkSolutionIntegrity = async (code, language, problemTitle, problemDescription) => {
-  if (!openrouterKey) {
+  if (!geminiKey) {
     return { isProper: true, reason: 'Key not set' };
   }
 
@@ -784,7 +772,7 @@ Format your response as a JSON object with exactly two fields:
 
 Return only the raw JSON. Do not write any markdown wrappers outside the JSON.`;
 
-    const text = await callOpenRouter(prompt, true);
+    const text = await callGemini(prompt, true);
     return parseJSON(text);
   } catch (error) {
     console.error('Error in checkSolutionIntegrity:', error.message);

@@ -21,9 +21,21 @@ router.post('/redeem', protect, async (req, res) => {
     
     // Calculate total earned XP based on DB tracking
     const solvedCount = user.solvedProblems?.length || 0;
-    const interviewCount = await Interview.countDocuments({ userId: user._id, completed: true });
+    const completedInterviews = await Interview.find({ userId: user._id, completed: true });
     
-    const totalXp = (solvedCount * 10) + (interviewCount * 200);
+    let interviewXp = 0;
+    completedInterviews.forEach(interview => {
+      const qCount = interview.questions?.length || 0;
+      if (qCount <= 3) {
+        interviewXp += 100;
+      } else if (qCount <= 5) {
+        interviewXp += 150;
+      } else {
+        interviewXp += 200;
+      }
+    });
+
+    const totalXp = (solvedCount * 10) + interviewXp;
     const spentXp = user.spentXp || 0;
     const availableXp = totalXp - spentXp;
 
@@ -36,6 +48,12 @@ router.post('/redeem', protect, async (req, res) => {
       }
       user.interviewCountToday = 0;
       user.spentXp = spentXp + cost;
+      user.redemptions.push({
+        rewardType,
+        description: 'Redeemed: Refill Mock Interviews Limit',
+        amount: -cost,
+        timestamp: new Date()
+      });
       await user.save();
       return res.json({ 
         message: 'Mock interviews limit successfully refilled! You have 3 new mock interviews.', 
@@ -52,6 +70,12 @@ router.post('/redeem', protect, async (req, res) => {
       }
       user.resumeCountToday = 0;
       user.spentXp = spentXp + cost;
+      user.redemptions.push({
+        rewardType,
+        description: 'Redeemed: Refill Resume Audits Limit',
+        amount: -cost,
+        timestamp: new Date()
+      });
       await user.save();
       return res.json({ 
         message: 'Resume audits limit successfully refilled! You have 2 new ATS resume reviews.', 
@@ -68,6 +92,12 @@ router.post('/redeem', protect, async (req, res) => {
       }
       user.roadmapsAllowedCount = (user.roadmapsAllowedCount || 0) + 1;
       user.spentXp = spentXp + cost;
+      user.redemptions.push({
+        rewardType,
+        description: 'Redeemed: Unlock 1 AI Career Coach Roadmap',
+        amount: -cost,
+        timestamp: new Date()
+      });
       await user.save();
       return res.json({ 
         message: 'AI Career Coach roadmap successfully unlocked! You can now generate 1 custom roadmap.', 

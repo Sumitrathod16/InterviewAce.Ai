@@ -75,7 +75,7 @@ export default function PrivacyPolicy() {
           <section className="space-y-4">
             <h2 className="text-lg font-bold text-white">4. API Providers and Integrations</h2>
             <p>
-              To run advanced AI resume assessments and generate mock interview flows, we query secure artificial intelligence gateways (like Google Gemini and OpenRouter). Data shared with these endpoints is scrubbed of individual identity contexts and is governed by developer-tier strict API boundaries that prohibit models from training on your inputs.
+              To run advanced AI resume assessments and generate mock interview flows, we query secure artificial intelligence gateways (like Google Gemini). Data shared with these endpoints is scrubbed of individual identity contexts and is governed by developer-tier strict API boundaries that prohibit models from training on your inputs.
             </p>
           </section>
 

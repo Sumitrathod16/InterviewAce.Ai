@@ -110,13 +110,15 @@ router.post('/sync', async (req, res) => {
         education: user.education,
         skills: user.skills,
         resumeUrl: user.resumeUrl,
+        profilePic: user.profilePic || '',
         interviewCountToday: user.interviewCountToday,
         resumeCountToday: user.resumeCountToday,
         freeRefillDate: user.freeRefillDate || user.createdAt,
         streakCount: user.streakCount,
         lastActiveDate: user.lastActiveDate,
         solvedProblems: user.solvedProblems || [],
-        spentXp: user.spentXp || 0
+        spentXp: user.spentXp || 0,
+        redemptions: user.redemptions || []
       }
     });
   } catch (error) {

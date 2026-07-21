@@ -212,6 +212,7 @@ export default function MockInterviewDemo({ onInterviewComplete }) {
       console.error('Error submitting answer:', err);
       setErrorMsg('Failed to verify answer with server.');
       toast.error('Failed to submit answer to evaluator.');
+    } finally {
       setIsThinking(false);
     }
   };

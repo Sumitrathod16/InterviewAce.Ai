@@ -12,7 +12,7 @@ InterviewAce AI is a premium, modern, AI-powered interview preparation platform.
     *   Speech-to-text voice dictation is supported (using browser-native SpeechRecognition) with live, animated CSS audio waveforms.
 *   **📄 Interactive ATS Resume Analyzer:** Drag & drop your resume or check suggestions (quantifying results, replacing weak action verbs, layout optimization) which update the circular ATS score metrics in real-time.
 *   **💻 Interactive Coding Assessment Sandbox:** Solve 6 algorithmic challenges (Two Sum, Reverse String, Valid Palindrome, Fizz Buzz, Fibonacci, and Merge Sorted Array) inside a code compiler editor complete with line numbers, console outputs, and optimization diagnostics.
-*   **🤖 OpenRouter LLM Service Integration:** Calls models like Google Gemini 2.5 Flash via OpenRouter for high-speed, keyless, and structured response evaluations.
+*   **🤖 Native Google Gemini SDK Integration:** Calls Google's Gemini 3.5 Flash model directly via the official `@google/generative-ai` SDK for high-speed, secure, and structured response evaluations.
 *   **⚡ Keyless Wandbox Compiler Service:** Code execution is backed by Wandbox APIs, providing a 100% keyless and fast online compilation sandbox for multiple languages (Python, JavaScript, C++, C, Java).
 *   **💳 Razorpay Payments Integration:** Seamless checkout using Razorpay payment links and signature callback validations. Includes a local developer mock payment gateway fallback.
 *   **🔄 15-Day Free Student Limits & Refills:** Free tier student accounts receive **3 mock interviews** and **2 resume scans** every 15 days. Limits automatically refill when a request is made 15 days or more after their `freeRefillDate`.

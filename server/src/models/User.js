@@ -96,7 +96,15 @@ const userSchema = new mongoose.Schema({
   roadmapsAllowedCount: {
     type: Number,
     default: 0
-  }
+  },
+  redemptions: [
+    {
+      rewardType: { type: String, required: true },
+      description: { type: String, required: true },
+      amount: { type: Number, required: true },
+      timestamp: { type: Date, default: Date.now }
+    }
+  ]
 }, {
   timestamps: true
 });

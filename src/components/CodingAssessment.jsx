@@ -863,10 +863,10 @@ export default function CodingAssessment({
             </div>
 
             {/* Test Case Results & Console Console Output */}
-            <div className="h-44 border-t border-white/5 bg-black/60 flex flex-col relative">
-              <div className="px-6 py-2 border-b border-white/5 bg-black/40 flex items-center justify-between z-10">
-                <span className="text-[10px] font-bold text-lightGray/40 uppercase tracking-widest flex items-center gap-1.5">
-                  <Terminal size={11} className="text-lightGray/40" /> Assessment Terminal
+            <div className="h-44 border-t border-zinc-800 bg-[#09090b] flex flex-col relative">
+              <div className="px-6 py-2 border-b border-zinc-800 bg-zinc-900/45 flex items-center justify-between z-10">
+                <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-widest flex items-center gap-1.5">
+                  <Terminal size={11} className="text-zinc-500" /> Assessment Terminal
                 </span>
                 
                 {testingStatus === 'success' && (
@@ -885,15 +885,15 @@ export default function CodingAssessment({
                   </span>
                 )}
                 {testingStatus === 'idle' && (
-                  <span className="text-[10px] font-bold text-lightGray/35 flex items-center gap-1">
-                    <div className="h-1.5 w-1.5 rounded-full bg-lightGray/35" /> Ready
+                  <span className="text-[10px] font-bold text-zinc-500 flex items-center gap-1">
+                    <div className="h-1.5 w-1.5 rounded-full bg-zinc-600" /> Ready
                   </span>
                 )}
               </div>
 
-              <div className="flex-1 p-5 overflow-y-auto space-y-2 font-mono text-[11px] text-lightGray/70">
+              <div className="flex-1 p-5 overflow-y-auto space-y-2 font-mono text-xs text-zinc-200">
                 {consoleLog.length === 0 ? (
-                  <div className="text-lightGray/35 italic">No records executed yet. Press 'Run Code' to compile.</div>
+                  <div className="text-zinc-500 italic">No records executed yet. Press 'Run Code' to compile.</div>
                 ) : (
                   consoleLog.map((log, idx) => {
                     const isError = log.startsWith('Error:') || log.startsWith('InternalError:') || log.includes('Failed') || log.startsWith('⚠️');
@@ -902,10 +902,10 @@ export default function CodingAssessment({
                     return (
                       <div 
                         key={idx} 
-                        className={`whitespace-pre-wrap leading-relaxed px-2 py-1 rounded ${
-                          isError ? 'text-rose-400 bg-rose-500/5 border-l-2 border-rose-500/50 font-semibold' : 
-                          isSuccess ? 'text-emerald-400 bg-emerald-500/5 border-l-2 border-emerald-500/50 font-semibold' : 
-                          'text-lightGray/70'
+                        className={`whitespace-pre-wrap leading-relaxed px-2.5 py-1.5 rounded ${
+                          isError ? 'text-rose-300 bg-rose-950/20 border-l-2 border-rose-500 font-semibold' : 
+                          isSuccess ? 'text-emerald-300 bg-emerald-950/20 border-l-2 border-emerald-500 font-semibold' : 
+                          'text-zinc-200 bg-zinc-900/30'
                         }`}
                       >
                         {log}
@@ -915,13 +915,13 @@ export default function CodingAssessment({
                 )}
 
                 {results.length > 0 && (
-                  <div className="space-y-1.5 pt-2 border-t border-white/5 mt-2">
+                  <div className="space-y-1.5 pt-2 border-t border-zinc-800 mt-2">
                     {results.map((res) => (
-                      <div key={res.id} className={`flex items-center justify-between px-2 py-1.5 rounded bg-black/20 border border-white/[0.02] text-[10px] ${res.passed ? 'border-emerald-500/10' : 'border-rose-500/10'}`}>
+                      <div key={res.id} className={`flex items-center justify-between px-2.5 py-1.5 rounded bg-zinc-900/40 border border-zinc-800/50 text-[11px] ${res.passed ? 'border-emerald-500/20' : 'border-rose-500/20'}`}>
                         <div className="flex gap-4">
-                          <span className="text-lightGray/40">Case {res.id + 1}</span>
-                          <span className="text-lightGray/60">Expected: {res.expected}</span>
-                          <span className="text-lightGray/50 font-semibold">Got: {res.actual}</span>
+                          <span className="text-zinc-400">Case {res.id + 1}</span>
+                          <span className="text-zinc-300">Expected: {res.expected}</span>
+                          <span className="text-zinc-100 font-semibold">Got: {res.actual}</span>
                         </div>
                         <span className={`font-bold uppercase tracking-wider text-[9px] px-1.5 py-0.5 rounded ${res.passed ? 'text-emerald-400 bg-emerald-500/10' : 'text-rose-400 bg-rose-500/10'}`}>
                           {res.passed ? 'Passed' : 'Failed'}
