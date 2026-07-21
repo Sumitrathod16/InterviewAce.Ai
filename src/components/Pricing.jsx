@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Check, Info } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import API from '../services/api';
@@ -55,10 +56,11 @@ const PLANS = [
 
 export default function Pricing() {
   const { userProfile } = useAuth();
+  const navigate = useNavigate();
   const [billingPeriod, setBillingPeriod] = useState('monthly'); // monthly, yearly
   const [loadingPlan, setLoadingPlan] = useState('');
 
-  const handlePlanSelect = async (planId) => {
+  const handlePlanSelect = (planId) => {
     if (planId === 'Free') {
       window.scrollTo({ top: 0, behavior: 'smooth' });
       return;
@@ -75,20 +77,7 @@ export default function Pricing() {
       return;
     }
 
-    setLoadingPlan(planId);
-    try {
-      const response = await API.post('/payments/checkout', {
-        planName: planId,
-        billingPeriod
-      });
-      // Redirect to Stripe checkout URL or local mock success fallback
-      window.location.href = response.data.url;
-    } catch (err) {
-      console.error(err);
-      alert('Checkout redirect failed. Ensure backend service is listening.');
-    } finally {
-      setLoadingPlan('');
-    }
+    navigate(`/checkout?plan=${planId}&period=${billingPeriod}`);
   };
 
   return (

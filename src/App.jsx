@@ -20,6 +20,7 @@ import { PaymentSuccess, PaymentCancel } from './components/CheckoutStatus';
 import { useAuth } from './context/AuthContext';
 import FeaturesPage from './components/FeaturesPage';
 import PricingPage from './components/PricingPage';
+import CheckoutPage from './components/CheckoutPage';
 
 // Import footer subpages
 import PrivacyPolicy from './components/footer_pages/PrivacyPolicy';
@@ -331,6 +332,7 @@ export default function App() {
               />
             } 
           />
+          <Route path="/checkout" element={<CheckoutPage />} />
           <Route path="/checkout/success" element={<PaymentSuccess />} />
           <Route path="/checkout/cancel" element={<PaymentCancel />} />
           <Route 

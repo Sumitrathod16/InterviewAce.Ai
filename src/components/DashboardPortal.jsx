@@ -7,6 +7,7 @@ import {
   BarChart3, History, RefreshCw
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
+import { useNavigate } from 'react-router-dom';
 import API from '../services/api';
 import MockInterviewDemo from './MockInterviewDemo';
 import ResumeAnalyzer from './ResumeAnalyzer';
@@ -32,8 +33,7 @@ export default function DashboardPortal({
   setActiveTab,
   theme
 }) {
-  
-  
+  const navigate = useNavigate();
   // AI Career Coach states
   const [coachData, setCoachData] = useState(null);
   const [loadingCoach, setLoadingCoach] = useState(false);
@@ -244,21 +244,9 @@ export default function DashboardPortal({
     }
   };
 
-  // Trigger Stripe checkout redirections
-  const handleSubscribe = async (tierName, billingPeriod = 'monthly') => {
-    setUpgrading(true);
-    try {
-      const response = await API.post('/payments/checkout', {
-        planName: tierName,
-        billingPeriod
-      });
-      // Redirect to Stripe checkout URL or local success fallback
-      window.location.href = response.data.url;
-    } catch (err) {
-      alert('Checkout initiation failed.');
-    } finally {
-      setUpgrading(false);
-    }
+  // Trigger Stripe/Razorpay checkout redirections
+  const handleSubscribe = (tierName, billingPeriod = 'monthly') => {
+    navigate(`/checkout?plan=${tierName}&period=${billingPeriod}`);
   };
 
   const handleCancelSub = async () => {
