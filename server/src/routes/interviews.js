@@ -63,12 +63,29 @@ router.post('/start', protect, async (req, res) => {
     // Update practice streak
     await req.user.updateStreak();
 
+    // Fetch user's past questions for this track to avoid repetition
+    const pastInterviews = await Interview.find({ userId: req.user._id, track })
+      .select('questions')
+      .limit(5);
+
+    const excludedQuestions = [];
+    pastInterviews.forEach(int => {
+      if (int.questions && Array.isArray(int.questions)) {
+        excludedQuestions.push(...int.questions);
+      }
+    });
+
     // Generate questions using Gemini
     const questions = await generateQuestions({
-      track: type,
-      role: req.user.targetRole,
+      track,
+      role: track.toLowerCase().includes('frontend') 
+        ? 'Frontend Engineer' 
+        : track.toLowerCase().includes('backend') 
+          ? 'Backend Engineer' 
+          : req.user.targetRole || 'Software Engineer',
       experienceLevel: 'Mid-Level',
-      count
+      count,
+      excludedQuestions
     });
 
     const interview = await Interview.create({

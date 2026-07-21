@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Menu, X, Terminal, ArrowRight, LayoutDashboard, Home, Sun, Moon } from 'lucide-react';
 
-export default function Navbar({ currentView, onViewChange, onTabChange, hasUser, theme, toggleTheme }) {
+export default function Navbar({ currentView, onViewChange, onTabChange, hasUser, theme, toggleTheme, isOnline = true }) {
   const [isOpen, setIsOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const navigate = useNavigate();
@@ -157,10 +157,17 @@ export default function Navbar({ currentView, onViewChange, onTabChange, hasUser
               </>
             ) : (
               <>
-                <span className="text-xs font-bold font-mono text-emerald-400 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-950/40 border border-emerald-900">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                  Workspace Active
-                </span>
+                {isOnline ? (
+                  <span className="text-xs font-bold font-mono text-emerald-400 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-950/40 border border-emerald-900" title="Workspace Active">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                    Workspace Active
+                  </span>
+                ) : (
+                  <span className="text-xs font-bold font-mono text-rose-400 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-rose-950/40 border border-rose-900" title="Workspace Inactive">
+                    <span className="w-1.5 h-1.5 rounded-full bg-rose-400 animate-pulse" />
+                    Workspace Inactive
+                  </span>
+                )}
               </>
             )}
           </div>
@@ -226,10 +233,17 @@ export default function Navbar({ currentView, onViewChange, onTabChange, hasUser
               </>
             ) : (
               <>
-                <div className="py-2.5 text-center text-xs font-bold font-mono text-emerald-400 rounded-lg bg-emerald-950/40 border border-emerald-900 flex items-center justify-center gap-1.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                  Workspace Active
-                </div>
+                {isOnline ? (
+                  <div className="py-2.5 text-center text-xs font-bold font-mono text-emerald-400 rounded-lg bg-emerald-950/40 border border-emerald-900 flex items-center justify-center gap-1.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                    Workspace Active
+                  </div>
+                ) : (
+                  <div className="py-2.5 text-center text-xs font-bold font-mono text-rose-400 rounded-lg bg-rose-950/40 border border-rose-900 flex items-center justify-center gap-1.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-rose-400 animate-pulse" />
+                    Workspace Inactive
+                  </div>
+                )}
               </>
             )}
           </div>

@@ -33,7 +33,7 @@ const parseJSON = (text) => {
 /**
  * Helper to call Google Gemini API via SDK
  */
-const callGemini = async (prompt, forceJson = false) => {
+const callGemini = async (prompt, forceJson = false, enableSearch = false) => {
   if (!genAI) {
     throw new Error('Gemini API key is not configured.');
   }
@@ -43,10 +43,16 @@ const callGemini = async (prompt, forceJson = false) => {
     config.responseMimeType = 'application/json';
   }
 
-  const model = genAI.getGenerativeModel({
+  const modelOptions = {
     model: geminiModel,
     generationConfig: config
-  });
+  };
+
+  if (enableSearch) {
+    modelOptions.tools = [{ googleSearch: {} }];
+  }
+
+  const model = genAI.getGenerativeModel(modelOptions);
 
   const result = await model.generateContent(prompt);
   const response = await result.response;
@@ -63,26 +69,35 @@ const callGemini = async (prompt, forceJson = false) => {
  * Generate a set of interview questions based on parameters
  */
 export const generateQuestions = async (params) => {
-  const { track, experienceLevel, role, count = 3 } = params;
+  const { track, experienceLevel, role, count = 3, excludedQuestions = [] } = params;
 
   if (!geminiKey) {
-    return getMockQuestions(track, role, count);
+    return getMockQuestions(track, role, count, excludedQuestions);
   }
 
   try {
-    const prompt = `You are a professional technical interviewer. Generate a list of ${count} interview questions for a candidate.
-    Track: ${track} (HR Behavioral or Technical)
-    Target Role: ${role}
-    Experience Level: ${experienceLevel}
-    
-    Format your response as a JSON array of strings containing only the questions. Do not write any markdown outside the JSON. Example:
-    ["Question 1", "Question 2", "Question 3"]`;
+    let prompt = `You are an expert technical recruiter and interviewer conducting a mock interview.
+Generate a list of exactly ${count} highly realistic, challenging, and diverse interview questions tailored for the following candidate profile:
+- Track: ${track}
+- Target Role: ${role}
+- Experience Level: ${experienceLevel}
 
-    const text = await callGemini(prompt, false);
+Requirements:
+- If this is a Technical track, generate a custom mix of questions covering: front-end performance/rendering optimization (for frontend roles), back-end scalability/concurrency (for backend roles), system design, databases, security, or core programming paradigm deep dives. Make the questions situational (e.g., "Describe how you would debug X in production..."). Avoid generic definitions questions.
+- If this is a behavioral track, generate situation-based questions (probing teamwork, conflict resolution, adaptiveness, and prioritization).`;
+
+    if (Array.isArray(excludedQuestions) && excludedQuestions.length > 0) {
+      prompt += `\n- CRITICAL: Do NOT generate or repeat any of these previously asked questions:\n${excludedQuestions.map(q => `- ${q}`).join('\n')}`;
+    }
+
+    prompt += `\n- Format your response as a valid JSON array of strings containing only the questions. Example:
+["Question 1", "Question 2", "Question 3"]`;
+
+    const text = await callGemini(prompt, true);
     return parseJSON(text);
   } catch (error) {
     console.error('Error in generateQuestions:', error.message);
-    return getMockQuestions(track, role, count);
+    return getMockQuestions(track, role, count, excludedQuestions);
   }
 };
 
@@ -481,13 +496,243 @@ export const generateCareerCoachDetails = async (skills, targetRole, education) 
   }
 };
 
+/**
+ * Generate customized company-specific interview preparation details via Gemini
+ */
+export const generateCompanyPrep = async (companyName, targetRole) => {
+  if (!geminiKey) {
+    return getMockCompanyPrep(companyName, targetRole);
+  }
+
+  try {
+    const prompt = `You are an expert career coach and technical recruitment lead.
+Generate a highly detailed and realistic interview preparation module for a candidate targeting the following profile:
+- Target Company: ${companyName}
+- Target Role: ${targetRole}
+
+Requirements:
+- Custom-tailor the selection round details, quantitative aptitude priorities, technical round questions, and HR/behavioral questions specifically to the known hiring standards, values, and common questions of ${companyName}.
+- Format your response as a valid JSON object with precisely these fields:
+  - "name": string (full descriptive name of the company, e.g. "Google LLC")
+  - "difficulty": "Easy" | "Medium" | "Medium-High" | "High" (estimated interview difficulty for this role)
+  - "roundDetails": string (brief summary of selection rounds, e.g. "Online coding test, 2 technical rounds, 1 manager/fit round")
+  - "aptitudePrep": array of strings (exactly 2 specific aptitude/verbal topic check guidelines relevant to their assessment)
+  - "technicalQuestions": array of strings (exactly 4 specific, realistic technical questions frequently asked at ${companyName} for a ${targetRole} position)
+  - "hrQuestions": array of strings (exactly 3 behavioral or HR questions matching ${companyName}'s culture and values)
+
+Do not write any markdown outside the JSON object.`;
+
+    const text = await callGemini(prompt, true, true);
+    return parseJSON(text);
+  } catch (error) {
+    console.error('Error in generateCompanyPrep, falling back to mock generator:', error.message);
+    return getMockCompanyPrep(companyName, targetRole);
+  }
+};
+
+function getMockCompanyPrep(companyName, targetRole) {
+  const cleanName = companyName.trim().toLowerCase();
+  
+  const highFidelityPortfolios = {
+    google: {
+      name: 'Google LLC',
+      difficulty: 'High',
+      roundDetails: 'Online Coding Assessment (2 questions), 3 Technical Coding/DSA rounds, 1 System Design round, and 1 Googliness & Leadership round.',
+      aptitudePrep: [
+        'Master complex algorithmic paradigms: graph algorithms, dynamic programming, and advanced tree structures.',
+        'Review strict time and space complexity optimizations (O(1) auxiliary space, O(N log N) runtimes).'
+      ],
+      technicalQuestions: [
+        `How would you design a highly scalable search autocomplete suggestion system that processes 100,000 queries per second?`,
+        `Given a directed acyclic graph (DAG), write an efficient algorithm to find the longest path between any two nodes.`,
+        `Explain how you would optimize a web application rendering large-scale real-time search results to prevent frame drops.`,
+        `What are the network overhead trade-offs between HTTP/2 multiplexing and WebSocket connections for real-time notifications?`
+      ],
+      hrQuestions: [
+        `Tell me about a time you had a strong technical disagreement with a project leader. How did you resolve it constructively?`,
+        `How do you navigate highly ambiguous project requirements where there is no clear standard or documentation?`,
+        `Why are you interested in joining Google's engineering team, and how do you demonstrate "Googliness" in your work?`
+      ]
+    },
+    microsoft: {
+      name: 'Microsoft Corporation',
+      difficulty: 'High',
+      roundDetails: 'Online Assessment (Codility), 1-2 Technical Phone screens, 3 Onsite rounds focusing on Data Structures, OOP, System Design, and Managerial Fit.',
+      aptitudePrep: [
+        'Practice questions on binary trees, link-lists, heaps, and modular object-oriented design.',
+        'Review logical flow puzzles, abstract grids, and pattern sequences.'
+      ],
+      technicalQuestions: [
+        `How would you design the backend storage and synchronization layer for a collaborative document editor like Office 365?`,
+        `Write a complete program to serialize a binary tree to a string and deserialize it back into the original tree structure.`,
+        `Explain database locking mechanisms (Pessimistic vs. Optimistic) and how they impact concurrent database transactions.`,
+        `How does the event-driven programming paradigm in modern servers handle asynchronous I/O operations without thread blocking?`
+      ],
+      hrQuestions: [
+        `How do you align your personal career growth goals with Microsoft's "Growth Mindset" philosophy?`,
+        `Describe a project where you took immediate leadership to resolve a critical system failure or customer crash.`,
+        `Tell me about a time you mentored a classmate or junior developer to help them succeed in a technical project.`
+      ]
+    },
+    amazon: {
+      name: 'Amazon.com, Inc.',
+      difficulty: 'High',
+      roundDetails: 'Online Assessment (Coding & Work Simulation), 3-4 Onsite loops focusing heavily on Amazon Leadership Principles, System Design, and Coding.',
+      aptitudePrep: [
+        'Practice timed competitive programming challenges, class design schemas, and mock behavioral scenario alignments.',
+        'Study Amazon\'s 16 Leadership Principles and learn to map your achievements to them.'
+      ],
+      technicalQuestions: [
+        `Design a distributed notification delivery service that sends order updates to millions of active Amazon delivery partners.`,
+        `Given K sorted linked lists, write an optimized algorithm to merge them into a single sorted linked list.`,
+        `How would you optimize database read operations for Amazon's shopping cart checkout service during heavy traffic events like Prime Day?`,
+        `Explain the trade-offs of caching strategies (Write-through vs. Cache-aside) and how you ensure cache consistency.`
+      ],
+      hrQuestions: [
+        `Describe a situation where you took complete ownership of a task or problem outside your immediate job scope (Ownership Principle).`,
+        `Tell me about a time you had a technical disagreement with a manager but committed to the team's path (Have Backbone; Disagree and Commit).`,
+        `How have you simplified a highly complex system or process to save development time or operational cost (Invent and Simplify)?`
+      ]
+    },
+    tcs: {
+      name: 'TCS (Tata Consultancy Services)',
+      difficulty: 'Medium',
+      roundDetails: 'Aptitude Test (Numerical & Verbal), Technical Interview Panel, and HR round.',
+      aptitudePrep: [
+        'Practice time-speed-distance, percentage, simple interest, profit & loss, and logical grids.',
+        'Review logical reasoning, syllogisms, coding-decoding, and verbal sentence patterns.'
+      ],
+      technicalQuestions: [
+        'What is database normalization? Explain the difference between 1NF, 2NF, and 3NF.',
+        'Explain the difference between call by value and call by reference in memory allocation.',
+        'Write a basic code to reverse a singly linked list in-place.',
+        'What are OOP principles? Explain polymorphism and encapsulation with real examples.'
+      ],
+      hrQuestions: [
+        'Why do you want to join TCS, and are you comfortable relocating to any of our developer centers?',
+        'Tell me about your final year project, the technologies used, and your direct role in the team.',
+        'How do you stay motivated when assigned to support-oriented or repetitive software cycles?'
+      ]
+    },
+    infosys: {
+      name: 'Infosys',
+      difficulty: 'Medium',
+      roundDetails: 'InfyTQ/HackWithInfy exam, Technical assessment round, and HR Interview.',
+      aptitudePrep: [
+        'Understand permutation & combination, probability, speed math, and ratios.',
+        'Data interpretation tables, graph analyses, and paragraph comprehension checks.'
+      ],
+      technicalQuestions: [
+        'What is a primary key, foreign key, and unique key? How do they differ?',
+        'Compare Method Overloading and Method Overriding in Java with examples.',
+        'What is the difference between HTML5 semantic tags and regular div wrappers?',
+        'Write an optimized algorithm to check if an array contains duplicates.'
+      ],
+      hrQuestions: [
+        'How do you handle work pressure, multiple deadlines, and project prioritization?',
+        'Why should we hire you over other candidates presenting similar skillsets?',
+        'Describe a situation where you had to learn a complex technical skill very quickly.'
+      ]
+    },
+    wipro: {
+      name: 'Wipro',
+      difficulty: 'Medium',
+      roundDetails: 'Elite National Talent Hunt assessment, Technical Interview Round, and HR Panel.',
+      aptitudePrep: [
+        'Solve quantitative questions on averages, ratios, mixture-allegation, and work-time formulas.',
+        'Practice error spotting, sentence completion, and logical grids.'
+      ],
+      technicalQuestions: [
+        'What is a pointer? How is it used in C/C++ memory management?',
+        'Explain the ACID properties of databases and why they are critical.',
+        'What is the difference between GET and POST requests in REST API designs?',
+        'Write a function to check if a given number is prime.'
+      ],
+      hrQuestions: [
+        'What are your greatest strengths and weaknesses? How are you working on your weaknesses?',
+        'Are you willing to work in night shifts if project demands call for it?',
+        'Describe your teamwork skills and how you managed tasks in college projects.'
+      ]
+    },
+    accenture: {
+      name: 'Accenture',
+      difficulty: 'Medium-High',
+      roundDetails: 'Cognitive & Technical Assessment, Coding Round, and HR Interview.',
+      aptitudePrep: [
+        'Study logical sequencing, abstract reasoning, flow charts, and math equations.',
+        'Prepare coding fundamentals: pseudocodes, loop analysis, and binary operators.'
+      ],
+      technicalQuestions: [
+        'What is cloud computing? Explain IaaS, PaaS, SaaS with standard examples.',
+        'Explain data encapsulation in OOP and why it is useful.',
+        'What is the difference between a compiler and an interpreter?',
+        'Explain MVC architecture and how it separates presentation and logic layers.'
+      ],
+      hrQuestions: [
+        'Describe a time you solved a problem using a creative or unconventional approach.',
+        'How do you manage sudden changes in project requirements or client directions?',
+        'What do you know about Accenture\'s cloud services and our global consulting footprint?'
+      ]
+    },
+    deloitte: {
+      name: 'Deloitte',
+      difficulty: 'High',
+      roundDetails: 'Deloitte Aptitude (AMCAT style), Group Case Study discussion, and Tech & HR panels.',
+      aptitudePrep: [
+        'Prepare statistics, word problems, series puzzles, and logic trees.',
+        'Brush up on business case analysis and structuring recommendations.'
+      ],
+      technicalQuestions: [
+        'How does public key cryptography work in securing internet communication?',
+        'What is the difference between SQL and NoSQL? When would you use which?',
+        'Explain dependency injection and its benefits in app development.',
+        'Describe standard Git workflows for team branches.'
+      ],
+      hrQuestions: [
+        'Walk me through a business case problem you analyzed.',
+        'How do you resolve conflicts within project team structures?',
+        'Where do you see yourself in 3 years with Deloitte consulting services?'
+      ]
+    }
+  };
+
+  const matchedKey = Object.keys(highFidelityPortfolios).find(k => cleanName.includes(k));
+  if (matchedKey) {
+    return highFidelityPortfolios[matchedKey];
+  }
+
+  const title = companyName.trim().charAt(0).toUpperCase() + companyName.trim().slice(1);
+  return {
+    name: `${title} Corporation`,
+    difficulty: 'Medium-High',
+    roundDetails: 'Online technical assessment, 2 engineering technical interviews, and 1 behavioral fit round.',
+    aptitudePrep: [
+      `Practice quantitative skills including probability, speed arithmetic, and logical sequences relevant to ${title}'s test patterns.`,
+      `Review technical fundamentals, basic algorithmic structures, and error-spotting code patterns.`
+    ],
+    technicalQuestions: [
+      `Describe how you would design a scalable structure to support concurrent requests for a typical ${targetRole} application.`,
+      `Explain database index optimization and how it improves query performance at ${title}.`,
+      `How do you secure API communication endpoints from scripts or malicious network traffic?`,
+      `What is data serialization? Explain the tradeoffs of JSON vs. Binary format.`
+    ],
+    hrQuestions: [
+      `Why do you want to build your career with ${title}?`,
+      `Describe a time you encountered a severe project obstacle. How did you organize your resources to resolve it?`,
+      `How do you handle cross-functional collaboration and constructive design feedback?`
+    ]
+  };
+}
+
 // ==========================================
 // OFFLINE HIGH-FIDELITY MOCK MAPPINGS
 // ==========================================
 
-function getMockQuestions(track, role, count) {
+function getMockQuestions(track, role, count, excludedQuestions = []) {
+  const excludeSet = new Set(excludedQuestions.map(q => q.toLowerCase().trim()));
+
   if (track.toLowerCase().includes('hr') || track.toLowerCase().includes('behavioral')) {
-    return [
+    const questions = [
       `Tell me about a time you had a conflict with a teammate and how you resolved it in a professional setting.`,
       `Why do you want to join our company as a ${role}, and where do you see your career heading in the next 5 years?`,
       `Describe a challenging project you spearheaded. What were the obstacles and how did you overcome them?`,
@@ -498,7 +743,10 @@ function getMockQuestions(track, role, count) {
       `Tell me about a time you had to adapt quickly to a major shift in project requirements or technology stack.`,
       `How do you stay motivated during repetitive tasks, and what do you do to keep your technical skills sharp?`,
       `Describe an instance where you went above and beyond your standard duties to deliver a critical team milestone.`
-    ].slice(0, count);
+    ];
+
+    const filtered = questions.filter(q => !excludeSet.has(q.toLowerCase().trim()));
+    return (filtered.length >= count ? filtered : questions).slice(0, count);
   } else {
     // Technical track
     const technicalMock = {
@@ -540,8 +788,14 @@ function getMockQuestions(track, role, count) {
       ]
     };
 
-    const key = Object.keys(technicalMock).find(k => role.toLowerCase().includes(k)) || 'backend';
-    return (technicalMock[key] || technicalMock['backend']).slice(0, count);
+    const key = Object.keys(technicalMock).find(k => 
+      role.toLowerCase().includes(k) || 
+      (k === 'react' && (role.toLowerCase().includes('frontend') || track.toLowerCase().includes('frontend')))
+    ) || 'backend';
+    
+    const questions = technicalMock[key] || technicalMock['backend'];
+    const filtered = questions.filter(q => !excludeSet.has(q.toLowerCase().trim()));
+    return (filtered.length >= count ? filtered : questions).slice(0, count);
   }
 }
 

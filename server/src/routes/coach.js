@@ -1,6 +1,6 @@
 import express from 'express';
 import { protect } from '../middleware/auth.js';
-import { generateCareerCoachDetails } from '../services/gemini.js';
+import { generateCareerCoachDetails, generateCompanyPrep } from '../services/gemini.js';
 
 const router = express.Router();
 
@@ -179,6 +179,34 @@ router.get('/company/:companyName', protect, async (req, res) => {
   };
 
   res.json(prepModule);
+});
+
+/**
+ * @route   POST /api/coach/company/generate
+ * @desc    Generate customized company preparation track using Gemini (Pro / Premium Feature)
+ * @access  Private
+ */
+router.post('/company/generate', protect, async (req, res) => {
+  if (req.user.subscription === 'Free') {
+    return res.status(403).json({ 
+      message: 'Company-specific prep is a Pro/Premium feature. Please upgrade to access!' 
+    });
+  }
+
+  const { companyName } = req.body;
+
+  if (!companyName || typeof companyName !== 'string' || !companyName.trim()) {
+    return res.status(400).json({ message: 'Missing or invalid companyName parameter.' });
+  }
+
+  try {
+    const targetRole = req.user.targetRole || 'Software Engineer';
+    const customPrep = await generateCompanyPrep(companyName, targetRole);
+    res.json(customPrep);
+  } catch (error) {
+    console.error('Error generating custom company prep:', error.message);
+    res.status(500).json({ message: 'Failed to generate company preparation profile. Please check parameters or retry later.' });
+  }
 });
 
 export default router;

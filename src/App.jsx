@@ -183,6 +183,21 @@ export default function App() {
     localStorage.setItem('interviewace_ats', atsScore.toString());
   }, [atsScore]);
 
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
+
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
+
   // Handle redirects on login trigger
   useEffect(() => {
     if (userProfile && currentView === 'landing') {
@@ -272,6 +287,7 @@ export default function App() {
           hasUser={!!userProfile}
           theme={theme}
           toggleTheme={toggleTheme}
+          isOnline={isOnline}
         />
 
         <Toaster 

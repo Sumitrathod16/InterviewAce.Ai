@@ -4,7 +4,7 @@ import {
   Award, FileText, CheckSquare, Calendar, ChevronRight, Activity, 
   Code, UserCheck, AlertCircle, ArrowRight, LogOut, Shield,
   CreditCard, User, Sparkles, Building, Compass, Check, Info, Settings, Clock,
-  BarChart3, History
+  BarChart3, History, RefreshCw
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import API from '../services/api';
@@ -43,6 +43,8 @@ export default function DashboardPortal({
   const [selectedCompany, setSelectedCompany] = useState('tcs');
   const [companyPrepData, setCompanyPrepData] = useState(null);
   const [loadingCompany, setLoadingCompany] = useState(false);
+  const [customCompany, setCustomCompany] = useState('');
+  const [generatingCompany, setGeneratingCompany] = useState(false);
 
   // Billing states
   const [billingInfo, setBillingInfo] = useState({ subscription: { plan: 'Free', status: 'none' }, history: [] });
@@ -62,6 +64,21 @@ export default function DashboardPortal({
   const [dbResumes, setDbResumes] = useState([]);
   const [problems, setProblems] = useState([]);
   const [difficultyFilter, setDifficultyFilter] = useState('Easy');
+
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
+
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
 
   // Handle photo conversion to base64
   const handleImageChange = (e) => {
@@ -168,6 +185,30 @@ export default function DashboardPortal({
       setCoachError(err.response?.data?.message || 'Failed to connect to AI Career Advisor.');
     } finally {
       setLoadingCoach(false);
+    }
+  };
+
+  const handleGenerateCustomCompany = async (e) => {
+    if (e) e.preventDefault();
+    if (!customCompany.trim()) {
+      toast.error('Please enter a target company name.');
+      return;
+    }
+
+    setGeneratingCompany(true);
+    const toastId = toast.loading(`Generating tailored guide for ${customCompany}...`);
+    try {
+      const response = await API.post('/coach/company/generate', {
+        companyName: customCompany.trim()
+      });
+      setCompanyPrepData(response.data);
+      setSelectedCompany(''); // Clear quick filter buttons active states
+      toast.success(`Preparation module for ${customCompany} generated successfully!`, { id: toastId });
+    } catch (err) {
+      console.error(err);
+      toast.error(err.response?.data?.message || 'Failed to generate company-specific guide. Ensure you have a Pro/Premium subscription.', { id: toastId });
+    } finally {
+      setGeneratingCompany(false);
     }
   };
 
@@ -460,7 +501,31 @@ export default function DashboardPortal({
 
         {/* TAB WORKSPACES CONTAINER */}
         <div>
-          <AnimatePresence mode="wait">
+          {!isOnline ? (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.98 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="py-20 flex flex-col items-center justify-center text-center max-w-md mx-auto space-y-6"
+            >
+              <div className="w-16 h-16 rounded-full bg-rose-500/10 flex items-center justify-center border border-rose-500/25 text-rose-500 animate-pulse">
+                <AlertCircle size={32} />
+              </div>
+              <div className="space-y-2">
+                <h3 className="text-lg font-bold text-white uppercase tracking-wider">Workspace Inactive</h3>
+                <p className="text-xs text-lightGray/60 leading-relaxed">
+                  Your internet connection is currently offline. An active network connection is required to synchronize challenges, run compiler sessions, and communicate with Gemini AI evaluators.
+                </p>
+              </div>
+              <button
+                onClick={() => setIsOnline(navigator.onLine)}
+                className="px-6 py-2.5 bg-secondaryBg hover:bg-secondaryBg/80 border border-slate-200/60 dark:border-white/5 text-white text-xs font-bold rounded-lg transition-all flex items-center gap-2 animate-none"
+              >
+                <RefreshCw size={14} className="animate-spin" />
+                Retry Connection
+              </button>
+            </motion.div>
+          ) : (
+            <AnimatePresence mode="wait">
             
             {/* OVERVIEW TAB */}
             {activeTab === 'overview' && (
@@ -967,20 +1032,47 @@ export default function DashboardPortal({
                   </div>
 
                   {userProfile?.subscription !== 'Free' && (
-                    <div className="flex gap-1.5 flex-wrap">
-                      {companiesList.map(c => (
+                    <div className="flex flex-col lg:flex-row items-stretch lg:items-center gap-3">
+                      {/* Custom Input */}
+                      <form onSubmit={handleGenerateCustomCompany} className="flex gap-1.5 text-xs">
+                        <input
+                          type="text"
+                          value={customCompany}
+                          onChange={(e) => setCustomCompany(e.target.value)}
+                          placeholder="e.g. Google, Microsoft, Zoho..."
+                          className="px-3 py-1.5 bg-background/50 text-white rounded-lg border border-slate-200/40 dark:border-white/5 focus:outline-none focus:border-accent/40 w-48 font-sans"
+                          disabled={generatingCompany}
+                        />
                         <button
-                          key={c.id}
-                          onClick={() => setSelectedCompany(c.id)}
-                          className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${
-                            selectedCompany === c.id 
-                              ? 'bg-accent text-white shadow-[0_4px_10px_rgba(var(--accent),0.15)]' 
-                              : 'bg-background/50 text-lightGray border border-slate-200/40 dark:border-white/5 hover:bg-white/5'
-                          }`}
+                          type="submit"
+                          disabled={generatingCompany || !customCompany.trim()}
+                          className="px-3.5 py-1.5 bg-accent hover:bg-accent/90 disabled:opacity-40 disabled:hover:bg-accent text-white font-bold rounded-lg transition-all flex items-center gap-1 whitespace-nowrap shadow-[0_2px_8px_rgba(var(--accent),0.15)]"
                         >
-                          {c.name}
+                          {generatingCompany ? 'Generating...' : 'AI Generate'}
                         </button>
-                      ))}
+                      </form>
+                      
+                      <div className="hidden lg:block w-px h-6 bg-slate-200/20 dark:bg-white/5 mx-1" />
+
+                      {/* Quick Select Buttons */}
+                      <div className="flex gap-1.5 flex-wrap">
+                        {companiesList.map(c => (
+                          <button
+                            key={c.id}
+                            onClick={() => {
+                              setSelectedCompany(c.id);
+                              setCustomCompany(''); // Clear custom input when choosing presets
+                            }}
+                            className={`px-3 py-1.5 text-xs font-bold rounded-lg transition-all ${
+                              selectedCompany === c.id 
+                                ? 'bg-accent text-white shadow-[0_4px_10px_rgba(var(--accent),0.15)]' 
+                                : 'bg-background/50 text-lightGray border border-slate-200/40 dark:border-white/5 hover:bg-white/5'
+                            }`}
+                          >
+                            {c.name}
+                          </button>
+                        ))}
+                      </div>
                     </div>
                   )}
                 </div>
@@ -1455,6 +1547,7 @@ export default function DashboardPortal({
             )}
 
           </AnimatePresence>
+          )}
         </div>
 
       </div>
