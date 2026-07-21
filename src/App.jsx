@@ -208,27 +208,19 @@ export default function App() {
 
   // Synchronize local solved problems state with database user profile
   useEffect(() => {
-    if (userProfile && Array.isArray(userProfile.solvedProblems)) {
-      setSolvedProblems(prev => {
-        const merged = [...prev];
-        let hasNew = false;
-        userProfile.solvedProblems.forEach(dbProblem => {
-          if (dbProblem && typeof dbProblem.problemId === 'string' && typeof dbProblem.language === 'string') {
-            const exists = merged.some(
-              p => p.problemId === dbProblem.problemId && 
-              p.language.toLowerCase() === dbProblem.language.toLowerCase()
-            );
-            if (!exists) {
-              merged.push({ 
-                problemId: dbProblem.problemId, 
-                language: dbProblem.language 
-              });
-              hasNew = true;
-            }
-          }
-        });
-        return hasNew ? merged : prev;
-      });
+    if (userProfile) {
+      if (Array.isArray(userProfile.solvedProblems)) {
+        const dbProblems = userProfile.solvedProblems.map(p => ({
+          problemId: p.problemId,
+          language: p.language
+        }));
+        setSolvedProblems(dbProblems);
+      } else {
+        setSolvedProblems([]);
+      }
+    } else {
+      setSolvedProblems([]);
+      setAtsScore(78);
     }
   }, [userProfile]);
 

@@ -35,7 +35,7 @@ router.post('/redeem', protect, async (req, res) => {
       }
     });
 
-    const totalXp = (solvedCount * 10) + interviewXp;
+    const totalXp = 500 + (solvedCount * 10) + interviewXp;
     const spentXp = user.spentXp || 0;
     const availableXp = totalXp - spentXp;
 

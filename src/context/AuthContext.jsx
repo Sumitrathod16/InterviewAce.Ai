@@ -26,6 +26,19 @@ export const AuthProvider = ({ children }) => {
   const syncWithBackend = async (firebaseUser, token, customDetails = {}) => {
     try {
       let localSolved = [];
+      const savedUserStr = localStorage.getItem('interviewace_user');
+      if (savedUserStr) {
+        try {
+          const savedUser = JSON.parse(savedUserStr);
+          if (savedUser && savedUser.email !== firebaseUser.email) {
+            console.log('[AUTH] Switch account detected! Clearing old local cache.');
+            localStorage.removeItem('interviewace_solved_detail');
+            localStorage.removeItem('interviewace_solved');
+            localStorage.removeItem('interviewace_ats');
+          }
+        } catch (e) {}
+      }
+
       try {
         const saved = localStorage.getItem('interviewace_solved_detail');
         if (saved) {
@@ -202,6 +215,9 @@ export const AuthProvider = ({ children }) => {
       }
       localStorage.removeItem('interviewace_token');
       localStorage.removeItem('interviewace_user');
+      localStorage.removeItem('interviewace_solved_detail');
+      localStorage.removeItem('interviewace_solved');
+      localStorage.removeItem('interviewace_ats');
       setCurrentUser(null);
       setUserProfile(null);
     } catch (error) {

@@ -85,6 +85,10 @@ export default function CheckoutPage() {
   const cgst = totalGst / 2;
   const sgst = totalGst / 2;
 
+  // 1-Month Free Trial launch discount
+  const trialDiscount = totalPrice;
+  const dueToday = 0;
+
   // Checkout states
   const [selectedMethod, setSelectedMethod] = useState('card'); // card | upi | netbanking | wallet
   const [isInitiating, setIsInitiating] = useState(false);
@@ -410,7 +414,7 @@ export default function CheckoutPage() {
               ) : (
                 <>
                   <ShieldCheck size={16} />
-                  <span>Securely Checkout ₹{totalPrice.toLocaleString()} via Razorpay</span>
+                  <span>Activate 1-Month Free Trial (₹0 Due Today)</span>
                   <ChevronRight size={14} className="group-hover:translate-x-0.5 transition-transform" />
                 </>
               )}
@@ -503,12 +507,20 @@ export default function CheckoutPage() {
                   <span>GST Included Total</span>
                   <span className="font-semibold font-mono">₹{(cgst + sgst).toFixed(2)}</span>
                 </div>
+
+                <div className="flex items-center justify-between text-emerald-400 font-medium bg-emerald-500/5 p-2.5 rounded-xl border border-emerald-500/10">
+                  <span>1-Month Free Trial Launch Offer</span>
+                  <span className="font-semibold font-mono">-₹{totalPrice.toFixed(2)}</span>
+                </div>
               </div>
 
               {/* Grand Total */}
               <div className="flex items-baseline justify-between mb-4">
-                <span className="text-sm font-bold text-white">Grand Total (INR)</span>
-                <span className="text-3xl font-black text-white font-mono">₹{totalPrice.toLocaleString()}</span>
+                <div>
+                  <span className="text-sm font-bold text-white block">Grand Total Due Today</span>
+                  <span className="text-[10px] text-lightGray/40 block mt-0.5">Subsequent billing starts in 1 month</span>
+                </div>
+                <span className="text-3xl font-black text-white font-mono">₹{dueToday.toFixed(2)}</span>
               </div>
 
               <div className="text-[10px] text-lightGray/40 leading-relaxed flex items-start gap-1.5 bg-white/5 p-3 rounded-xl border border-white/5">
@@ -720,7 +732,7 @@ export default function CheckoutPage() {
                       onClick={startMockPaymentProcessing}
                       className="w-full mt-4 py-3 bg-white text-background disabled:opacity-40 disabled:hover:bg-white hover:bg-lightGray rounded-xl text-xs font-bold transition-all shadow-md flex items-center justify-center gap-1.5"
                     >
-                      <span>Authorize Payment of ₹{totalPrice.toLocaleString()}</span>
+                      <span>Authorize Trial (₹0.00 Due Today)</span>
                       <ChevronRight size={12} />
                     </button>
 
@@ -752,7 +764,7 @@ export default function CheckoutPage() {
                       onClick={startMockPaymentProcessing}
                       className="w-full mt-2 py-3 bg-white text-background disabled:opacity-40 disabled:hover:bg-white hover:bg-lightGray rounded-xl text-xs font-bold transition-all shadow-md flex items-center justify-center gap-1.5"
                     >
-                      <span>Simulate UPI Payment</span>
+                      <span>Simulate UPI Verification (₹0.00)</span>
                       <ChevronRight size={12} />
                     </button>
                   </div>

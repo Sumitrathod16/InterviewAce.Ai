@@ -265,7 +265,7 @@ export default function DashboardPortal({
   const interviewsList = dbInterviews.length > 0 ? dbInterviews : completedInterviews;
   const avgInterviewScore = interviewsList.length > 0
     ? Math.round(interviewsList.reduce((acc, curr) => acc + curr.score, 0) / interviewsList.length)
-    : 84;
+    : 0;
 
   let interviewXp = 0;
   interviewsList.forEach(interview => {
@@ -279,11 +279,17 @@ export default function DashboardPortal({
     }
   });
 
-  const totalXp = (solvedProblems.size * 10) + interviewXp;
+  const totalXp = 500 + (solvedProblems.size * 10) + interviewXp;
   const practiceStreak = userProfile?.streakCount || 0;
 
   // Combine all XP transaction histories (earnings + spendings)
-  const xpTransactionsList = [];
+  const xpTransactionsList = [
+    {
+      description: "Welcome Bonus Points",
+      amount: 500,
+      timestamp: userProfile?.createdAt || new Date()
+    }
+  ];
 
   // 1. Solved Problems (Earnings)
   if (userProfile?.solvedProblems && Array.isArray(userProfile.solvedProblems)) {
@@ -348,10 +354,30 @@ export default function DashboardPortal({
       ];
 
   const stats = [
-    { title: 'Interview Rating', value: `${avgInterviewScore}%`, desc: interviewsList.length > 0 ? `Based on ${interviewsList.length} rounds` : 'Starting baseline', icon: Award },
-    { title: 'ATS Resume Rating', value: `${atsScore}/100`, desc: atsScore >= 80 ? 'ATS Compatible' : 'Needs Optimization', icon: FileText },
-    { title: 'Algorithm Challenges', value: `${solvedProblems.size} / ${CHALLENGES.length}`, desc: `${Math.max(0, CHALLENGES.length - solvedProblems.size)} remaining`, icon: CheckSquare },
-    { title: 'Practice Streak', value: `${practiceStreak} Day${practiceStreak !== 1 ? 's' : ''}`, desc: 'Active streak', icon: Calendar }
+    { 
+      title: 'Interview Rating', 
+      value: interviewsList.length > 0 ? `${avgInterviewScore}%` : '-', 
+      desc: interviewsList.length > 0 ? `Based on ${interviewsList.length} rounds` : 'No interviews yet', 
+      icon: Award 
+    },
+    { 
+      title: 'ATS Resume Rating', 
+      value: dbResumes.length > 0 ? `${atsScore}/100` : '-', 
+      desc: dbResumes.length > 0 ? (atsScore >= 80 ? 'ATS Compatible' : 'Needs Optimization') : 'No resumes scanned yet', 
+      icon: FileText 
+    },
+    { 
+      title: 'Algorithm Challenges', 
+      value: `${solvedProblems.size} / ${CHALLENGES.length}`, 
+      desc: `${Math.max(0, CHALLENGES.length - solvedProblems.size)} remaining`, 
+      icon: CheckSquare 
+    },
+    { 
+      title: 'Practice Streak', 
+      value: `${practiceStreak} Day${practiceStreak !== 1 ? 's' : ''}`, 
+      desc: 'Active streak', 
+      icon: Calendar 
+    }
   ];
 
   const nameInitials = userProfile?.name
@@ -431,7 +457,14 @@ export default function DashboardPortal({
                   <span className="text-secondary font-bold">{totalXp - (userProfile?.spentXp || 0)} XP Balance</span> (Total Earned: {totalXp} XP)
                 </span>
                 <span>•</span>
-                <span>Tier: <strong className="text-white">{userProfile?.subscription || 'Free'}</strong></span>
+                <span>
+                   Tier: <strong className="text-white">{userProfile?.subscription || 'Free'}</strong>
+                   {userProfile?.isTrial && (
+                     <span className="ml-1.5 px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 font-extrabold uppercase text-[9px] border border-indigo-500/20 animate-pulse">
+                       Launch Trial
+                     </span>
+                   )}
+                 </span>
               </div>
             </div>
           </div>
@@ -775,22 +808,50 @@ export default function DashboardPortal({
                       </div>
                     </div>
                   </div>
-                ) : (
-                  <div className="p-6 bg-gradient-to-r from-emerald-500/10 to-secondaryBg/60 dark:from-emerald-950/20 dark:to-secondaryBg/30 border border-emerald-500/20 dark:border-emerald-900/40 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-4">
-                    <div className="flex items-center gap-3">
-                      <div className="p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-xl text-emerald-600 dark:text-emerald-400">
-                        <Sparkles size={20} className="animate-pulse" />
-                      </div>
-                      <div>
-                        <h4 className="text-sm font-bold text-white uppercase tracking-wider">Active {userProfile?.subscription} Subscription</h4>
-                        <p className="text-xs text-lightGray/60 mt-0.5">Thank you for supporting us! You have unlocked all premium preparation features.</p>
-                      </div>
-                    </div>
-                    <div className="px-4 py-1.5 bg-emerald-500/10 border border-emerald-500/30 rounded-full text-xs font-semibold text-emerald-600 dark:text-emerald-400">
-                      Active Pack: {userProfile?.subscription}
-                    </div>
-                  </div>
-                )}
+                ) : userProfile?.isTrial ? (
+                     <div className="p-8 bg-gradient-to-br from-indigo-500/10 to-secondaryBg/60 dark:from-indigo-950/20 dark:to-background border border-indigo-500/20 dark:border-indigo-900/40 rounded-2xl text-center space-y-5">
+                       <div className="w-12 h-12 rounded-full bg-indigo-500/10 border border-indigo-500/30 flex items-center justify-center text-indigo-600 dark:text-indigo-400 mx-auto">
+                         <Sparkles size={24} className="animate-pulse text-indigo-400" />
+                       </div>
+                       <div className="space-y-2">
+                         <h3 className="text-lg font-black text-white">Active {userProfile.subscription} (Free Launch Trial)</h3>
+                         <p className="text-xs text-lightGray/60 max-w-sm mx-auto">
+                           You are currently enjoying your 1-month free trial. You have full access to all technical mocks, ATS analyzer scans, and sandboxes.
+                         </p>
+                       </div>
+                       <div className="p-4 bg-indigo-500/10 border border-indigo-500/30 rounded-xl text-xs text-indigo-600 dark:text-indigo-400 font-mono max-w-xs mx-auto">
+                         DAYS REMAINING: {(() => {
+                           if (!userProfile?.trialEndsAt) return 30;
+                           const end = new Date(userProfile.trialEndsAt);
+                           const now = new Date();
+                           const diff = end - now;
+                           const days = Math.ceil(diff / (1000 * 60 * 60 * 24));
+                           return days > 0 ? days : 0;
+                         })()} DAYS
+                       </div>
+                       <div className="text-[10px] text-lightGray/40 leading-relaxed font-sans">
+                         Trial will expire on {userProfile?.trialEndsAt ? new Date(userProfile.trialEndsAt).toLocaleDateString(undefined, { dateStyle: 'medium' }) : '30 days'}. Secure uninterrupted access by selecting a plan below.
+                       </div>
+                     </div>
+                   ) : (
+                     <div className="p-8 bg-gradient-to-br from-emerald-500/10 to-secondaryBg/60 dark:from-emerald-950/20 dark:to-background border border-emerald-500/20 dark:border-emerald-900/40 rounded-2xl text-center space-y-5">
+                       <div className="w-12 h-12 rounded-full bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-600 dark:text-emerald-400 mx-auto">
+                         <Sparkles size={24} className="animate-pulse" />
+                       </div>
+                       <div className="space-y-2">
+                         <h3 className="text-lg font-black text-white">Active {userProfile.subscription} Pack</h3>
+                         <p className="text-xs text-lightGray/60 max-w-sm mx-auto">
+                           Thank you for purchasing the {userProfile.subscription} access tier. You now have unlimited access to AI Mock Interviews, ATS Resume Audits, and the Coding Compilation Sandbox.
+                         </p>
+                       </div>
+                       <div className="p-4 bg-emerald-500/10 border border-emerald-500/30 rounded-xl text-xs text-emerald-600 dark:text-emerald-400 font-mono max-w-xs mx-auto">
+                         SUBSCRIPTION STATUS: ACTIVE
+                       </div>
+                       <div className="text-[10px] text-lightGray/40 leading-relaxed font-sans">
+                         Need help managing your subscription? Contact support at any time.
+                       </div>
+                     </div>
+                   )}
               </motion.div>
             )}
 
@@ -1212,27 +1273,52 @@ export default function DashboardPortal({
                         </div>
                       </div>
                     </>
-                  ) : (
-                    <div className="p-8 bg-gradient-to-br from-emerald-500/10 to-secondaryBg/60 dark:from-emerald-950/20 dark:to-background border border-emerald-500/20 dark:border-emerald-900/40 rounded-2xl text-center space-y-5">
-                      <div className="w-12 h-12 rounded-full bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-600 dark:text-emerald-400 mx-auto">
-                        <Sparkles size={24} className="animate-pulse" />
-                      </div>
-                      <div className="space-y-2">
-                        <h3 className="text-lg font-black text-white">Active {userProfile.subscription} Pack</h3>
-                        <p className="text-xs text-lightGray/60 max-w-sm mx-auto">
-                          Thank you for purchasing the {userProfile.subscription} access tier. You now have unlimited access to AI Mock Interviews, ATS Resume Audits, and the Coding Compilation Sandbox.
-                        </p>
-                      </div>
-                      <div className="p-4 bg-emerald-500/10 border border-emerald-500/30 rounded-xl text-xs text-emerald-600 dark:text-emerald-400 font-mono max-w-xs mx-auto">
-                        SUBSCRIPTION STATUS: ACTIVE
-                      </div>
-                      <div className="text-[10px] text-lightGray/40 leading-relaxed font-sans">
-                        Need help managing your subscription? Contact support at any time.
-                      </div>
-                    </div>
-                  )}
+                  ) : userProfile?.isTrial ? (
+                     <div className="p-8 bg-gradient-to-br from-indigo-500/10 to-secondaryBg/60 dark:from-indigo-950/20 dark:to-background border border-indigo-500/20 dark:border-indigo-900/40 rounded-2xl text-center space-y-5">
+                       <div className="w-12 h-12 rounded-full bg-indigo-500/10 border border-indigo-500/30 flex items-center justify-center text-indigo-600 dark:text-indigo-400 mx-auto">
+                         <Sparkles size={24} className="animate-pulse text-indigo-400" />
+                       </div>
+                       <div className="space-y-2">
+                         <h3 className="text-lg font-black text-white">Active {userProfile.subscription} (Free Launch Trial)</h3>
+                         <p className="text-xs text-lightGray/60 max-w-sm mx-auto">
+                           You are currently enjoying your 1-month free trial. You have full access to all technical mocks, ATS analyzer scans, and sandboxes.
+                         </p>
+                       </div>
+                       <div className="p-4 bg-indigo-500/10 border border-indigo-500/30 rounded-xl text-xs text-indigo-600 dark:text-indigo-400 font-mono max-w-xs mx-auto">
+                         DAYS REMAINING: {(() => {
+                           if (!userProfile?.trialEndsAt) return 30;
+                           const end = new Date(userProfile.trialEndsAt);
+                           const now = new Date();
+                           const diff = end - now;
+                           const days = Math.ceil(diff / (1000 * 60 * 60 * 24));
+                           return days > 0 ? days : 0;
+                         })()} DAYS
+                       </div>
+                       <div className="text-[10px] text-lightGray/40 leading-relaxed font-sans">
+                         Trial will expire on {userProfile?.trialEndsAt ? new Date(userProfile.trialEndsAt).toLocaleDateString(undefined, { dateStyle: 'medium' }) : '30 days'}. Secure uninterrupted access by selecting a plan below.
+                       </div>
+                     </div>
+                   ) : (
+                     <div className="p-8 bg-gradient-to-br from-emerald-500/10 to-secondaryBg/60 dark:from-emerald-950/20 dark:to-background border border-emerald-500/20 dark:border-emerald-900/40 rounded-2xl text-center space-y-5">
+                       <div className="w-12 h-12 rounded-full bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-600 dark:text-emerald-400 mx-auto">
+                         <Sparkles size={24} className="animate-pulse" />
+                       </div>
+                       <div className="space-y-2">
+                         <h3 className="text-lg font-black text-white">Active {userProfile.subscription} Pack</h3>
+                         <p className="text-xs text-lightGray/60 max-w-sm mx-auto">
+                           Thank you for purchasing the {userProfile.subscription} access tier. You now have unlimited access to AI Mock Interviews, ATS Resume Audits, and the Coding Compilation Sandbox.
+                         </p>
+                       </div>
+                       <div className="p-4 bg-emerald-500/10 border border-emerald-500/30 rounded-xl text-xs text-emerald-600 dark:text-emerald-400 font-mono max-w-xs mx-auto">
+                         SUBSCRIPTION STATUS: ACTIVE
+                       </div>
+                       <div className="text-[10px] text-lightGray/40 leading-relaxed font-sans">
+                         Need help managing your subscription? Contact support at any time.
+                       </div>
+                     </div>
+                   )}
 
-                  {userProfile?.subscription !== 'Free' && (
+                  {userProfile?.subscription !== 'Free' && !userProfile?.isTrial && (
                     <div className="pt-4 border-t border-slate-200/50 dark:border-white/5 flex justify-end">
                       <button
                         onClick={handleCancelSub}

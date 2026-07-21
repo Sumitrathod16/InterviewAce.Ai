@@ -216,11 +216,8 @@ router.get('/billing-info', protect, async (req, res) => {
   try {
     const subRecord = await Subscription.findOne({ userId: req.user._id });
     
-    // Return structured responses with mock history logs
-    const billingLogs = [
-      { id: 'inv_001', date: '2026-05-16', amount: '₹199.00', status: 'Paid', plan: 'Pro Plan' },
-      { id: 'inv_002', date: '2026-04-16', amount: '₹199.00', status: 'Paid', plan: 'Pro Plan' }
-    ];
+    // Return empty history logs initially
+    const billingLogs = [];
 
     res.json({
       subscription: subRecord || { plan: 'Free', status: 'none', currentPeriodEnd: null },

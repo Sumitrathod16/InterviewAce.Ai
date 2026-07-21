@@ -1,6 +1,49 @@
 import jwt from 'jsonwebtoken';
 import { admin, firebaseAdmin } from '../config/firebase.js';
 import User from '../models/User.js';
+import Subscription from '../models/Subscription.js';
+
+export const checkSubscriptionStatus = async (user) => {
+  if (!user) return user;
+
+  const now = new Date();
+  const registrationDate = user.createdAt || now;
+  const trialDuration = 30 * 24 * 60 * 60 * 1000; // 30 days in ms
+
+  const isWithinTrial = (now - registrationDate) < trialDuration;
+
+  if (isWithinTrial) {
+    // During trial period, auto-upgrade to Premium if Free
+    if (user.subscription === 'Free') {
+      user.subscription = 'Premium';
+      await user.save();
+    }
+    return user;
+  }
+
+  // Trial expired. Check for active paid subscription
+  const activeSub = await Subscription.findOne({
+    userId: user._id,
+    status: 'active',
+    currentPeriodEnd: { $gt: now }
+  });
+
+  if (!activeSub) {
+    if (user.subscription !== 'Free') {
+      console.log(`[TRIAL EXPIRED] Downgrading user ${user.email} to Free subscription tier.`);
+      user.subscription = 'Free';
+      await user.save();
+    }
+  } else {
+    if (user.subscription !== activeSub.plan) {
+      user.subscription = activeSub.plan;
+      await user.save();
+    }
+  }
+
+  return user;
+};
+
 
 export const protect = async (req, res, next) => {
   let token;
@@ -32,6 +75,7 @@ export const protect = async (req, res, next) => {
             subscription: 'Premium'
           });
         }
+        user = await checkSubscriptionStatus(user);
         req.user = user;
         return next();
       }
@@ -39,8 +83,9 @@ export const protect = async (req, res, next) => {
       // 2. Custom signed JWT (issued by backend when Firebase Admin is not configured)
       try {
         const decoded = jwt.verify(token, process.env.JWT_SECRET || 'local_dev_jwt_secret_interviewace_2026');
-        const user = await User.findById(decoded.id);
+        let user = await User.findById(decoded.id);
         if (user) {
+          user = await checkSubscriptionStatus(user);
           req.user = user;
           return next();
         }
@@ -65,6 +110,7 @@ export const protect = async (req, res, next) => {
               subscription: 'Premium'
             });
           }
+          user = await checkSubscriptionStatus(user);
           req.user = user;
           return next();
         } catch (fbErr) {
@@ -90,6 +136,7 @@ export const protect = async (req, res, next) => {
                 subscription: 'Premium'
               });
             }
+            user = await checkSubscriptionStatus(user);
             req.user = user;
             return next();
           }

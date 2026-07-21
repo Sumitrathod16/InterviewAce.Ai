@@ -1,7 +1,51 @@
 import express from 'express';
 import jwt from 'jsonwebtoken';
-import { protect } from '../middleware/auth.js';
+import { protect, checkSubscriptionStatus } from '../middleware/auth.js';
 import User from '../models/User.js';
+
+// Helper to serialize user with trial properties
+const serializeUser = async (user) => {
+  const userObj = user.toObject ? user.toObject() : user;
+  
+  const now = new Date();
+  const registrationDate = userObj.createdAt || now;
+  const trialDuration = 30 * 24 * 60 * 60 * 1000; // 30 days
+  
+  const Subscription = (await import('../models/Subscription.js')).default;
+  const activeSub = await Subscription.findOne({
+    userId: userObj._id,
+    status: 'active',
+    currentPeriodEnd: { $gt: now }
+  });
+  
+  const isTrial = !activeSub && (now - registrationDate) < trialDuration;
+  const trialEndsAt = new Date(new Date(registrationDate).getTime() + trialDuration);
+  
+  return {
+    _id: userObj._id,
+    firebaseId: userObj.firebaseId,
+    email: userObj.email,
+    name: userObj.name,
+    role: userObj.role,
+    targetRole: userObj.targetRole,
+    subscription: userObj.subscription,
+    education: userObj.education,
+    skills: userObj.skills,
+    resumeUrl: userObj.resumeUrl,
+    profilePic: userObj.profilePic || '',
+    interviewCountToday: userObj.interviewCountToday,
+    resumeCountToday: userObj.resumeCountToday,
+    freeRefillDate: userObj.freeRefillDate || userObj.createdAt,
+    streakCount: userObj.streakCount,
+    lastActiveDate: userObj.lastActiveDate,
+    solvedProblems: userObj.solvedProblems || [],
+    spentXp: userObj.spentXp || 0,
+    redemptions: userObj.redemptions || [],
+    createdAt: userObj.createdAt,
+    isTrial,
+    trialEndsAt
+  };
+};
 
 const router = express.Router();
 
@@ -79,13 +123,13 @@ router.post('/sync', async (req, res) => {
           }
         });
       }
-      // Auto-upgrade existing free tier users to Premium for the free launch
-      if (user.subscription === 'Free') {
-        user.subscription = 'Premium';
-      }
+      user = await checkSubscriptionStatus(user);
       user = await checkAndResetFreeRefills(user);
       await user.save();
     }
+
+    // Dynamic trial checks for both new & existing
+    user = await checkSubscriptionStatus(user);
 
     // Update candidate practice/login streak
     await user.updateStreak();
@@ -97,29 +141,10 @@ router.post('/sync', async (req, res) => {
       { expiresIn: '30d' }
     );
 
+    const serializedUser = await serializeUser(user);
     res.json({
       token,
-      user: {
-        _id: user._id,
-        firebaseId: user.firebaseId,
-        email: user.email,
-        name: user.name,
-        role: user.role,
-        targetRole: user.targetRole,
-        subscription: user.subscription,
-        education: user.education,
-        skills: user.skills,
-        resumeUrl: user.resumeUrl,
-        profilePic: user.profilePic || '',
-        interviewCountToday: user.interviewCountToday,
-        resumeCountToday: user.resumeCountToday,
-        freeRefillDate: user.freeRefillDate || user.createdAt,
-        streakCount: user.streakCount,
-        lastActiveDate: user.lastActiveDate,
-        solvedProblems: user.solvedProblems || [],
-        spentXp: user.spentXp || 0,
-        redemptions: user.redemptions || []
-      }
+      user: serializedUser
     });
   } catch (error) {
     console.error('Error syncing user auth:', error.message);
@@ -139,7 +164,8 @@ router.get('/profile', protect, async (req, res) => {
       return res.status(404).json({ message: 'User not found' });
     }
     user = await checkAndResetFreeRefills(user);
-    res.json(user);
+    const serialized = await serializeUser(user);
+    res.json(serialized);
   } catch (error) {
     res.status(500).json({ message: 'Server profile fetch error.' });
   }
@@ -167,7 +193,8 @@ router.put('/profile', protect, async (req, res) => {
     if (profilePic !== undefined) user.profilePic = profilePic;
 
     const updatedUser = await user.save();
-    res.json(updatedUser);
+    const serialized = await serializeUser(updatedUser);
+    res.json(serialized);
   } catch (error) {
     console.error('Profile update error:', error.message);
     res.status(500).json({ message: 'Server error during profile update.' });
