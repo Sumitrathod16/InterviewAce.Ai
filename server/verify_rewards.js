@@ -2,6 +2,7 @@ import axios from 'axios';
 import mongoose from 'mongoose';
 import 'dotenv/config';
 import User from './src/models/User.js';
+import Subscription from './src/models/Subscription.js';
 import { connectDB } from './src/config/db.js';
 
 const BASE_URL = 'http://localhost:5000/api';
@@ -26,15 +27,24 @@ async function testRewardsFlow() {
     const headers = { Authorization: `Bearer ${token}` };
     const userId = authSync.data.user._id;
 
-    // 2. Reset user state in DB
-    console.log('Resetting tester XP/refills in MongoDB...');
-    const userInDb = await User.findById(userId);
-    userInDb.solvedProblems = [];
-    userInDb.spentXp = 0;
-    userInDb.interviewCountToday = 2; // Simulated usage
-    userInDb.resumeCountToday = 1; // Simulated usage
-    userInDb.roadmapsAllowedCount = 0;
-    await userInDb.save();
+    // 2. Reset user state in DB and expire trial (bypass Mongoose timestamps)
+    console.log('Resetting tester XP/refills in MongoDB and marking trial as expired...');
+    await User.collection.updateOne(
+      { _id: new mongoose.Types.ObjectId(userId) },
+      {
+        $set: {
+          solvedProblems: [],
+          spentXp: 500,
+          interviewCountToday: 2, // Simulated usage
+          resumeCountToday: 1, // Simulated usage
+          roadmapsAllowedCount: 0,
+          subscription: 'Free',
+          createdAt: new Date(Date.now() - 40 * 24 * 60 * 60 * 1000)
+        }
+      }
+    );
+    // Delete any active subscription so it stays Free
+    await Subscription.deleteOne({ userId });
 
     // 3. Try to redeem with 0 XP
     console.log('\n--- TESTING REDEMPTION WITH INSUFFICIENT XP ---');
@@ -47,6 +57,7 @@ async function testRewardsFlow() {
 
     // 4. Inject 60 Solved Problems in DB directly to grant 600 XP
     console.log('\nInjecting 60 solved problems in MongoDB to grant 600 XP...');
+    const userInDb = await User.findById(userId);
     userInDb.solvedProblems = Array.from({ length: 60 }, (_, i) => ({
       problemId: `p${i + 1}`,
       language: 'javascript'

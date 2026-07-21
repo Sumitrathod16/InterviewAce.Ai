@@ -2,6 +2,7 @@ import axios from 'axios';
 import mongoose from 'mongoose';
 import 'dotenv/config';
 import User from './src/models/User.js';
+import Subscription from './src/models/Subscription.js';
 import { connectDB } from './src/config/db.js';
 
 const BASE_URL = 'http://localhost:5000/api';
@@ -26,11 +27,19 @@ async function testCompanyPrep() {
     const headers = { Authorization: `Bearer ${token}` };
     const userId = authSync.data.user._id;
 
-    // 2. Reset user subscription to Free in DB
-    console.log('Setting user subscription to Free...');
-    const userInDb = await User.findById(userId);
-    userInDb.subscription = 'Free';
-    await userInDb.save();
+    // 2. Reset user subscription to Free in DB and expire trial (bypass Mongoose timestamps)
+    console.log('Setting user subscription to Free and marking trial as expired...');
+    await User.collection.updateOne(
+      { _id: new mongoose.Types.ObjectId(userId) },
+      {
+        $set: {
+          subscription: 'Free',
+          createdAt: new Date(Date.now() - 40 * 24 * 60 * 60 * 1000)
+        }
+      }
+    );
+    // Delete any active subscription so it stays Free
+    await Subscription.deleteOne({ userId });
 
     // 3. Test generate for Free user (Should fail with 403)
     console.log('\n--- TESTING COMP-PREP GENERATION FOR FREE TIER (EXPECTING 403) ---');
@@ -43,8 +52,22 @@ async function testCompanyPrep() {
 
     // 4. Upgrade user subscription to Pro
     console.log('\nUpgrading user subscription to Pro in MongoDB...');
+    const userInDb = await User.findById(userId);
     userInDb.subscription = 'Pro';
     await userInDb.save();
+
+    // Create an active paid subscription so the trial check lets it pass
+    await Subscription.findOneAndUpdate(
+      { userId },
+      {
+        plan: 'Pro',
+        status: 'active',
+        stripeCustomerId: 'mock_cust_id',
+        stripeSubscriptionId: 'mock_sub_id',
+        currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) // 30 days
+      },
+      { upsert: true }
+    );
 
     // 5. Test generate for Pro user (Should succeed via Gemini)
     console.log('\n--- GENERATING CUSTOM CO-PREP PLANS FOR GOOGLE (PRO TIER) ---');
