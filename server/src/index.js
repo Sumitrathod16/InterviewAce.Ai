@@ -44,7 +44,8 @@ app.use(helmet({
 // CORS setup
 const allowedOrigins = [
   process.env.CLIENT_URL || 'http://localhost:5173',
-  'https://interview-ace-ai.vercel.app' // Optional deployment URL
+  'https://interview-ace-ai.vercel.app', // Optional deployment URL
+  'https://interviewace-ai-gamma.vercel.app' // Actual deployment URL
 ];
 
 app.use(cors({
