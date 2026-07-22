@@ -873,42 +873,127 @@ function getMockResumeAnalysis(resumeText, targetRole) {
 
   const finalScore = Math.min(base + scorePoints, 100);
 
-  // Simple parser fallback from raw text
-  let name = "Sumit Rathod";
-  let email = "sumit@example.com";
-  let phone = "+91 99999 99999";
-  let website = "github.com/Sumitrathod16";
+  // Simple parser fallback from raw text to extract the user's actual details
+  const lines = (resumeText || '').split('\n').map(l => l.trim()).filter(Boolean);
+  let name = "Candidate Name";
+  if (lines.length > 0 && lines[0].length < 40) {
+    name = lines[0];
+  }
 
-  const experience = [
-    {
+  // Find email
+  const emailMatch = (resumeText || '').match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/);
+  let email = emailMatch ? emailMatch[0] : "email@example.com";
+
+  // Find phone
+  const phoneMatch = (resumeText || '').match(/(\+?\d{1,4}[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}/) || (resumeText || '').match(/\+?\d{10,12}/);
+  let phone = phoneMatch ? phoneMatch[0] : "Contact details parsed from upload";
+
+  // Find website
+  const webMatch = (resumeText || '').match(/(github\.com\/[a-zA-Z0-9_-]+|linkedin\.com\/in\/[a-zA-Z0-9_-]+|[\w-]+\.[\w.-]+)/i);
+  let website = webMatch ? webMatch[0] : "portfolio.example.com";
+
+  const lowerResume = (resumeText || '').toLowerCase();
+  
+  // Parse experience
+  let experience = [];
+  const expIndex = lowerResume.indexOf('experience');
+  const projIndex = lowerResume.indexOf('project');
+  const eduIndex = lowerResume.indexOf('education');
+  const skillsIndex = lowerResume.indexOf('skills');
+
+  if (expIndex !== -1) {
+    const endExp = Math.min(
+      projIndex !== -1 && projIndex > expIndex ? projIndex : Infinity,
+      eduIndex !== -1 && eduIndex > expIndex ? eduIndex : Infinity,
+      skillsIndex !== -1 && skillsIndex > expIndex ? skillsIndex : Infinity,
+      resumeText.length
+    );
+    const expText = resumeText.substring(expIndex + 10, endExp).trim();
+    const expLines = expText.split('\n').map(l => l.trim()).filter(Boolean);
+    
+    if (expLines.length > 0) {
+      const roleLine = expLines[0];
+      const bullets = expLines.slice(1).filter(l => l.startsWith('-') || l.startsWith('*') || l.length > 10).map(l => l.replace(/^[-*•\s]+/, ''));
+      experience.push({
+        role: roleLine.split(' at ')[0] || "Professional Role",
+        company: roleLine.split(' at ')[1] || "Company Name",
+        dates: "Parsed from Resume",
+        bullets: bullets.length > 0 ? bullets : ["Collaborated with cross-functional teams to build custom web applications."]
+      });
+    }
+  }
+
+  if (experience.length === 0) {
+    experience.push({
       role: "Software Engineer",
-      company: "TechCorp",
+      company: "Technology Company",
       dates: "2024 - Present",
       bullets: [
-        "Worked on the front-end dashboard using React.",
-        "Helped optimize web application speed.",
-        "Maintained legacy state management architecture."
+        "Led engineering and updates to web dashboards.",
+        "Optimized client performance, speed, and rendering pipelines.",
+        "Refined state orchestration structures and normalized database layers."
       ]
-    }
-  ];
+    });
+  }
 
-  const projects = [
-    {
-      title: "BookMyShow Django Clone",
+  // Parse projects
+  let projects = [];
+  if (projIndex !== -1) {
+    const endProj = Math.min(
+      expIndex !== -1 && expIndex > projIndex ? expIndex : Infinity,
+      eduIndex !== -1 && eduIndex > projIndex ? eduIndex : Infinity,
+      skillsIndex !== -1 && skillsIndex > projIndex ? skillsIndex : Infinity,
+      resumeText.length
+    );
+    const projText = resumeText.substring(projIndex + 8, endProj).trim();
+    const projLines = projText.split('\n').map(l => l.trim()).filter(Boolean);
+    if (projLines.length > 0) {
+      const titleLine = projLines[0];
+      const bullets = projLines.slice(1).filter(l => l.startsWith('-') || l.startsWith('*') || l.length > 10).map(l => l.replace(/^[-*•\s]+/, ''));
+      projects.push({
+        title: titleLine || "Personal Project",
+        bullets: bullets.length > 0 ? bullets : ["Built application from scratch integrating modern stack components."]
+      });
+    }
+  }
+
+  if (projects.length === 0) {
+    projects.push({
+      title: "Interactive Web Application",
       bullets: [
-        "Built a clone using Django.",
-        "Managed user login systems."
+        "Designed and implemented full-scale application features.",
+        "Managed database schema structures and API connectivity protocols."
       ]
-    }
-  ];
+    });
+  }
 
-  const education = [
-    {
-      degree: "B.S. in Computer Science",
-      school: "University of Tech",
-      dates: "Graduated 2024"
+  // Parse education
+  let education = [];
+  if (eduIndex !== -1) {
+    const endEdu = Math.min(
+      expIndex !== -1 && expIndex > eduIndex ? expIndex : Infinity,
+      projIndex !== -1 && projIndex > eduIndex ? projIndex : Infinity,
+      skillsIndex !== -1 && skillsIndex > eduIndex ? skillsIndex : Infinity,
+      resumeText.length
+    );
+    const eduText = resumeText.substring(eduIndex + 9, endEdu).trim();
+    const eduLines = eduText.split('\n').map(l => l.trim()).filter(Boolean);
+    if (eduLines.length > 0) {
+      education.push({
+        degree: eduLines[0],
+        school: eduLines[1] || "Academic Institution",
+        dates: "Completed"
+      });
     }
-  ];
+  }
+
+  if (education.length === 0) {
+    education.push({
+      degree: "Bachelor of Science in Computer Science",
+      school: "State University",
+      dates: "Completed"
+    });
+  }
 
   return {
     atsScore: finalScore,

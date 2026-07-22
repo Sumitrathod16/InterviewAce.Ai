@@ -25,6 +25,46 @@ BookMyShow Django Clone
 EDUCATION:
 B.S. in Computer Science (Graduated 2024)`;
 
+const getCleanFallbackResume = (text, user) => {
+  const lines = (text || '').split('\n').map(l => l.trim()).filter(Boolean);
+  let name = user?.name || "Candidate Name";
+  if (lines.length > 0 && lines[0].length < 40) {
+    name = lines[0];
+  }
+  const emailMatch = (text || '').match(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/);
+  const email = emailMatch ? emailMatch[0] : (user?.email || "email@example.com");
+
+  return {
+    name,
+    email,
+    phone: "Contact details parsed from upload",
+    website: "portfolio.example.com",
+    summary: "Highly motivated professional seeking target role opportunities.",
+    skills: ["Core Competency 1", "Core Competency 2"],
+    experience: [
+      {
+        role: "Professional Role",
+        company: "Company Name",
+        dates: "Dates",
+        bullets: ["Describe major achievements and responsibilities."]
+      }
+    ],
+    projects: [
+      {
+        title: "Key Project",
+        bullets: ["Describe project description and tech stack integrations."]
+      }
+    ],
+    education: [
+      {
+        degree: "Academic Degree / Certification",
+        school: "Academic Institution",
+        dates: "Completion Date"
+      }
+    ]
+  };
+};
+
 export default function ResumeAnalyzer({ atsScore, onAtsScoreChange }) {
   const { userProfile } = useAuth();
   
@@ -145,7 +185,7 @@ ${edu.degree || ''} - ${edu.school || ''} (${edu.dates || ''})
       setSuggestions(data.suggestions || []);
       setMissingKeywords(data.missingKeywords || []);
       setHasResult(true);
-      setResumeData(data.parsedResume || DEFAULT_STRUCTURED_RESUME);
+      setResumeData(data.parsedResume || getCleanFallbackResume(updatedText, userProfile));
       toast.success('AI successfully resolved this suggestion in your resume template!');
       
       if (data.atsScore >= 80) {
@@ -576,8 +616,9 @@ ${edu.degree || ''} - ${edu.school || ''} (${edu.dates || ''})
       setSuggestions(data.suggestions || []);
       setMissingKeywords(data.missingKeywords || []);
       setHasResult(true);
-      setResumeData(data.parsedResume || DEFAULT_STRUCTURED_RESUME);
-      setInitialResumeData(data.parsedResume || DEFAULT_STRUCTURED_RESUME);
+      const fallbackData = getCleanFallbackResume(pasteText || file?.name || '', userProfile);
+      setResumeData(data.parsedResume || fallbackData);
+      setInitialResumeData(data.parsedResume || fallbackData);
 
       if (onAtsScoreChange) {
         onAtsScoreChange(data.atsScore, "ATS Resume Scan Complete");
