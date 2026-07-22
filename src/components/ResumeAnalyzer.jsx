@@ -567,7 +567,7 @@ ${edu.degree || ''} - ${edu.school || ''} (${edu.dates || ''})
 
       const response = await API.post('/resumes/analyze', formData, {
         headers: {
-          'Content-Type': undefined
+          'Content-Type': 'multipart/form-data'
         }
       });
 
