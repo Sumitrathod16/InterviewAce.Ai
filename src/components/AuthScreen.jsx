@@ -85,9 +85,14 @@ export default function AuthScreen({ onAuthSuccess, onClose }) {
         onAuthSuccess(profile);
       }
     } catch (err) {
-      const msg = err.response?.data?.message || err.message || 'Authentication failed. Please verify credentials.';
-      setErrorMsg(msg);
-      toast.error(msg);
+      if (err.code === 'auth/google-only') {
+        setErrorMsg(err.message);
+        toast.error('Google account detected. Please use Google Sign-in to link your password.');
+      } else {
+        const msg = err.response?.data?.message || err.message || 'Authentication failed. Please verify credentials.';
+        setErrorMsg(msg);
+        toast.error(msg);
+      }
     } finally {
       setLoading(false);
     }
@@ -98,7 +103,7 @@ export default function AuthScreen({ onAuthSuccess, onClose }) {
     setSuccessMsg('');
     setLoading(true);
     try {
-      const profile = await loginWithGoogle();
+      const profile = await loginWithGoogle(password);
       toast.success('Successfully logged in with Google!');
       if (onAuthSuccess) {
         onAuthSuccess(profile);

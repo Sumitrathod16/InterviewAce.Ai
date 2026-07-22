@@ -12,68 +12,8 @@ export default function AnalyticsTab({
   userProfile = {}, 
   theme = 'dark' 
 }) {
-  const [useDemo, setUseDemo] = useState(false);
-
-  // Define realistic mock/demo data for placeholder view
-  const demoInterviews = [
-    {
-      _id: 'd1',
-      type: 'HR Behavioral',
-      track: 'HR Track',
-      score: 64,
-      completed: true,
-      createdAt: new Date(Date.now() - 8 * 24 * 60 * 60 * 1000).toISOString(),
-      evaluations: [
-        { communicationScore: 70, contentScore: 58 },
-        { communicationScore: 75, contentScore: 60 },
-        { communicationScore: 72, contentScore: 60 }
-      ]
-    },
-    {
-      _id: 'd2',
-      type: 'Technical',
-      track: 'Frontend Technical',
-      score: 75,
-      completed: true,
-      createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
-      evaluations: [
-        { communicationScore: 76, contentScore: 72 },
-        { communicationScore: 80, contentScore: 74 },
-        { communicationScore: 78, contentScore: 71 }
-      ]
-    },
-    {
-      _id: 'd3',
-      type: 'HR Behavioral',
-      track: 'HR Track',
-      score: 82,
-      completed: true,
-      createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
-      evaluations: [
-        { communicationScore: 86, contentScore: 78 },
-        { communicationScore: 84, contentScore: 80 }
-      ]
-    },
-    {
-      _id: 'd4',
-      type: 'Technical',
-      track: 'Backend Technical',
-      score: 89,
-      completed: true,
-      createdAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
-      evaluations: [
-        { communicationScore: 88, contentScore: 90 },
-        { communicationScore: 85, contentScore: 92 },
-        { communicationScore: 90, contentScore: 90 }
-      ]
-    }
-  ];
-
-  const actualCompleted = interviewsList.filter(i => i.completed);
-  const isDataEmpty = actualCompleted.length === 0;
-
-  // Decide source of data
-  const completed = (isDataEmpty || useDemo) ? demoInterviews : actualCompleted;
+  const completed = interviewsList.filter(i => i.completed);
+  const isDataEmpty = completed.length === 0;
   
   // Sort chronologically ascending for trend graph
   const sortedCompleted = [...completed].sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
@@ -363,11 +303,11 @@ export default function AnalyticsTab({
                         rawLang.charAt(0).toUpperCase() + rawLang.slice(1);
       langCounts[cleanLang] = (langCounts[cleanLang] || 0) + 1;
     });
-  } else if (useDemo || (solvedProblems && solvedProblems.size > 0)) {
-    const totalCount = solvedProblems?.size || 10;
-    langCounts['JavaScript'] = Math.round(totalCount * 0.5) || 5;
-    langCounts['Python'] = Math.round(totalCount * 0.3) || 3;
-    langCounts['Java'] = Math.max(1, totalCount - (Math.round(totalCount * 0.5) || 5) - (Math.round(totalCount * 0.3) || 3)) || 2;
+  } else if (solvedProblems && solvedProblems.size > 0) {
+    const totalCount = solvedProblems.size;
+    langCounts['JavaScript'] = Math.round(totalCount * 0.5) || 1;
+    langCounts['Python'] = Math.round(totalCount * 0.3) || 0;
+    langCounts['Java'] = Math.max(0, totalCount - Math.round(totalCount * 0.5) - Math.round(totalCount * 0.3));
   }
 
   const langLabels = Object.keys(langCounts);
@@ -441,23 +381,7 @@ export default function AnalyticsTab({
               <ShieldAlert size={12} />
               No completed sessions found
             </span>
-            <button
-              onClick={() => setUseDemo(!useDemo)}
-              className="px-3 py-1.5 text-xs font-bold bg-white text-background rounded-lg hover:bg-lightGray transition-all flex items-center gap-1.5"
-            >
-              <Sparkles size={12} />
-              {useDemo ? 'Hide Sample Data' : 'View Sample Analytics'}
-            </button>
           </div>
-        )}
-
-        {!isDataEmpty && useDemo && (
-          <button
-            onClick={() => setUseDemo(false)}
-            className="px-3 py-1.5 text-xs font-bold border border-white/10 text-white rounded-lg hover:bg-white/5 transition-all"
-          >
-            Switch to Live Data
-          </button>
         )}
       </div>
 
@@ -526,21 +450,7 @@ export default function AnalyticsTab({
         </div>
       </div>
 
-      {/* Demo status alert */}
-      {((isDataEmpty && useDemo) || (useDemo)) && (
-        <div className="p-3 bg-white/5 border border-white/5 rounded-xl flex items-center justify-between text-xs text-lightGray/70">
-          <span className="flex items-center gap-1.5">
-            <Sparkles size={14} className="text-white animate-pulse" />
-            <span>Currently previewing <strong>Interactive Demo Analytics</strong>. Complete real interview sessions to plot live data.</span>
-          </span>
-          <button 
-            onClick={() => setUseDemo(false)}
-            className="text-[10px] font-bold text-white hover:underline uppercase tracking-wide"
-          >
-            Dismiss
-          </button>
-        </div>
-      )}
+
 
       {/* Main Charts Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
@@ -628,13 +538,13 @@ export default function AnalyticsTab({
               <div className="flex justify-between text-xs font-bold">
                 <span className="text-emerald-400 font-sans">Easy Problems</span>
                 <span className="text-white">
-                  {useDemo ? '6 / 8' : `${solvedProblemsDetail?.filter(p => p.difficulty === 'Easy').length || 0} solved`}
+                  {`${solvedProblemsDetail?.filter(p => p.difficulty === 'Easy').length || 0} solved`}
                 </span>
               </div>
               <div className="h-2 bg-white/5 rounded-full overflow-hidden">
                 <div 
                   className="h-full bg-emerald-500 rounded-full transition-all duration-500" 
-                  style={{ width: useDemo ? '75%' : `${Math.min(100, ((solvedProblemsDetail?.filter(p => p.difficulty === 'Easy').length || 0) / 8) * 100)}%` }}
+                  style={{ width: `${Math.min(100, ((solvedProblemsDetail?.filter(p => p.difficulty === 'Easy').length || 0) / 8) * 100)}%` }}
                 />
               </div>
             </div>
@@ -644,13 +554,13 @@ export default function AnalyticsTab({
               <div className="flex justify-between text-xs font-bold">
                 <span className="text-amber-400 font-sans">Medium Problems</span>
                 <span className="text-white">
-                  {useDemo ? '3 / 6' : `${solvedProblemsDetail?.filter(p => p.difficulty === 'Medium').length || 0} solved`}
+                  {`${solvedProblemsDetail?.filter(p => p.difficulty === 'Medium').length || 0} solved`}
                 </span>
               </div>
               <div className="h-2 bg-white/5 rounded-full overflow-hidden">
                 <div 
                   className="h-full bg-amber-500 rounded-full transition-all duration-500" 
-                  style={{ width: useDemo ? '50%' : `${Math.min(100, ((solvedProblemsDetail?.filter(p => p.difficulty === 'Medium').length || 0) / 6) * 100)}%` }}
+                  style={{ width: `${Math.min(100, ((solvedProblemsDetail?.filter(p => p.difficulty === 'Medium').length || 0) / 6) * 100)}%` }}
                 />
               </div>
             </div>
@@ -660,13 +570,13 @@ export default function AnalyticsTab({
               <div className="flex justify-between text-xs font-bold">
                 <span className="text-rose-400 font-sans">Hard Problems</span>
                 <span className="text-white">
-                  {useDemo ? '1 / 4' : `${solvedProblemsDetail?.filter(p => p.difficulty === 'Hard').length || 0} solved`}
+                  {`${solvedProblemsDetail?.filter(p => p.difficulty === 'Hard').length || 0} solved`}
                 </span>
               </div>
               <div className="h-2 bg-white/5 rounded-full overflow-hidden">
                 <div 
                   className="h-full bg-rose-500 rounded-full transition-all duration-500" 
-                  style={{ width: useDemo ? '25%' : `${Math.min(100, ((solvedProblemsDetail?.filter(p => p.difficulty === 'Hard').length || 0) / 4) * 100)}%` }}
+                  style={{ width: `${Math.min(100, ((solvedProblemsDetail?.filter(p => p.difficulty === 'Hard').length || 0) / 4) * 100)}%` }}
                 />
               </div>
             </div>

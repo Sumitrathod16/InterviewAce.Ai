@@ -10,7 +10,7 @@ import {
   updateProfile,
   signInWithPopup
 } from '../config/firebase.js';
-import { onAuthStateChanged } from 'firebase/auth';
+import { onAuthStateChanged, EmailAuthProvider, linkWithCredential, fetchSignInMethodsForEmail } from 'firebase/auth';
 import API from '../services/api.js';
 
 const AuthContext = createContext(null);
@@ -110,10 +110,30 @@ export const AuthProvider = ({ children }) => {
     setLoading(true);
     try {
       if (isFirebaseConfigured) {
-        const credential = await signInWithEmailAndPassword(auth, email, password);
-        const token = await credential.user.getIdToken();
-        const profile = await syncWithBackend(credential.user, token);
-        return profile;
+        try {
+          const credential = await signInWithEmailAndPassword(auth, email, password);
+          const token = await credential.user.getIdToken();
+          const profile = await syncWithBackend(credential.user, token);
+          return profile;
+        } catch (error) {
+          // Check if this is a Google-only account
+          if (error.code === 'auth/wrong-password' || error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential') {
+            try {
+              const methods = await fetchSignInMethodsForEmail(auth, email);
+              if (methods.includes('google.com') && !methods.includes('password')) {
+                const customErr = new Error('This email is registered via Google. Please log in using Google to link your password.');
+                customErr.code = 'auth/google-only';
+                customErr.email = email;
+                customErr.password = password;
+                throw customErr;
+              }
+            } catch (e) {
+              if (e.code === 'auth/google-only') throw e;
+              // Ignore email enumeration protection limitations/other errors, fall through to default throw
+            }
+          }
+          throw error;
+        }
       } else {
         // Offline Mock login
         const mockUid = `mock-uid-${email}`;
@@ -140,11 +160,29 @@ export const AuthProvider = ({ children }) => {
     setLoading(true);
     try {
       if (isFirebaseConfigured) {
-        const credential = await createUserWithEmailAndPassword(auth, email, password);
-        await updateProfile(credential.user, { displayName: name });
-        const token = await credential.user.getIdToken();
-        const profile = await syncWithBackend(credential.user, token, { name, targetRole });
-        return profile;
+        try {
+          const credential = await createUserWithEmailAndPassword(auth, email, password);
+          await updateProfile(credential.user, { displayName: name });
+          const token = await credential.user.getIdToken();
+          const profile = await syncWithBackend(credential.user, token, { name, targetRole });
+          return profile;
+        } catch (error) {
+          if (error.code === 'auth/email-already-in-use') {
+            try {
+              const methods = await fetchSignInMethodsForEmail(auth, email);
+              if (methods.includes('google.com') && !methods.includes('password')) {
+                const customErr = new Error('This email is registered via Google. Please log in using Google to link your password.');
+                customErr.code = 'auth/google-only';
+                customErr.email = email;
+                customErr.password = password;
+                throw customErr;
+              }
+            } catch (e) {
+              if (e.code === 'auth/google-only') throw e;
+            }
+          }
+          throw error;
+        }
       } else {
         // Offline Mock signup
         const mockUid = `mock-uid-${email}`;
@@ -166,11 +204,23 @@ export const AuthProvider = ({ children }) => {
   };
 
   // Google Single Sign-In
-  const loginWithGoogle = async () => {
+  const loginWithGoogle = async (pendingPassword = null) => {
     setLoading(true);
     try {
       if (isFirebaseConfigured) {
         const credential = await signInWithPopup(auth, googleProvider);
+
+        // Link email/password credential if a pending password was provided
+        if (pendingPassword && credential.user.email) {
+          try {
+            const emailCred = EmailAuthProvider.credential(credential.user.email, pendingPassword);
+            await linkWithCredential(credential.user, emailCred);
+            console.log('[AUTH] Successfully linked email/password to Google account.');
+          } catch (linkErr) {
+            console.warn('[AUTH] Error linking email/password:', linkErr.code || linkErr.message);
+          }
+        }
+
         const token = await credential.user.getIdToken();
         const profile = await syncWithBackend(credential.user, token);
         return profile;
