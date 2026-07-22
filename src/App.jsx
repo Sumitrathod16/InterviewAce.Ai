@@ -9,7 +9,6 @@ import MockInterviewDemo from './components/MockInterviewDemo';
 import ResumeAnalyzer from './components/ResumeAnalyzer';
 import CodingAssessment from './components/CodingAssessment';
 import DashboardPreview from './components/DashboardPreview';
-import Testimonials from './components/Testimonials';
 import Pricing from './components/Pricing';
 import FAQ from './components/FAQ';
 import Footer from './components/Footer';
@@ -31,6 +30,7 @@ import AboutUs from './components/footer_pages/AboutUs';
 import Careers from './components/footer_pages/Careers';
 import Blog from './components/footer_pages/Blog';
 import Contact from './components/footer_pages/Contact';
+import FeedbackPage from './components/footer_pages/FeedbackPage';
 
 function MainAppLayout({
   solvedProblems,
@@ -70,8 +70,7 @@ function MainAppLayout({
           {/* Multi-step walkthrough */}
           <HowItWorks />
 
-          {/* testimonials success show */}
-          <Testimonials />
+
 
           {/* pricing matrix */}
           <Pricing />
@@ -375,8 +374,8 @@ export default function App() {
           <Route path="/cookie-policy" element={<CookiePolicy />} />
           <Route path="/about" element={<AboutUs />} />
           <Route path="/careers" element={<Careers />} />
-          <Route path="/blog" element={<Blog />} />
           <Route path="/contact" element={<Contact />} />
+          <Route path="/feedback" element={<FeedbackPage />} />
         </Routes>
       </div>
 

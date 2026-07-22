@@ -124,6 +124,11 @@ export default function Footer() {
                   Contact
                 </Link>
               </li>
+              <li>
+                <Link to="/feedback" className="hover:text-white transition-colors">
+                  Share Feedback
+                </Link>
+              </li>
             </ul>
           </div>
         </div>

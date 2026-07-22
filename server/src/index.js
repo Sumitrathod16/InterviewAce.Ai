@@ -16,6 +16,7 @@ import compilerRoutes from './routes/compiler.js';
 import coachRoutes from './routes/coach.js';
 import problemsRoutes from './routes/problems.js';
 import rewardsRoutes from './routes/rewards.js';
+import feedbackRoutes from './routes/feedback.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -83,6 +84,7 @@ app.use('/api/compiler', compilerRoutes);
 app.use('/api/coach', coachRoutes);
 app.use('/api/problems', problemsRoutes);
 app.use('/api/rewards', rewardsRoutes);
+app.use('/api/feedback', feedbackRoutes);
 
 // Fallback for page not found
 app.use((req, res, next) => {
