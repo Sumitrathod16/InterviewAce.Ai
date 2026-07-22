@@ -46,7 +46,8 @@ function MainAppLayout({
   activeTab,
   setActiveTab,
   theme,
-  onRefreshProfile
+  onRefreshProfile,
+  onOpenAuth
 }) {
   const { userProfile, logout } = useAuth();
   const navigate = useNavigate();
@@ -57,12 +58,22 @@ function MainAppLayout({
     navigate('/');
   };
 
+  const handleStartFreeInterview = () => {
+    if (!userProfile) {
+      onOpenAuth();
+    } else {
+      setCurrentView('dashboard-portal');
+      setActiveTab('interviews');
+      navigate('/');
+    }
+  };
+
   return (
     <>
       {currentView === 'landing' ? (
         <main>
           {/* Hero Landing */}
-          <Hero />
+          <Hero onStartFreeInterview={handleStartFreeInterview} />
 
           {/* Core Product Features */}
           <Features />
@@ -320,6 +331,7 @@ export default function App() {
                 setActiveTab={setActiveTab}
                 theme={theme}
                 onRefreshProfile={refreshUserProfile}
+                onOpenAuth={() => setShowAuthModal(true)}
               />
             } 
           />

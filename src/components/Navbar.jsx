@@ -176,32 +176,32 @@ export default function Navbar({ currentView, onViewChange, onTabChange, hasUser
           <div className="md:hidden">
             <button
               onClick={() => setIsOpen(!isOpen)}
-              className="p-2 text-lightGray hover:text-white focus:outline-none"
+              className="p-2 text-white/90 hover:text-white hover:bg-white/5 rounded-xl border border-white/10 transition-all duration-200 focus:outline-none flex items-center justify-center"
               aria-label="Toggle navigation menu"
             >
-              {isOpen ? <X size={24} /> : <Menu size={24} />}
+              {isOpen ? <X size={22} /> : <Menu size={22} />}
             </button>
           </div>
         </div>
       </div>
-
+ 
       {/* Mobile Drawer */}
       {isOpen && (
-        <div className="md:hidden glassmorphism border-t border-white/5 py-4 px-4 space-y-3 absolute top-full left-0 right-0 shadow-2xl animate-in fade-in slide-in-from-top-5 duration-200">
+        <div className="md:hidden bg-secondaryBg border-b border-white/10 py-6 px-6 space-y-4 absolute top-full left-0 right-0 shadow-2xl border-t border-white/5 animate-in fade-in slide-in-from-top-5 duration-200 z-50">
           {navLinks.map((link) => (
             <a
               key={link.name}
               href={link.href}
               onClick={(e) => handleLinkClick(e, link.href)}
-              className="block px-3 py-2 text-base font-medium text-lightGray/90 hover:text-white hover:bg-white/5 rounded-lg transition-all duration-200"
+              className="block px-3.5 py-2.5 text-base font-semibold text-white/80 hover:text-white hover:bg-white/5 rounded-xl transition-all duration-200"
             >
               {link.name}
             </a>
           ))}
-          <div className="pt-4 border-t border-white/5 flex flex-col space-y-3 px-3">
+          <div className="pt-4 border-t border-white/5 flex flex-col space-y-3">
             <button
               onClick={toggleTheme}
-              className="w-full py-2.5 text-sm font-semibold text-lightGray hover:text-white hover:bg-white/5 rounded-lg transition-all flex items-center justify-center gap-2"
+              className="w-full py-3 text-sm font-semibold text-white/85 hover:text-white hover:bg-white/5 rounded-xl transition-all flex items-center justify-center gap-2"
             >
               {theme === 'dark' ? (
                 <>
@@ -219,14 +219,14 @@ export default function Navbar({ currentView, onViewChange, onTabChange, hasUser
               <>
                 <button
                   onClick={() => { setIsOpen(false); onViewChange('dashboard-portal'); }}
-                  className="w-full text-center py-2 text-sm font-semibold text-lightGray hover:text-white flex items-center justify-center gap-1.5"
+                  className="w-full text-center py-2.5 text-sm font-semibold text-white/85 hover:text-white flex items-center justify-center gap-1.5"
                 >
                   <LayoutDashboard size={15} />
                   Workspace Dashboard
                 </button>
                 <button
                   onClick={() => { setIsOpen(false); onViewChange('dashboard-portal'); }}
-                  className="text-center py-2.5 text-sm font-semibold bg-white text-background rounded-lg hover:bg-lightGray transition-all"
+                  className="w-full text-center py-3 text-sm font-bold bg-white text-background rounded-xl hover:bg-white/95 transition-all shadow-md border border-white/10"
                 >
                   Start Free Portal
                 </button>
@@ -234,12 +234,12 @@ export default function Navbar({ currentView, onViewChange, onTabChange, hasUser
             ) : (
               <>
                 {isOnline ? (
-                  <div className="py-2.5 text-center text-xs font-bold font-mono text-emerald-400 rounded-lg bg-emerald-950/40 border border-emerald-900 flex items-center justify-center gap-1.5">
+                  <div className="py-3 text-center text-xs font-bold font-mono text-emerald-400 rounded-xl bg-emerald-950/40 border border-emerald-900 flex items-center justify-center gap-1.5">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
                     Workspace Active
                   </div>
                 ) : (
-                  <div className="py-2.5 text-center text-xs font-bold font-mono text-rose-400 rounded-lg bg-rose-950/40 border border-rose-900 flex items-center justify-center gap-1.5">
+                  <div className="py-3 text-center text-xs font-bold font-mono text-rose-400 rounded-xl bg-rose-950/40 border border-rose-900 flex items-center justify-center gap-1.5">
                     <span className="w-1.5 h-1.5 rounded-full bg-rose-400 animate-pulse" />
                     Workspace Inactive
                   </div>

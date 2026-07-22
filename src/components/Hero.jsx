@@ -2,7 +2,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { Play, Sparkles, CheckCircle2, ArrowRight } from 'lucide-react';
 
-export default function Hero() {
+export default function Hero({ onStartFreeInterview }) {
   const scrollToSection = (id) => {
     const element = document.querySelector(id);
     if (element) {
@@ -62,7 +62,7 @@ export default function Hero() {
             className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-16"
           >
             <button
-              onClick={() => scrollToSection('#demo')}
+              onClick={onStartFreeInterview}
               className="w-full sm:w-auto px-8 py-4 bg-white text-background rounded-lg hover:bg-lightGray transition-all duration-300 font-bold flex items-center justify-center gap-2 shadow-lg hover:shadow-white/5 active:scale-[0.98] group"
             >
               Start Free Interview
