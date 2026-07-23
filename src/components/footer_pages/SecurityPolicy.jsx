@@ -81,6 +81,15 @@ export default function SecurityPolicy() {
             </p>
           </section>
 
+          <section className="space-y-4">
+            <h2 className="text-lg font-bold text-white flex items-center gap-2">
+              <ShieldAlert size={18} className="text-white/60" /> 5. Cloud Infrastructure & Authentication Security
+            </h2>
+            <p>
+              Our workspace portal leverages Google Firebase Authentication to authenticate developer sessions. All user profile records, payment configurations, and database credentials are stored in secure cloud systems behind strictly configured IAM security rules. Database connections are restricted to our server subnet, and all administrative dashboards require double-factor verification.
+            </p>
+          </section>
+
           <section className="space-y-4 pt-6 border-t border-white/5">
             <h3 className="text-sm font-bold text-white">Report Vulnerabilities</h3>
             <p className="text-xs text-lightGray/60">

@@ -84,7 +84,69 @@ export default function AboutUs() {
             </div>
           </div>
         </div>
+
+        {/* Founder Section */}
+        <div className="mt-8 glassmorphism premium-border p-8 sm:p-12 rounded-2xl space-y-6 relative overflow-hidden">
+          <div className="absolute -right-10 -bottom-10 w-40 h-40 rounded-full bg-accent/5 blur-[50px] pointer-events-none" />
+          
+          <div className="flex flex-col sm:flex-row gap-8 items-center sm:items-start relative z-10">
+            <div className="shrink-0">
+              <img 
+                src="/founder_avatar.png" 
+                alt="Sumit Rathod" 
+                className="w-28 h-28 sm:w-32 sm:h-32 rounded-2xl object-cover border border-white/15 shadow-xl bg-secondaryBg"
+                onError={(e) => {
+                  // Fallback to a styled SVG avatar if image fails to load
+                  e.target.style.display = 'none';
+                  e.target.nextSibling.style.display = 'flex';
+                }}
+              />
+              <div className="hidden w-28 h-28 sm:w-32 sm:h-32 rounded-2xl border border-white/15 shadow-xl bg-secondaryBg/80 flex-col items-center justify-center text-white/40">
+                <span className="text-2xl font-bold">SR</span>
+              </div>
+            </div>
+            
+            <div className="space-y-4 flex-1 text-center sm:text-left">
+              <div>
+                <span className="text-[10px] font-bold text-accent uppercase tracking-widest bg-accent/10 border border-accent/20 px-2.5 py-0.5 rounded-full inline-block mb-2">
+                  Founder & Lead Architect
+                </span>
+                <h2 className="text-xl sm:text-2xl font-extrabold text-white tracking-tight">Sumit Rathod</h2>
+                <p className="text-xs text-lightGray/40 mt-1 font-mono">sumit@interviewace.ai</p>
+              </div>
+              
+              <div className="text-sm text-lightGray/70 space-y-3 leading-relaxed">
+                <p>
+                  Sumit is the designer and chief architect behind InterviewAce.AI. Frustrated by the lack of realistic, high-fidelity developer simulators that evaluate code execution and resume layout dynamics side-by-side, he engineered this platform to democratize access to elite technical prep resources.
+                </p>
+                <p>
+                  He coordinates the product roadmap, sandbox security infrastructure, and our zero-data-retention AI evaluations, ensuring every engineer has an affordable, secure, and rigorous pathway to master interviews at top tech companies.
+                </p>
+              </div>
+
+              <div className="flex justify-center sm:justify-start gap-4 pt-2 text-xs">
+                <a 
+                  href="https://github.com/Sumitrathod16" 
+                  target="_blank" 
+                  rel="noreferrer" 
+                  className="text-lightGray/50 hover:text-white underline decoration-white/10 hover:decoration-white transition-colors"
+                >
+                  GitHub Profile
+                </a>
+                <span className="text-white/10">•</span>
+                <a 
+                  href="mailto:sumit@interviewace.ai" 
+                  className="text-lightGray/50 hover:text-white underline decoration-white/10 hover:decoration-white transition-colors"
+                >
+                  Contact Founder
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+
       </div>
     </div>
   );
 }
+

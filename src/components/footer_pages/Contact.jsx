@@ -91,17 +91,34 @@ export default function Contact() {
 
                 <div className="flex items-start gap-3">
                   <Mail size={16} className="text-white/60 shrink-0 mt-0.5" />
-                  <div>
-                    <h4 className="font-semibold text-white">Email Support</h4>
-                    <a href="mailto:support@interviewace.ai" className="hover:text-white transition-colors">support@interviewace.ai</a>
+                  <div className="space-y-2">
+                    <h4 className="font-semibold text-white">Direct Channels</h4>
+                    <div className="space-y-1">
+                      <p className="text-[10px] text-lightGray/40 font-mono uppercase tracking-wider">General & Help</p>
+                      <a href="mailto:support@interviewace.ai" className="text-white hover:text-accent font-semibold transition-colors block text-xs underline decoration-white/5">
+                        support@interviewace.ai
+                      </a>
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-[10px] text-lightGray/40 font-mono uppercase tracking-wider">Security Audits</p>
+                      <a href="mailto:security@interviewace.ai" className="text-white hover:text-accent font-semibold transition-colors block text-xs underline decoration-white/5">
+                        security@interviewace.ai
+                      </a>
+                    </div>
+                    <div className="space-y-1">
+                      <p className="text-[10px] text-lightGray/40 font-mono uppercase tracking-wider">Privacy & GDPR</p>
+                      <a href="mailto:privacy@interviewace.ai" className="text-white hover:text-accent font-semibold transition-colors block text-xs underline decoration-white/5">
+                        privacy@interviewace.ai
+                      </a>
+                    </div>
                   </div>
                 </div>
 
-                <div className="flex items-start gap-3">
+                <div className="flex items-start gap-3 pt-2">
                   <Globe size={16} className="text-white/60 shrink-0 mt-0.5" />
                   <div>
                     <h4 className="font-semibold text-white">Web Portal</h4>
-                    <p>http://localhost:5173</p>
+                    <p className="font-mono text-xs">http://localhost:5173</p>
                   </div>
                 </div>
               </div>

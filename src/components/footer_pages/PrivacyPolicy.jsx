@@ -79,10 +79,24 @@ export default function PrivacyPolicy() {
             </p>
           </section>
 
+          <section className="space-y-4">
+            <h2 className="text-lg font-bold text-white flex items-center gap-2">
+              <HardDrive size={18} className="text-white/60" /> 5. Data Handling and Processing
+            </h2>
+            <p>
+              We follow rigorous data processing rules to ensure safety and transparency:
+            </p>
+            <ul className="list-disc pl-5 space-y-2 text-lightGray/70">
+              <li><strong>Resume Extraction:</strong> When you upload a resume, text characters are extracted in memory to compute ATS scores. The PDF file content is deleted automatically within 24 hours from our caching nodes and is never shared or sold.</li>
+              <li><strong>Coding Sandbox Submissions:</strong> Code compiled in our mock compiler environments is run in isolated containers. These containers are destroyed immediately after execution completes.</li>
+              <li><strong>Mock Audio/Transcripts:</strong> Audio recordings for behavioral rounds are processed for voice-to-text conversion. The raw voice buffers are discarded after parsing, and only the text transcripts are stored in your profile to allow feedback audits. You can purge these transcripts from your dashboard anytime.</li>
+            </ul>
+          </section>
+
           <section className="space-y-4 pt-6 border-t border-white/5">
             <h3 className="text-sm font-bold text-white">Contact Our Data Team</h3>
             <p className="text-xs text-lightGray/60">
-              For privacy audits, compliance verification, or questions regarding GDPR / CCPA specifications, email us at <a href="mailto:privacy@interviewace.ai" className="text-white underline hover:text-lightGray transition-colors">privacy@privacy@interviewace.ai</a>.
+              For privacy audits, compliance verification, or questions regarding GDPR / CCPA specifications, email us at <a href="mailto:privacy@interviewace.ai" className="text-white underline hover:text-lightGray transition-colors">privacy@interviewace.ai</a>.
             </p>
           </section>
         </div>

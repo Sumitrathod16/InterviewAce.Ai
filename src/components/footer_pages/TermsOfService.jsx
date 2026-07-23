@@ -79,6 +79,15 @@ export default function TermsOfService() {
             </p>
           </section>
 
+          <section className="space-y-4">
+            <h2 className="text-lg font-bold text-white flex items-center gap-2">
+              <Scale size={18} className="text-white/60" /> 5. Payments, Subscriptions, and Refunds
+            </h2>
+            <p>
+              Upgrades to Premium or other paid assessments are processed securely via third-party payment gateways. All fees paid are non-refundable unless specified otherwise by local consumer protection statutes. If you encounter a billing discrepancy, contact support within 14 business days.
+            </p>
+          </section>
+
           <section className="space-y-4 pt-6 border-t border-white/5">
             <h3 className="text-sm font-bold text-white">Need Clarification?</h3>
             <p className="text-xs text-lightGray/60">
