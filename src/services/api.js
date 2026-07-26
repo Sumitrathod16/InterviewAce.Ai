@@ -1,17 +1,18 @@
 import axios from 'axios';
 
 const getBaseURL = () => {
+  // If running locally, default to the local backend to avoid connecting local client to production Render
+  if (typeof window !== 'undefined' && window.location) {
+    const hostname = window.location.hostname;
+    if (hostname === 'localhost' || hostname === '127.0.0.1') {
+      return 'http://localhost:5000/api';
+    }
+  }
+
   if (import.meta.env.VITE_API_URL) {
     return import.meta.env.VITE_API_URL;
   }
-  // Dynamic fallback based on browser hostname to support zero-config client builds
-  if (typeof window !== 'undefined' && window.location) {
-    const hostname = window.location.hostname;
-    if (hostname !== 'localhost' && hostname !== '127.0.0.1') {
-      return 'https://interviewace-ai-1-hvjo.onrender.com/api';
-    }
-  }
-  return 'http://localhost:5000/api';
+  return 'https://interviewace-ai-1-hvjo.onrender.com/api';
 };
 
 const API = axios.create({
