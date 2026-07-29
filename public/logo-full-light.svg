@@ -1,0 +1,48 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 128" width="100%" height="100%">
+  <defs>
+    <!-- Background Gradient (Light) -->
+    <linearGradient id="bg-grad-light" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" />
+      <stop offset="100%" stop-color="#f1f5f9" />
+    </linearGradient>
+
+    <!-- Border Gradient (Light) -->
+    <linearGradient id="border-grad-light" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0284c7" />
+      <stop offset="100%" stop-color="#f97316" />
+    </linearGradient>
+
+    <!-- Icon Color Gradient (Light) -->
+    <linearGradient id="icon-grad-light" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0f172a" />
+      <stop offset="100%" stop-color="#0284c7" />
+    </linearGradient>
+  </defs>
+
+  <!-- Icon Group: Scaled down from 512x512 to 96x96 -->
+  <g transform="translate(16, 16) scale(0.1875)">
+    <!-- Outer Rounded Rectangle (Background) -->
+    <rect x="16" y="16" width="480" height="480" rx="112" fill="url(#bg-grad-light)" stroke="url(#border-grad-light)" stroke-width="8" />
+
+    <!-- Terminal Chevron (>) -->
+    <path d="M146 166 L236 256 L146 346" 
+          fill="none" 
+          stroke="url(#icon-grad-light)" 
+          stroke-width="36" 
+          stroke-linecap="round" 
+          stroke-linejoin="round" />
+
+    <!-- Terminal Cursor (_) -->
+    <path d="M266 346 L366 346" 
+          fill="none" 
+          stroke="url(#icon-grad-light)" 
+          stroke-width="36" 
+          stroke-linecap="round" />
+  </g>
+
+  <!-- Typography -->
+  <text x="132" y="78" font-family="'Inter', system-ui, -apple-system, sans-serif" font-size="46" font-weight="800" letter-spacing="-0.03em">
+    <tspan fill="#0f172a">InterviewAce</tspan>
+    <tspan fill="#0284c7">.AI</tspan>
+  </text>
+</svg>
