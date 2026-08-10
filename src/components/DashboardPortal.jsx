@@ -244,9 +244,22 @@ export default function DashboardPortal({
     }
   };
 
-  // Trigger Stripe/Razorpay checkout redirections
+  // Trigger Stripe/Razorpay trial checkout redirections
   const handleSubscribe = (tierName, billingPeriod = 'monthly') => {
-    navigate(`/checkout?plan=${tierName}&period=${billingPeriod}`);
+    navigate(`/trial-checkout?plan=${tierName}&period=${billingPeriod}`);
+  };
+
+  const handleCancelAutopay = async () => {
+    if (window.confirm('Are you sure you want to cancel your Razorpay autopay mandate? You will lose 2-month free access and won\'t be charged after.')) {
+      try {
+        await API.delete('/payments/cancel-subscription');
+        alert('Autopay mandate cancelled successfully. You will not be charged.');
+        if (onRefreshProfile) await onRefreshProfile();
+        else window.location.reload();
+      } catch (err) {
+        alert(err.response?.data?.message || 'Cancellation failed. Please try again or contact support.');
+      }
+    }
   };
 
   const handleCancelSub = async () => {
@@ -809,30 +822,58 @@ export default function DashboardPortal({
                     </div>
                   </div>
                 ) : userProfile?.isTrial ? (
-                     <div className="p-8 bg-gradient-to-br from-indigo-500/10 to-secondaryBg/60 dark:from-indigo-950/20 dark:to-background border border-indigo-500/20 dark:border-indigo-900/40 rounded-2xl text-center space-y-5">
-                       <div className="w-12 h-12 rounded-full bg-indigo-500/10 border border-indigo-500/30 flex items-center justify-center text-indigo-600 dark:text-indigo-400 mx-auto">
-                         <Sparkles size={24} className="animate-pulse text-indigo-400" />
-                       </div>
-                       <div className="space-y-2">
-                         <h3 className="text-lg font-black text-white">Active {userProfile.subscription} (Free Launch Trial)</h3>
-                         <p className="text-xs text-lightGray/60 max-w-sm mx-auto">
-                           You are currently enjoying your 1-month free trial. You have full access to all technical mocks, ATS analyzer scans, and sandboxes.
-                         </p>
-                       </div>
-                       <div className="p-4 bg-indigo-500/10 border border-indigo-500/30 rounded-xl text-xs text-indigo-600 dark:text-indigo-400 font-mono max-w-xs mx-auto">
-                         DAYS REMAINING: {(() => {
-                           if (!userProfile?.trialEndsAt) return 30;
-                           const end = new Date(userProfile.trialEndsAt);
-                           const now = new Date();
-                           const diff = end - now;
-                           const days = Math.ceil(diff / (1000 * 60 * 60 * 24));
-                           return days > 0 ? days : 0;
-                         })()} DAYS
-                       </div>
-                       <div className="text-[10px] text-lightGray/40 leading-relaxed font-sans">
-                         Trial will expire on {userProfile?.trialEndsAt ? new Date(userProfile.trialEndsAt).toLocaleDateString(undefined, { dateStyle: 'medium' }) : '30 days'}. Secure uninterrupted access by selecting a plan below.
-                       </div>
-                     </div>
+                      <div className="p-8 bg-gradient-to-br from-indigo-500/10 to-secondaryBg/60 dark:from-indigo-950/20 dark:to-background border border-indigo-500/20 dark:border-indigo-900/40 rounded-2xl text-center space-y-5">
+                        <div className="w-12 h-12 rounded-full bg-indigo-500/10 border border-indigo-500/30 flex items-center justify-center text-indigo-600 dark:text-indigo-400 mx-auto">
+                          <Sparkles size={24} className="animate-pulse text-indigo-400" />
+                        </div>
+                        <div className="space-y-2">
+                          <span className="text-[10px] font-extrabold text-indigo-400 uppercase tracking-widest bg-indigo-500/10 border border-indigo-500/20 px-3 py-1 rounded-full">
+                            2-MONTH FREE ACCESS
+                          </span>
+                          <h3 className="text-xl font-black text-white pt-1">Active {userProfile.subscription} Access</h3>
+                          <p className="text-xs text-lightGray/60 max-w-sm mx-auto">
+                            You are currently enjoying your 2-month free access. Full access to technical mocks, ATS analyzer scans, and AI career coach.
+                          </p>
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-md mx-auto">
+                          <div className="p-3 bg-indigo-500/10 border border-indigo-500/30 rounded-xl text-center">
+                            <span className="text-[9px] text-lightGray/40 block uppercase">Free Access Days Remaining</span>
+                            <span className="text-lg font-black text-indigo-400 font-mono">
+                              {(() => {
+                                if (!userProfile?.trialEndsAt) return 60;
+                                const end = new Date(userProfile.trialEndsAt);
+                                const now = new Date();
+                                const diff = end - now;
+                                const days = Math.ceil(diff / (1000 * 60 * 60 * 24));
+                                return days > 0 ? days : 0;
+                              })()} DAYS
+                            </span>
+                          </div>
+
+                          <div className="p-3 bg-white/5 border border-white/10 rounded-xl text-center">
+                            <span className="text-[9px] text-lightGray/40 block uppercase">Razorpay Autopay Status</span>
+                            <span className={`text-xs font-bold font-mono ${userProfile?.autopayActive ? 'text-emerald-400' : 'text-amber-400'}`}>
+                              {userProfile?.autopayActive ? '✓ MANDATE ACTIVE' : '⚠ NO MANDATE'}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="text-[10px] text-lightGray/40 leading-relaxed font-sans">
+                          Free access expires on {userProfile?.trialEndsAt ? new Date(userProfile.trialEndsAt).toLocaleDateString(undefined, { dateStyle: 'medium' }) : '60 days'}. ₹0 charged today.
+                        </div>
+
+                        {userProfile?.autopayActive && (
+                          <div className="pt-2 border-t border-white/5">
+                            <button
+                              onClick={handleCancelAutopay}
+                              className="px-4 py-2 bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 border border-rose-500/20 rounded-xl text-xs font-semibold transition-colors"
+                            >
+                              Cancel Autopay Mandate (Stop Auto-Billing)
+                            </button>
+                          </div>
+                        )}
+                      </div>
                    ) : (
                      <div className="p-8 bg-gradient-to-br from-emerald-500/10 to-secondaryBg/60 dark:from-emerald-950/20 dark:to-background border border-emerald-500/20 dark:border-emerald-900/40 rounded-2xl text-center space-y-5">
                        <div className="w-12 h-12 rounded-full bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-600 dark:text-emerald-400 mx-auto">
@@ -1279,9 +1320,9 @@ export default function DashboardPortal({
                          <Sparkles size={24} className="animate-pulse text-indigo-400" />
                        </div>
                        <div className="space-y-2">
-                         <h3 className="text-lg font-black text-white">Active {userProfile.subscription} (Free Launch Trial)</h3>
+                         <h3 className="text-lg font-black text-white">Active {userProfile.subscription} (Free Launch Access)</h3>
                          <p className="text-xs text-lightGray/60 max-w-sm mx-auto">
-                           You are currently enjoying your 1-month free trial. You have full access to all technical mocks, ATS analyzer scans, and sandboxes.
+                           You are currently enjoying your 2-month free access. You have full access to all technical mocks, ATS analyzer scans, and sandboxes.
                          </p>
                        </div>
                        <div className="p-4 bg-indigo-500/10 border border-indigo-500/30 rounded-xl text-xs text-indigo-600 dark:text-indigo-400 font-mono max-w-xs mx-auto">

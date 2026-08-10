@@ -1,10 +1,17 @@
 import axios from 'axios';
 
 const getBaseURL = () => {
-  // If running locally, default to the local backend to avoid connecting local client to production Render
+  // If running locally (localhost or LAN IP like 192.168.x.x / 10.x.x.x),
+  // always point to the local backend server to avoid hitting the production URL
   if (typeof window !== 'undefined' && window.location) {
     const hostname = window.location.hostname;
-    if (hostname === 'localhost' || hostname === '127.0.0.1') {
+    const isLocal =
+      hostname === 'localhost' ||
+      hostname === '127.0.0.1' ||
+      /^192\.168\./.test(hostname) ||
+      /^10\./.test(hostname) ||
+      /^172\.(1[6-9]|2[0-9]|3[0-1])\./.test(hostname);
+    if (isLocal) {
       return 'http://localhost:5000/api';
     }
   }
@@ -33,6 +40,22 @@ API.interceptors.request.use(
     return config;
   },
   (error) => {
+    return Promise.reject(error);
+  }
+);
+
+// Convert generic network errors into descriptive messages
+API.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (!error.response && (error.code === 'ERR_NETWORK' || error.message === 'Network Error')) {
+      const enriched = new Error(
+        'Cannot connect to the server. Please check your internet connection or ensure the backend server is running.'
+      );
+      enriched.code = 'ERR_NETWORK';
+      enriched.isNetworkError = true;
+      return Promise.reject(enriched);
+    }
     return Promise.reject(error);
   }
 );

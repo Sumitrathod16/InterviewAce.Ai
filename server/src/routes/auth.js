@@ -9,17 +9,21 @@ const serializeUser = async (user) => {
   
   const now = new Date();
   const registrationDate = userObj.createdAt || now;
-  const trialDuration = 30 * 24 * 60 * 60 * 1000; // 30 days
+  const trialDuration = 60 * 24 * 60 * 60 * 1000; // 2 months (60 days)
   
   const Subscription = (await import('../models/Subscription.js')).default;
   const activeSub = await Subscription.findOne({
     userId: userObj._id,
-    status: 'active',
+    status: { $in: ['active', 'trialing'] },
     currentPeriodEnd: { $gt: now }
   });
-  
-  const isTrial = !activeSub && (now - registrationDate) < trialDuration;
-  const trialEndsAt = new Date(new Date(registrationDate).getTime() + trialDuration);
+
+  // isTrial: either within 2-month registration window (legacy) or has a trialing autopay subscription
+  const hasTrialingAutopay = activeSub?.status === 'trialing';
+  const isTrial = hasTrialingAutopay || (!activeSub && (now - registrationDate) < trialDuration);
+  const trialEndsAt = activeSub?.trialEndsAt
+    ? activeSub.trialEndsAt
+    : new Date(new Date(registrationDate).getTime() + trialDuration);
   
   return {
     _id: userObj._id,
@@ -43,7 +47,9 @@ const serializeUser = async (user) => {
     redemptions: userObj.redemptions || [],
     createdAt: userObj.createdAt,
     isTrial,
-    trialEndsAt
+    trialEndsAt,
+    autopayActive: activeSub?.autopayActive || false,
+    razorpaySubscriptionId: activeSub?.razorpaySubscriptionId || ''
   };
 };
 

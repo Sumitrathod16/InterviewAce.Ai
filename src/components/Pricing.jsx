@@ -33,7 +33,7 @@ const PLANS = [
       'Company-specific preparation tracks',
       'Advanced coding runtime diagnostics'
     ],
-    cta: 'Start 30-Day Free Trial',
+    cta: 'Start 2-Month Free Access',
     highlighted: true
   },
   {
@@ -49,7 +49,7 @@ const PLANS = [
       'Priority support response',
       'Unlimited resume revision scans'
     ],
-    cta: 'Start 30-Day Free Trial',
+    cta: 'Start 2-Month Free Access',
     highlighted: false
   }
 ];
@@ -77,7 +77,7 @@ export default function Pricing() {
       return;
     }
 
-    navigate(`/checkout?plan=${planId}&period=${billingPeriod}`);
+    navigate(`/trial-checkout?plan=${planId}&period=${billingPeriod}`);
   };
 
   return (
@@ -90,7 +90,7 @@ export default function Pricing() {
             Simple, Transparent Pricing
           </h2>
           <p className="text-lg text-lightGray/70 mb-8">
-            Try any Pro or Premium plan free for 30 days. No upfront commitments. Cancel or modify anytime.
+            Try any Pro or Premium plan free for 2 months with autopay mandate. ₹0 due today. Cancel anytime.
           </p>
 
           {/* Toggle */}

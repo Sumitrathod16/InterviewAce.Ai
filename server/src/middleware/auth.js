@@ -8,7 +8,7 @@ export const checkSubscriptionStatus = async (user) => {
 
   const now = new Date();
   const registrationDate = user.createdAt || now;
-  const trialDuration = 30 * 24 * 60 * 60 * 1000; // 30 days in ms
+  const trialDuration = 60 * 24 * 60 * 60 * 1000; // 2 months (60 days in ms)
 
   const isWithinTrial = (now - registrationDate) < trialDuration;
 
@@ -21,10 +21,10 @@ export const checkSubscriptionStatus = async (user) => {
     return user;
   }
 
-  // Trial expired. Check for active paid subscription
+  // Trial expired. Check for active paid/trialing subscription
   const activeSub = await Subscription.findOne({
     userId: user._id,
-    status: 'active',
+    status: { $in: ['active', 'trialing'] },
     currentPeriodEnd: { $gt: now }
   });
 

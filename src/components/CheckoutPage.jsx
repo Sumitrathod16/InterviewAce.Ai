@@ -414,7 +414,7 @@ export default function CheckoutPage() {
               ) : (
                 <>
                   <ShieldCheck size={16} />
-                  <span>Activate 1-Month Free Trial (₹0 Due Today)</span>
+                  <span>Activate 2-Month Free Access (₹0 Due Today)</span>
                   <ChevronRight size={14} className="group-hover:translate-x-0.5 transition-transform" />
                 </>
               )}
@@ -509,7 +509,7 @@ export default function CheckoutPage() {
                 </div>
 
                 <div className="flex items-center justify-between text-emerald-400 font-medium bg-emerald-500/5 p-2.5 rounded-xl border border-emerald-500/10">
-                  <span>1-Month Free Trial Launch Offer</span>
+                  <span>2-Month Free Access Launch Offer</span>
                   <span className="font-semibold font-mono">-₹{totalPrice.toFixed(2)}</span>
                 </div>
               </div>
@@ -518,7 +518,7 @@ export default function CheckoutPage() {
               <div className="flex items-baseline justify-between mb-4">
                 <div>
                   <span className="text-sm font-bold text-white block">Grand Total Due Today</span>
-                  <span className="text-[10px] text-lightGray/40 block mt-0.5">Subsequent billing starts in 1 month</span>
+                  <span className="text-[10px] text-lightGray/40 block mt-0.5">Subsequent billing starts in 2 months</span>
                 </div>
                 <span className="text-3xl font-black text-white font-mono">₹{dueToday.toFixed(2)}</span>
               </div>

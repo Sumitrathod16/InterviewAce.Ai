@@ -240,6 +240,12 @@ export const AuthProvider = ({ children }) => {
       }
     } catch (error) {
       console.error('Google Auth login error:', error.message);
+      // Surface a clear message for network-level failures
+      if (error.isNetworkError || error.code === 'ERR_NETWORK') {
+        const netErr = new Error('Network error: Cannot reach the server. Please ensure the backend is running and try again.');
+        netErr.code = 'ERR_NETWORK';
+        throw netErr;
+      }
       throw error;
     } finally {
       setLoading(false);

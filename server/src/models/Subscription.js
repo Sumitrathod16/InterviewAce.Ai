@@ -17,6 +17,7 @@ const subscriptionSchema = new mongoose.Schema({
     enum: ['active', 'canceled', 'incomplete', 'past_due', 'trialing', 'unpaid', 'none'],
     default: 'none'
   },
+  // Legacy Stripe fields (kept for compatibility)
   stripeCustomerId: {
     type: String,
     default: ''
@@ -28,6 +29,28 @@ const subscriptionSchema = new mongoose.Schema({
   currentPeriodEnd: {
     type: Date,
     default: null
+  },
+  // Razorpay Autopay / Subscription fields
+  razorpaySubscriptionId: {
+    type: String,
+    default: ''
+  },
+  razorpayPlanId: {
+    type: String,
+    default: ''
+  },
+  trialEndsAt: {
+    type: Date,
+    default: null
+  },
+  autopayActive: {
+    type: Boolean,
+    default: false
+  },
+  billingPeriod: {
+    type: String,
+    enum: ['monthly', 'yearly'],
+    default: 'monthly'
   }
 }, {
   timestamps: true
@@ -35,3 +58,4 @@ const subscriptionSchema = new mongoose.Schema({
 
 const Subscription = mongoose.model('Subscription', subscriptionSchema);
 export default Subscription;
+

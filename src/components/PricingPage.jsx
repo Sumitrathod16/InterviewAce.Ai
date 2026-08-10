@@ -33,7 +33,7 @@ const PLANS = [
       'Company-specific preparation tracks',
       'Advanced coding runtime diagnostics'
     ],
-    cta: 'Start 30-Day Free Trial',
+    cta: 'Start 2-Month Free Access',
     highlighted: true
   },
   {
@@ -49,7 +49,7 @@ const PLANS = [
       'Priority support response',
       'Unlimited resume revision scans'
     ],
-    cta: 'Start 30-Day Free Trial',
+    cta: 'Start 2-Month Free Access',
     highlighted: false
   }
 ];
@@ -76,7 +76,7 @@ export default function PricingPage({ onViewChange }) {
       return;
     }
 
-    navigate(`/checkout?plan=${planId}&period=${billingPeriod}`);
+    navigate(`/trial-checkout?plan=${planId}&period=${billingPeriod}`);
   };
 
   return (
@@ -97,15 +97,15 @@ export default function PricingPage({ onViewChange }) {
 
         {/* Header */}
         <div className="text-center max-w-3xl mx-auto mb-12">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-xs font-semibold text-white mb-4">
-            <Sparkles size={12} className="text-accent" />
-            <span>Launch Special: 100% Free Trial</span>
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-xs font-semibold text-indigo-300 mb-4">
+            <Sparkles size={12} className="text-indigo-400" />
+            <span>Launch Special: 2-Month Free Access (Set Autopay & Cancel Anytime)</span>
           </div>
           <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-white mb-4">
             Simple, Transparent Pricing
           </h1>
           <p className="text-lg text-lightGray/70 mb-8">
-            Try any Pro or Premium plan free for 30 days. No upfront commitments. Cancel or downgrade anytime.
+            Try any Pro or Premium plan completely free for 2 months with autopay mandate. No charge today. Cancel anytime from your dashboard.
           </p>
 
           {/* Toggle */}
@@ -127,16 +127,16 @@ export default function PricingPage({ onViewChange }) {
         </div>
 
         {/* Student Special Highlight */}
-        <div className="max-w-4xl mx-auto mb-16 glassmorphism premium-border bg-gradient-to-r from-accent/20 to-white/5 p-6 rounded-2xl flex flex-col sm:flex-row items-center gap-5">
+        <div className="max-w-4xl mx-auto mb-16 glassmorphism premium-border bg-gradient-to-r from-indigo-500/20 to-white/5 p-6 rounded-2xl flex flex-col sm:flex-row items-center gap-5">
           <div className="p-3 bg-white/10 text-white rounded-xl">
             <GraduationCap size={28} />
           </div>
           <div className="text-left">
             <h3 className="text-base font-bold text-white flex items-center gap-1.5">
-              🎓 Student Promotion Active
+              🎓 2-Month Free Access Offer Active
             </h3>
             <p className="text-xs text-lightGray/70 mt-1">
-              InterviewAce.AI is currently free to students for 1 month! Sign up and choose either Pro or Premium plan to activate your 30 days free access. After the month concludes, subscriptions resume at standard rates.
+              InterviewAce.AI is currently offering 2 months free for students and job seekers! Set up your Razorpay autopay mandate today (₹0 charged now). If you continue after 2 months, billing starts automatically — or cancel anytime before free access ends.
             </p>
           </div>
         </div>
@@ -175,7 +175,7 @@ export default function PricingPage({ onViewChange }) {
                         <span className="text-4xl font-black text-white">₹{price}</span>
                         <span className="text-xs text-lightGray/45 font-semibold">/ month</span>
                         <div className="ml-2 text-[9px] font-bold px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 uppercase">
-                          1 Mo Free Trial
+                          2 Mo Free Access
                         </div>
                       </>
                     ) : (
