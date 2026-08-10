@@ -25,10 +25,14 @@ export default function Hero({ onStartFreeInterview }) {
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
-            className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full glassmorphism text-xs font-semibold tracking-wider text-lightGray/90 mb-6 uppercase premium-border"
+            className="inline-flex items-center gap-2.5 px-4 py-1.5 rounded-full glassmorphism text-xs font-semibold tracking-wider text-lightGray/90 mb-6 uppercase premium-border"
           >
+            <span className="px-1.5 py-0.5 text-[9px] font-extrabold tracking-widest rounded bg-amber-500/20 text-amber-400 border border-amber-500/30 leading-none">
+              BETA
+            </span>
+            <span className="w-px h-3 bg-white/10" />
             <Sparkles size={13} className="text-accent animate-pulse" />
-            AI-POWERED PREPARATION PLATFORM
+            AI-POWERED PREPARATION PLATFORM &mdash; NOW LIVE
           </motion.div>
 
           {/* Headline */}

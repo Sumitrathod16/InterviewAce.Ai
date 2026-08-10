@@ -109,6 +109,9 @@ export default function Navbar({ currentView, onViewChange, onTabChange, hasUser
             <span className="text-xl font-bold tracking-tight text-white">
               InterviewAce<span className="text-accent">.AI</span>
             </span>
+            <span className="ml-1.5 px-1.5 py-0.5 text-[9px] font-extrabold tracking-widest uppercase rounded-md bg-amber-500/15 text-amber-400 border border-amber-500/30 leading-none self-center">
+              BETA
+            </span>
           </button>
 
           {/* Desktop Navigation */}

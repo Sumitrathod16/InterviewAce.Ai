@@ -135,9 +135,16 @@ export default function Footer() {
 
         {/* Lower footer row */}
         <div className="pt-8 border-t border-white/5 flex flex-col sm:flex-row items-center justify-between gap-4">
-          <p className="text-[10px] sm:text-xs text-lightGray/40">
-            &copy; {currentYear} InterviewAce AI Inc. All rights reserved.
-          </p>
+          <div className="flex flex-col sm:flex-row items-center gap-3">
+            <p className="text-[10px] sm:text-xs text-lightGray/40">
+              &copy; {currentYear} InterviewAce AI Inc. All rights reserved.
+            </p>
+            <span className="hidden sm:inline text-lightGray/20">·</span>
+            <span className="inline-flex items-center gap-1.5 text-[10px] font-bold text-amber-400/80">
+              <span className="px-1.5 py-0.5 bg-amber-500/15 border border-amber-500/25 rounded text-[8px] tracking-widest uppercase">BETA</span>
+              You're using an early beta — <Link to="/feedback" className="underline underline-offset-2 hover:text-amber-300 transition-colors">share your feedback</Link>
+            </span>
+          </div>
           <div className="flex gap-4 text-lightGray/40">
             <a href="#" className="hover:text-white transition-colors" aria-label="GitHub Page">
               <Github size={16} />
