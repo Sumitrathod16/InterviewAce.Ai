@@ -96,7 +96,7 @@ export default function PrivacyPolicy() {
           <section className="space-y-4 pt-6 border-t border-white/5">
             <h3 className="text-sm font-bold text-white">Contact Our Data Team</h3>
             <p className="text-xs text-lightGray/60">
-              For privacy audits, compliance verification, or questions regarding GDPR / CCPA specifications, email us at <a href="mailto:privacy@interviewace.ai" className="text-white underline hover:text-lightGray transition-colors">privacy@interviewace.ai</a>.
+              For privacy audits, compliance verification, or questions regarding GDPR / CCPA specifications, email us at <a href="mailto:inspirewebapp22@gmail.com" className="text-white underline hover:text-lightGray transition-colors">inspirewebapp22@gmail.com</a>.
             </p>
           </section>
         </div>

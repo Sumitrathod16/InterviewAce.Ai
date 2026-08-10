@@ -91,7 +91,7 @@ export default function TermsOfService() {
           <section className="space-y-4 pt-6 border-t border-white/5">
             <h3 className="text-sm font-bold text-white">Need Clarification?</h3>
             <p className="text-xs text-lightGray/60">
-              If you have queries regarding user rules, subscription cancellations, or developer licenses, contact our operations desk at <a href="mailto:terms@interviewace.ai" className="text-white underline hover:text-lightGray transition-colors">terms@interviewace.ai</a>.
+              If you have queries regarding user rules, subscription cancellations, or developer licenses, contact our operations desk at <a href="mailto:inspirewebapp22@gmail.com" className="text-white underline hover:text-lightGray transition-colors">inspirewebapp22@gmail.com</a>.
             </p>
           </section>
         </div>

@@ -83,9 +83,7 @@ export default function Contact() {
                   <MapPin size={16} className="text-white/60 shrink-0 mt-0.5" />
                   <div>
                     <h4 className="font-semibold text-white">Location</h4>
-                    <p>InterviewAce AI Inc.</p>
-                    <p>100 Pine Street, 24th Floor</p>
-                    <p>San Francisco, CA 94111</p>
+                    
                   </div>
                 </div>
 
@@ -95,20 +93,20 @@ export default function Contact() {
                     <h4 className="font-semibold text-white">Direct Channels</h4>
                     <div className="space-y-1">
                       <p className="text-[10px] text-lightGray/40 font-mono uppercase tracking-wider">General & Help</p>
-                      <a href="mailto:support@interviewace.ai" className="text-white hover:text-accent font-semibold transition-colors block text-xs underline decoration-white/5">
-                        support@interviewace.ai
+                      <a href="mailto:inspirewebapp22@gmail.com" className="text-white hover:text-accent font-semibold transition-colors block text-xs underline decoration-white/5">
+                        inspirewebapp22@gmail.com
                       </a>
                     </div>
                     <div className="space-y-1">
                       <p className="text-[10px] text-lightGray/40 font-mono uppercase tracking-wider">Security Audits</p>
-                      <a href="mailto:security@interviewace.ai" className="text-white hover:text-accent font-semibold transition-colors block text-xs underline decoration-white/5">
-                        security@interviewace.ai
+                      <a href="mailto:inspirewebapp22@gmail.com" className="text-white hover:text-accent font-semibold transition-colors block text-xs underline decoration-white/5">
+                        inspirewebapp22@gmail.com
                       </a>
                     </div>
                     <div className="space-y-1">
                       <p className="text-[10px] text-lightGray/40 font-mono uppercase tracking-wider">Privacy & GDPR</p>
-                      <a href="mailto:privacy@interviewace.ai" className="text-white hover:text-accent font-semibold transition-colors block text-xs underline decoration-white/5">
-                        privacy@interviewace.ai
+                      <a href="mailto: inspirewebapp22@gmail.com" className="text-white hover:text-accent font-semibold transition-colors block text-xs underline decoration-white/5">
+                        inspirewebapp22@gmail.com
                       </a>
                     </div>
                   </div>
@@ -118,7 +116,7 @@ export default function Contact() {
                   <Globe size={16} className="text-white/60 shrink-0 mt-0.5" />
                   <div>
                     <h4 className="font-semibold text-white">Web Portal</h4>
-                    <p className="font-mono text-xs">http://localhost:5173</p>
+                    <p className="font-mono text-xs">interview-ace-ai-mauve.vercel.app</p>
                   </div>
                 </div>
               </div>
@@ -160,7 +158,7 @@ export default function Contact() {
                     name="email"
                     value={formData.email}
                     onChange={handleChange}
-                    placeholder="sumit@example.com"
+                    placeholder="sumitrathod1604@gmail.com"
                     className="w-full bg-background/80 text-white rounded-xl px-4 py-3 text-xs border border-white/5 focus:outline-none focus:border-white/20 font-sans transition-colors placeholder:text-lightGray/25"
                     required
                   />

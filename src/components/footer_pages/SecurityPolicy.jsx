@@ -93,7 +93,7 @@ export default function SecurityPolicy() {
           <section className="space-y-4 pt-6 border-t border-white/5">
             <h3 className="text-sm font-bold text-white">Report Vulnerabilities</h3>
             <p className="text-xs text-lightGray/60">
-              If you discover a security vulnerability in our codebase or endpoints, email our response operations desk at <a href="mailto:security@interviewace.ai" className="text-white underline hover:text-lightGray transition-colors">security@interviewace.ai</a>.
+              If you discover a security vulnerability in our codebase or endpoints, email our response operations desk at <a href="mailto:inspirewebapp22@gmail.com" className="text-white underline hover:text-lightGray transition-colors">inspirewebapp22@gmail.com</a>.
             </p>
           </section>
         </div>
