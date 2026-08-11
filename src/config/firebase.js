@@ -7,7 +7,9 @@ import {
   signOut,
   sendPasswordResetEmail,
   updateProfile,
-  signInWithPopup
+  signInWithPopup,
+  confirmPasswordReset,
+  verifyPasswordResetCode
 } from 'firebase/auth';
 
 const firebaseConfig = {
@@ -49,6 +51,8 @@ export {
   signOut,
   sendPasswordResetEmail,
   updateProfile,
-  signInWithPopup
+  signInWithPopup,
+  confirmPasswordReset,
+  verifyPasswordResetCode
 };
 export default app;

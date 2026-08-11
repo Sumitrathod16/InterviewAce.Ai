@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
-import { Terminal, Mail, Lock, User, Briefcase, Github, Globe, AlertCircle } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Terminal, Mail, Lock, User, Briefcase, Globe, AlertCircle, ArrowRight } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { useAuth } from '../context/AuthContext';
 import { isFirebaseConfigured } from '../config/firebase';
 
 export default function AuthScreen({ onAuthSuccess, onClose }) {
+  const navigate = useNavigate();
   const { login, signup, loginWithGoogle, resetPassword } = useAuth();
   
   const [isSignUp, setIsSignUp] = useState(false);
@@ -41,8 +43,13 @@ export default function AuthScreen({ onAuthSuccess, onClose }) {
       setLoading(true);
       try {
         await resetPassword(email);
-        setSuccessMsg('A password reset link has been dispatched to your email address.');
-        toast.success('Password reset link sent to your email.');
+        if (isFirebaseConfigured) {
+          setSuccessMsg(`A password reset link has been sent to ${email}. Please check your inbox.`);
+          toast.success('Password reset link sent to your email.');
+        } else {
+          setSuccessMsg(`Reset instructions generated for ${email}. Click below to set a new password directly.`);
+          toast.success('Sandbox password reset ready.');
+        }
       } catch (err) {
         setErrorMsg(err.message || 'Failed to dispatch reset email.');
         toast.error(err.message || 'Failed to dispatch reset email.');
@@ -166,8 +173,20 @@ export default function AuthScreen({ onAuthSuccess, onClose }) {
           )}
 
           {successMsg && (
-            <div className="p-3 bg-emerald-950/40 border border-emerald-900/50 rounded-lg text-xs text-emerald-300 leading-relaxed text-center">
-              {successMsg}
+            <div className="p-3 bg-emerald-950/40 border border-emerald-900/50 rounded-lg text-xs text-emerald-300 leading-relaxed text-center space-y-2">
+              <div>{successMsg}</div>
+              {isForgotPassword && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (onClose) onClose();
+                    navigate(`/reset-password?email=${encodeURIComponent(email)}`);
+                  }}
+                  className="w-full mt-2 py-2 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-200 border border-emerald-500/30 font-semibold text-[11px] rounded-md transition-all flex items-center justify-center gap-1.5"
+                >
+                  Set New Password Now <ArrowRight size={13} />
+                </button>
+              )}
             </div>
           )}
 

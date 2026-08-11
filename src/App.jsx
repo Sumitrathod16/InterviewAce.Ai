@@ -22,6 +22,7 @@ import PricingPage from './components/PricingPage';
 import CheckoutPage from './components/CheckoutPage';
 import TrialCheckoutPage from './components/TrialCheckoutPage';
 import TrialSuccessPage from './components/TrialSuccessPage';
+import ResetPasswordPage from './components/ResetPasswordPage';
 
 // Import footer subpages
 import PrivacyPolicy from './components/footer_pages/PrivacyPolicy';
@@ -218,6 +219,16 @@ export default function App() {
     }
   }, [userProfile]);
 
+  // Handle incoming reset password parameters (e.g. from Firebase default action email link)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const mode = params.get('mode');
+    const oobCode = params.get('oobCode');
+    if (mode === 'resetPassword' && oobCode && window.location.pathname !== '/reset-password') {
+      navigate(`/reset-password?oobCode=${oobCode}`);
+    }
+  }, [navigate]);
+
   // Synchronize local solved problems state with database user profile
   useEffect(() => {
     if (userProfile) {
@@ -392,6 +403,7 @@ export default function App() {
           <Route path="/careers" element={<Careers />} />
           <Route path="/contact" element={<Contact />} />
           <Route path="/feedback" element={<FeedbackPage />} />
+          <Route path="/reset-password" element={<ResetPasswordPage onOpenAuth={() => setShowAuthModal(true)} />} />
         </Routes>
       </div>
 

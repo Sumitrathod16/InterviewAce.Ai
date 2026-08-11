@@ -8,7 +8,9 @@ import {
   signOut,
   sendPasswordResetEmail,
   updateProfile,
-  signInWithPopup
+  signInWithPopup,
+  confirmPasswordReset,
+  verifyPasswordResetCode
 } from '../config/firebase.js';
 import { onAuthStateChanged, EmailAuthProvider, linkWithCredential, fetchSignInMethodsForEmail } from 'firebase/auth';
 import API from '../services/api.js';
@@ -255,9 +257,31 @@ export const AuthProvider = ({ children }) => {
   // Reset Password
   const resetPassword = async (email) => {
     if (isFirebaseConfigured) {
-      return await sendPasswordResetEmail(auth, email);
+      const actionCodeSettings = {
+        url: `${window.location.origin}/reset-password`,
+        handleCodeInApp: true,
+      };
+      return await sendPasswordResetEmail(auth, email, actionCodeSettings);
     } else {
       console.log(`[MOCK RESET PASSWORD] Sent reset instruction to ${email}`);
+      return true;
+    }
+  };
+
+  // Verify reset code (Firebase or Mock)
+  const verifyResetCode = async (oobCode) => {
+    if (isFirebaseConfigured && oobCode) {
+      return await verifyPasswordResetCode(auth, oobCode);
+    }
+    return 'candidate@interviewace.ai';
+  };
+
+  // Confirm password reset (Firebase or Mock)
+  const confirmResetPassword = async (oobCode, newPassword, mockEmail = null) => {
+    if (isFirebaseConfigured && oobCode) {
+      return await confirmPasswordReset(auth, oobCode, newPassword);
+    } else {
+      console.log(`[MOCK RESET PASSWORD] Password updated successfully for ${mockEmail || 'candidate'}`);
       return true;
     }
   };
@@ -316,6 +340,8 @@ export const AuthProvider = ({ children }) => {
     signup,
     loginWithGoogle,
     resetPassword,
+    verifyResetCode,
+    confirmResetPassword,
     logout,
     updateProfileDetails,
     refreshUserProfile
