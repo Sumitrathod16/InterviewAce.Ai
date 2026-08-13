@@ -19,13 +19,11 @@ export default function Navbar({ currentView, onViewChange, onTabChange, hasUser
     { name: 'Mock Interviews', href: '#demo' },
     { name: 'Resume Analyzer', href: '#resume' },
     { name: 'Coding Sandbox', href: '#coding' },
-    { name: 'Pricing & Tiers', href: '/pricing' },
   ] : [
     { name: 'How It Works', href: '#how-it-works' },
     { name: 'Interview Demo', href: '#demo' },
     { name: 'Resume Analyzer', href: '#resume' },
     { name: 'Coding Sandbox', href: '#coding' },
-    { name: 'Pricing', href: '/pricing' },
   ];
 
   const handleLinkClick = (e, href) => {

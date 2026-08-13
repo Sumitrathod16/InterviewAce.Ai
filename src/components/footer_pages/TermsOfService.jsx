@@ -81,10 +81,10 @@ export default function TermsOfService() {
 
           <section className="space-y-4">
             <h2 className="text-lg font-bold text-white flex items-center gap-2">
-              <Scale size={18} className="text-white/60" /> 5. Payments, Subscriptions, and Refunds
+              <Scale size={18} className="text-white/60" /> 5. Public Beta & Free Access Policy
             </h2>
             <p>
-              Upgrades to Premium or other paid assessments are processed securely via third-party payment gateways. All fees paid are non-refundable unless specified otherwise by local consumer protection statutes. If you encounter a billing discrepancy, contact support within 14 business days.
+              InterviewAce.AI is currently offered in a Public Beta version. All preparation modules, AI interview simulations, resume diagnostic tools, and coding sandboxes are provided 100% free of charge during the Beta period. No payment methods, credit card details, or payment mandates are required to use the platform.
             </p>
           </section>
 

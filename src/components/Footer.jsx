@@ -66,9 +66,9 @@ export default function Footer() {
                 </a>
               </li>
               <li>
-                <Link to="/pricing" className="hover:text-white transition-colors">
-                  Pricing
-                </Link>
+                <a href="#coding" onClick={(e) => handleScroll(e, '#coding')} className="hover:text-white transition-colors">
+                  Coding Sandbox
+                </a>
               </li>
             </ul>
           </div>

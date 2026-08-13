@@ -175,7 +175,7 @@ export default function Contact() {
                   className="w-full bg-background/80 text-white rounded-xl px-4 py-3 text-xs border border-white/5 focus:outline-none focus:border-white/20 font-sans transition-colors"
                 >
                   <option value="support">Technical & Portal Support</option>
-                  <option value="billing">Billing & Premium Upgrades</option>
+                  <option value="feedback">Beta Feedback & Feature Requests</option>
                   <option value="enterprise">University & Enterprise Licensing</option>
                   <option value="careers">Careers & Hiring Inquiry</option>
                 </select>

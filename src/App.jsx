@@ -348,11 +348,11 @@ export default function App() {
               />
             } 
           />
-          <Route path="/checkout" element={<CheckoutPage />} />
-          <Route path="/checkout/success" element={<PaymentSuccess />} />
-          <Route path="/checkout/cancel" element={<PaymentCancel />} />
-          <Route path="/trial-checkout" element={<TrialCheckoutPage />} />
-          <Route path="/trial/success" element={<TrialSuccessPage />} />
+          <Route path="/checkout" element={<Navigate to="/" replace />} />
+          <Route path="/checkout/success" element={<Navigate to="/" replace />} />
+          <Route path="/checkout/cancel" element={<Navigate to="/" replace />} />
+          <Route path="/trial-checkout" element={<Navigate to="/" replace />} />
+          <Route path="/trial/success" element={<Navigate to="/" replace />} />
           <Route 
             path="/features" 
             element={

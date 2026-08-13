@@ -214,14 +214,9 @@ router.post('/mock-activate', protect, async (req, res) => {
  */
 router.get('/billing-info', protect, async (req, res) => {
   try {
-    const subRecord = await Subscription.findOne({ userId: req.user._id });
-    
-    // Return empty history logs initially
-    const billingLogs = [];
-
     res.json({
-      subscription: subRecord || { plan: 'Free', status: 'none', currentPeriodEnd: null },
-      history: req.user.subscription === 'Free' ? [] : billingLogs
+      subscription: { plan: 'Beta Unlimited', status: 'active', isBeta: true, currentPeriodEnd: null },
+      history: []
     });
   } catch (error) {
     res.status(500).json({ message: 'Failed to fetch billing history details.' });

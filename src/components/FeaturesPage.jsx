@@ -93,18 +93,18 @@ export default function FeaturesPage({ hasUser, onViewChange, onTabChange }) {
               <GraduationCap size={32} />
             </div>
             <div>
-              <span className="text-xs font-bold text-accent uppercase tracking-wider">Launch Special Offer</span>
-              <h3 className="text-xl font-bold text-white mt-1">1 Month Free for Students!</h3>
+              <span className="text-xs font-bold text-amber-400 uppercase tracking-wider">Public Beta Release</span>
+              <h3 className="text-xl font-bold text-white mt-1">100% Free Access for All Candidates!</h3>
               <p className="text-sm text-lightGray/70 mt-1 max-w-xl">
-                We're supporting student candidates worldwide! Access all our Pro & Premium tools completely free for 30 days. No upfront payment required. Subscriptions start afterward.
+                We're supporting job seekers and student candidates worldwide. Access all AI mock interview tools, ATS Resume scoring, and coding sandbox diagnostic tools completely free. No credit card or payment required.
               </p>
             </div>
           </div>
           <Link 
-            to="/pricing"
+            to="/"
             className="px-6 py-3 bg-white text-background hover:bg-lightGray rounded-xl font-bold text-sm transition-all flex items-center gap-2 whitespace-nowrap shadow-lg hover:shadow-white/5"
           >
-            Claim 1 Month Free
+            Start Free Practice
             <ArrowRight size={16} />
           </Link>
         </motion.div>

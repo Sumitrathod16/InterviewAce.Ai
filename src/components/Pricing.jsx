@@ -1,55 +1,47 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Check, Info } from 'lucide-react';
+import { Check, Sparkles, Zap, ShieldCheck } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import API from '../services/api';
 
 const PLANS = [
   {
-    id: 'Free',
-    name: 'Free Plan',
-    monthlyPrice: 0,
-    yearlyPrice: 0,
-    desc: 'For individuals exploring core mock features.',
+    id: 'BetaCore',
+    name: 'Core Practice',
+    desc: 'Full access to essential interview practice tools.',
     features: [
-      '3 AI mock interviews per day',
+      'Unlimited AI mock interviews',
       'Standard performance rating feedback',
-      'Basic coding sandbox challenges',
-      '1 ATS Resume Analysis per day'
+      'Interactive coding sandbox challenges',
+      'ATS Resume Analysis & scoring'
     ],
-    cta: 'Start Free Practice',
+    cta: 'Start Practice Free',
     highlighted: false
   },
   {
-    id: 'Pro',
-    name: 'Pro Plan',
-    monthlyPrice: 199,
-    yearlyPrice: 159,
-    desc: 'For active applicants seeking thorough training.',
+    id: 'BetaPro',
+    name: 'Public Beta Access',
+    desc: 'Complete suite of Pro & Premium features unlocked for all beta testers.',
     features: [
-      'Unlimited AI mock interviews',
-      'Full ATS Resume Analyzer compatibility',
-      'AI Voice interview simulations',
-      'Company-specific preparation tracks',
-      'Advanced coding runtime diagnostics'
+      'Unlimited AI mock interviews & voice mode',
+      'Deep ATS Resume Analyzer & keyword suggestions',
+      'Real-time coding sandbox runtime diagnostics',
+      '24/7 Personal AI Career Coach guidance',
+      'Company-specific interview tracks'
     ],
-    cta: 'Start 2-Month Free Access',
+    cta: 'Explore All Beta Features',
     highlighted: true
   },
   {
-    id: 'Premium',
-    name: 'Premium Plan',
-    monthlyPrice: 499,
-    yearlyPrice: 399,
-    desc: 'For career switchers wanting specialized support.',
+    id: 'BetaEnterprise',
+    name: 'Career Switcher Track',
+    desc: 'Targeted preparation for tech roles and salary negotiation.',
     features: [
-      'Everything in Pro plan',
-      '24/7 Personal AI Career Coach guidance',
-      'Granular performance reports',
-      'Priority support response',
-      'Unlimited resume revision scans'
+      'Everything in Public Beta Access',
+      'Granular performance analytics',
+      'Unlimited resume revision scans',
+      'Comprehensive system design modules'
     ],
-    cta: 'Start 2-Month Free Access',
+    cta: 'Start Practice Free',
     highlighted: false
   }
 ];
@@ -57,27 +49,9 @@ const PLANS = [
 export default function Pricing() {
   const { userProfile } = useAuth();
   const navigate = useNavigate();
-  const [billingPeriod, setBillingPeriod] = useState('monthly'); // monthly, yearly
-  const [loadingPlan, setLoadingPlan] = useState('');
 
-  const handlePlanSelect = (planId) => {
-    if (planId === 'Free') {
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-      return;
-    }
-
-    if (!userProfile) {
-      // Prompt sign-in modal
-      const navbarDashboardBtn = document.querySelector('[title="Workspace Active"]') || document.querySelector('button:has(svg)');
-      if (navbarDashboardBtn) {
-        navbarDashboardBtn.click();
-      } else {
-        alert('Please log in from the top dashboard portal to purchase subscriptions.');
-      }
-      return;
-    }
-
-    navigate(`/trial-checkout?plan=${planId}&period=${billingPeriod}`);
+  const handlePlanSelect = () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   return (
@@ -86,96 +60,70 @@ export default function Pricing() {
         
         {/* Header */}
         <div className="text-center max-w-3xl mx-auto mb-16">
-          <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-white mb-4">
-            Simple, Transparent Pricing
-          </h2>
-          <p className="text-lg text-lightGray/70 mb-8">
-            Try any Pro or Premium plan free for 2 months with autopay mandate. ₹0 due today. Cancel anytime.
-          </p>
-
-          {/* Toggle */}
-          <div className="flex items-center justify-center gap-3">
-            <span className={`text-xs font-semibold ${billingPeriod === 'monthly' ? 'text-white' : 'text-lightGray/40'}`}>Monthly</span>
-            <button
-              onClick={() => setBillingPeriod(b => b === 'monthly' ? 'yearly' : 'monthly')}
-              className="w-11 h-6 rounded-full bg-secondaryBg premium-border p-0.5 flex relative transition-all duration-300"
-            >
-              <div className={`w-4.5 h-4.5 rounded-full bg-white transition-all duration-300 ${
-                billingPeriod === 'yearly' ? 'translate-x-5' : 'translate-x-0'
-              }`} />
-            </button>
-            <span className={`text-xs font-semibold ${billingPeriod === 'yearly' ? 'text-white' : 'text-lightGray/40'} flex items-center gap-1.5`}>
-              Yearly
-              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-white text-background uppercase">Save 20%</span>
-            </span>
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-amber-500/15 border border-amber-500/30 text-xs font-bold text-amber-400 mb-6">
+            <Sparkles size={14} />
+            <span>InterviewAce.AI is currently in Public Beta</span>
           </div>
+          <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-white mb-4">
+            100% Free During Public Beta
+          </h2>
+          <p className="text-lg text-lightGray/70 mb-4">
+            No credit cards, no payment mandates, and no hidden fees. All tools and AI simulation features are completely free for all candidates while in Beta.
+          </p>
         </div>
 
         {/* Cards Grid */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-stretch max-w-6xl mx-auto">
-          {PLANS.map((plan) => {
-            const price = billingPeriod === 'monthly' ? plan.monthlyPrice : plan.yearlyPrice;
-            const isCurrent = userProfile?.subscription === plan.id;
-            
-            return (
-              <div 
-                key={plan.id} 
-                className={`p-8 rounded-xl border flex flex-col justify-between transition-all duration-300 ${
-                  plan.highlighted 
-                    ? 'bg-secondaryBg/60 border-white shadow-2xl relative' 
-                    : 'bg-secondaryBg/30 border-white/5 hover:border-white/10'
-                }`}
-              >
-                {/* Popular badge */}
-                {plan.highlighted && (
-                  <span className="absolute top-0 right-8 -translate-y-1/2 px-3 py-1 rounded bg-white text-background text-[10px] font-bold uppercase tracking-wider">
-                    Most Popular
-                  </span>
-                )}
+          {PLANS.map((plan) => (
+            <div 
+              key={plan.id} 
+              className={`p-8 rounded-xl border flex flex-col justify-between transition-all duration-300 ${
+                plan.highlighted 
+                  ? 'bg-secondaryBg/60 border-white shadow-2xl relative' 
+                  : 'bg-secondaryBg/30 border-white/5 hover:border-white/10'
+              }`}
+            >
+              {plan.highlighted && (
+                <span className="absolute top-0 right-8 -translate-y-1/2 px-3 py-1 rounded bg-amber-400 text-background text-[10px] font-black uppercase tracking-wider">
+                  Full Beta Access
+                </span>
+              )}
 
-                <div>
-                  {/* Name & Desc */}
-                  <h3 className="text-lg font-bold text-white mb-2">{plan.name}</h3>
-                  <p className="text-xs text-lightGray/55 mb-6">{plan.desc}</p>
+              <div>
+                <h3 className="text-lg font-bold text-white mb-2">{plan.name}</h3>
+                <p className="text-xs text-lightGray/55 mb-6">{plan.desc}</p>
 
-                  {/* Pricing */}
-                  <div className="flex items-baseline gap-1 mb-8">
-                    <span className="text-4xl font-black text-white">₹{price}</span>
-                    <span className="text-xs text-lightGray/45 font-semibold">/ month</span>
-                  </div>
-
-                  {/* Divider */}
-                  <div className="w-full h-[1px] bg-white/5 mb-8" />
-
-                  {/* Features list */}
-                  <ul className="space-y-3.5 mb-8">
-                    {plan.features.map((feat, fIdx) => (
-                      <li key={fIdx} className="flex items-start gap-3">
-                        <Check size={14} className="text-white mt-0.5 flex-shrink-0 stroke-[2.5]" />
-                        <span className="text-xs text-lightGray/85 leading-relaxed">{feat}</span>
-                      </li>
-                    ))}
-                  </ul>
+                {/* Pricing Display */}
+                <div className="flex items-baseline gap-2 mb-8">
+                  <span className="text-4xl font-black text-white">FREE</span>
+                  <span className="text-xs text-amber-400 font-semibold px-2 py-0.5 rounded bg-amber-500/10 border border-amber-500/20">Beta Release</span>
                 </div>
 
-                {/* CTA */}
-                <button
-                  type="button"
-                  onClick={() => handlePlanSelect(plan.id)}
-                  disabled={loadingPlan === plan.id || isCurrent}
-                  className={`w-full py-3 rounded-lg text-xs sm:text-sm font-bold transition-all duration-300 ${
-                    isCurrent
-                      ? 'bg-emerald-950 text-emerald-400 border border-emerald-800 cursor-default'
-                      : plan.highlighted 
-                        ? 'bg-white text-background hover:bg-lightGray' 
-                        : 'glassmorphism text-white hover:bg-white/5 premium-border'
-                  }`}
-                >
-                  {loadingPlan === plan.id ? 'Redirecting...' : isCurrent ? 'Active Subscription' : plan.cta}
-                </button>
+                <div className="w-full h-[1px] bg-white/5 mb-8" />
+
+                <ul className="space-y-3.5 mb-8">
+                  {plan.features.map((feat, fIdx) => (
+                    <li key={fIdx} className="flex items-start gap-3">
+                      <Check size={14} className="text-emerald-400 mt-0.5 flex-shrink-0 stroke-[2.5]" />
+                      <span className="text-xs text-lightGray/85 leading-relaxed">{feat}</span>
+                    </li>
+                  ))}
+                </ul>
               </div>
-            );
-          })}
+
+              <button
+                type="button"
+                onClick={handlePlanSelect}
+                className={`w-full py-3 rounded-lg text-xs sm:text-sm font-bold transition-all duration-300 ${
+                  plan.highlighted 
+                    ? 'bg-white text-background hover:bg-lightGray' 
+                    : 'glassmorphism text-white hover:bg-white/5 premium-border'
+                }`}
+              >
+                {plan.cta}
+              </button>
+            </div>
+          ))}
         </div>
 
       </div>

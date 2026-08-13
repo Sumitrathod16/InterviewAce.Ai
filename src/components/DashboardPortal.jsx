@@ -512,8 +512,7 @@ export default function DashboardPortal({
             { id: 'coding', name: 'Coding Assessment', icon: Code },
             { id: 'coach', name: 'AI Career Coach', icon: Compass },
             { id: 'company', name: 'Company-Specific Prep', icon: Building },
-            { id: 'rewards', name: 'XP Rewards', icon: Sparkles },
-            { id: 'billing', name: 'Billing & Tiers', icon: CreditCard }
+            { id: 'rewards', name: 'XP Rewards', icon: Sparkles }
           ].map((tab) => {
             const Icon = tab.icon;
             return (
@@ -742,157 +741,17 @@ export default function DashboardPortal({
                 </div>
 
                 {/* Plans / Active subscription tier */}
-                {userProfile?.subscription === 'Free' ? (
-                  <div className="p-6 bg-secondaryBg/80 dark:bg-secondaryBg/40 border border-slate-200/50 dark:border-white/5 shadow-[0_8px_30px_rgb(0,0,0,0.015)] dark:shadow-none hover:shadow-[0_8px_30px_rgb(0,0,0,0.035)] rounded-2xl space-y-6">
-                    <div>
-                      <h3 className="text-sm font-bold text-white uppercase tracking-wider">SaaS Premium Billing Matrix</h3>
-                      <p className="text-xs text-lightGray/55 mt-0.5">Select and unlock advanced AI configurations</p>
+                <div className="p-6 bg-gradient-to-r from-amber-500/10 via-indigo-500/10 to-emerald-500/10 border border-amber-500/20 rounded-2xl space-y-3">
+                  <div className="flex items-center gap-3">
+                    <div className="p-2.5 bg-amber-500/20 text-amber-400 rounded-xl">
+                      <Sparkles size={20} />
                     </div>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 items-stretch">
-                      {/* Free */}
-                      <div className="p-5 bg-background/30 dark:bg-background/50 border border-slate-200/40 dark:border-white/5 rounded-2xl flex flex-col justify-between text-xs hover:border-slate-300 dark:hover:border-white/10 transition-all">
-                        <div className="space-y-4">
-                          <div>
-                            <div className="font-bold text-white">Free Plan</div>
-                            <div className="text-[10px] text-lightGray/40">Core access checks</div>
-                          </div>
-                          <div className="text-2xl font-black text-white">₹0</div>
-                          <ul className="space-y-1.5 text-lightGray/60 text-[10px]">
-                            <li>• 3 mock interviews / 15 days</li>
-                            <li>• 2 resume scans / 15 days</li>
-                            <li>• Basic coding problem sets</li>
-                          </ul>
-                        </div>
-                        <button 
-                          disabled 
-                          className="w-full mt-6 py-2 bg-accent/10 text-accent font-bold rounded-lg border border-accent/20 cursor-not-allowed"
-                        >
-                          Active Tier
-                        </button>
-                      </div>
-
-                      {/* Pro */}
-                      <div className="p-5 bg-background/40 dark:bg-background/60 border border-slate-200/40 dark:border-white/5 rounded-2xl flex flex-col justify-between text-xs relative hover:border-slate-300 dark:hover:border-white/10 transition-all">
-                        <div className="space-y-4">
-                          <div>
-                            <div className="font-bold text-white">Pro Plan</div>
-                            <div className="text-[10px] text-lightGray/40">Thorough training track</div>
-                          </div>
-                          <div className="text-2xl font-black text-white">₹199<span className="text-[10px] text-lightGray/40">/month</span></div>
-                          <ul className="space-y-1.5 text-lightGray/60 text-[10px]">
-                            <li>• Unlimited interviews</li>
-                            <li>• Voice interview formats</li>
-                            <li>• Full ATS Resume checks</li>
-                            <li>• Company prep files</li>
-                          </ul>
-                        </div>
-                        <button
-                          onClick={() => handleSubscribe('Pro')}
-                          disabled={upgrading}
-                          className="w-full mt-6 py-2 bg-accent hover:bg-accent/90 text-white font-bold rounded-lg transition-colors shadow-[0_4px_12px_rgba(var(--accent),0.15)] disabled:opacity-40"
-                        >
-                          Upgrade to Pro
-                        </button>
-                      </div>
-
-                      {/* Premium */}
-                      <div className="p-5 bg-background/40 dark:bg-background/60 border border-slate-200/40 dark:border-white/5 rounded-2xl flex flex-col justify-between text-xs relative hover:border-slate-300 dark:hover:border-white/10 transition-all">
-                        <div className="space-y-4">
-                          <div>
-                            <div className="font-bold text-white">Premium Plan</div>
-                            <div className="text-[10px] text-lightGray/40">AI career placement sets</div>
-                          </div>
-                          <div className="text-2xl font-black text-white">₹499<span className="text-[10px] text-lightGray/40">/month</span></div>
-                          <ul className="space-y-1.5 text-lightGray/60 text-[10px]">
-                            <li>• Everything in Pro tier</li>
-                            <li>• 24/7 AI Career Coach</li>
-                            <li>• Priority code sandbox</li>
-                            <li>• Deep progress charts</li>
-                          </ul>
-                        </div>
-                        <button
-                          onClick={() => handleSubscribe('Premium')}
-                          disabled={upgrading}
-                          className="w-full mt-6 py-2 bg-accent hover:bg-accent/90 text-white font-bold rounded-lg transition-colors shadow-[0_4px_12px_rgba(var(--accent),0.15)] disabled:opacity-40"
-                        >
-                          Upgrade Premium
-                        </button>
-                      </div>
+                    <div>
+                      <h3 className="text-sm font-bold text-white uppercase tracking-wider">Public Beta - Full Access Unlocked</h3>
+                      <p className="text-xs text-lightGray/70">All AI Mock Interviews, ATS Resume Scoring, Sandbox Compiler, and Career Coaching tools are 100% free.</p>
                     </div>
                   </div>
-                ) : userProfile?.isTrial ? (
-                      <div className="p-8 bg-gradient-to-br from-indigo-500/10 to-secondaryBg/60 dark:from-indigo-950/20 dark:to-background border border-indigo-500/20 dark:border-indigo-900/40 rounded-2xl text-center space-y-5">
-                        <div className="w-12 h-12 rounded-full bg-indigo-500/10 border border-indigo-500/30 flex items-center justify-center text-indigo-600 dark:text-indigo-400 mx-auto">
-                          <Sparkles size={24} className="animate-pulse text-indigo-400" />
-                        </div>
-                        <div className="space-y-2">
-                          <span className="text-[10px] font-extrabold text-indigo-400 uppercase tracking-widest bg-indigo-500/10 border border-indigo-500/20 px-3 py-1 rounded-full">
-                            2-MONTH FREE ACCESS
-                          </span>
-                          <h3 className="text-xl font-black text-white pt-1">Active {userProfile.subscription} Access</h3>
-                          <p className="text-xs text-lightGray/60 max-w-sm mx-auto">
-                            You are currently enjoying your 2-month free access. Full access to technical mocks, ATS analyzer scans, and AI career coach.
-                          </p>
-                        </div>
-
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-md mx-auto">
-                          <div className="p-3 bg-indigo-500/10 border border-indigo-500/30 rounded-xl text-center">
-                            <span className="text-[9px] text-lightGray/40 block uppercase">Free Access Days Remaining</span>
-                            <span className="text-lg font-black text-indigo-400 font-mono">
-                              {(() => {
-                                if (!userProfile?.trialEndsAt) return 60;
-                                const end = new Date(userProfile.trialEndsAt);
-                                const now = new Date();
-                                const diff = end - now;
-                                const days = Math.ceil(diff / (1000 * 60 * 60 * 24));
-                                return days > 0 ? days : 0;
-                              })()} DAYS
-                            </span>
-                          </div>
-
-                          <div className="p-3 bg-white/5 border border-white/10 rounded-xl text-center">
-                            <span className="text-[9px] text-lightGray/40 block uppercase">Razorpay Autopay Status</span>
-                            <span className={`text-xs font-bold font-mono ${userProfile?.autopayActive ? 'text-emerald-400' : 'text-amber-400'}`}>
-                              {userProfile?.autopayActive ? '✓ MANDATE ACTIVE' : '⚠ NO MANDATE'}
-                            </span>
-                          </div>
-                        </div>
-
-                        <div className="text-[10px] text-lightGray/40 leading-relaxed font-sans">
-                          Free access expires on {userProfile?.trialEndsAt ? new Date(userProfile.trialEndsAt).toLocaleDateString(undefined, { dateStyle: 'medium' }) : '60 days'}. ₹0 charged today.
-                        </div>
-
-                        {userProfile?.autopayActive && (
-                          <div className="pt-2 border-t border-white/5">
-                            <button
-                              onClick={handleCancelAutopay}
-                              className="px-4 py-2 bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 border border-rose-500/20 rounded-xl text-xs font-semibold transition-colors"
-                            >
-                              Cancel Autopay Mandate (Stop Auto-Billing)
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                   ) : (
-                     <div className="p-8 bg-gradient-to-br from-emerald-500/10 to-secondaryBg/60 dark:from-emerald-950/20 dark:to-background border border-emerald-500/20 dark:border-emerald-900/40 rounded-2xl text-center space-y-5">
-                       <div className="w-12 h-12 rounded-full bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-600 dark:text-emerald-400 mx-auto">
-                         <Sparkles size={24} className="animate-pulse" />
-                       </div>
-                       <div className="space-y-2">
-                         <h3 className="text-lg font-black text-white">Active {userProfile.subscription} Pack</h3>
-                         <p className="text-xs text-lightGray/60 max-w-sm mx-auto">
-                           Thank you for purchasing the {userProfile.subscription} access tier. You now have unlimited access to AI Mock Interviews, ATS Resume Audits, and the Coding Compilation Sandbox.
-                         </p>
-                       </div>
-                       <div className="p-4 bg-emerald-500/10 border border-emerald-500/30 rounded-xl text-xs text-emerald-600 dark:text-emerald-400 font-mono max-w-xs mx-auto">
-                         SUBSCRIPTION STATUS: ACTIVE
-                       </div>
-                       <div className="text-[10px] text-lightGray/40 leading-relaxed font-sans">
-                         Need help managing your subscription? Contact support at any time.
-                       </div>
-                     </div>
-                   )}
+                </div>
               </motion.div>
             )}
 
@@ -1008,21 +867,7 @@ export default function DashboardPortal({
                   )}
                 </div>
 
-                {userProfile?.subscription !== 'Premium' ? (
-                  <div className="text-center py-16 space-y-4">
-                    <Sparkles className="mx-auto text-lightGray/40 animate-pulse" size={42} />
-                    <h4 className="text-sm font-bold text-white">AI Career Coach is a Premium Tier Feature</h4>
-                    <p className="text-xs text-lightGray/60 max-w-sm mx-auto">
-                      Upgrade to unlock personalized career paths, technical roadmap benchmarks, and salary data charts.
-                    </p>
-                    <button
-                      onClick={() => setActiveTab('billing')}
-                      className="px-6 py-2.5 text-xs font-bold bg-accent hover:bg-accent/90 text-white rounded-lg transition-all shadow-[0_4px_12px_rgba(var(--accent),0.15)]"
-                    >
-                      View Premium Plans
-                    </button>
-                  </div>
-                ) : coachData ? (
+                {coachData ? (
                   <div className="space-y-6 animate-in fade-in duration-200">
                     {/* Roadmap Timelines */}
                     <div>
@@ -1167,21 +1012,7 @@ export default function DashboardPortal({
                   )}
                 </div>
 
-                {userProfile?.subscription === 'Free' ? (
-                  <div className="text-center py-16 space-y-4">
-                    <Building className="mx-auto text-lightGray/40" size={40} />
-                    <h4 className="text-sm font-bold text-white">Company preparations require Pro or Premium Plans</h4>
-                    <p className="text-xs text-lightGray/60 max-w-sm mx-auto">
-                      Unlock tailored portfolios detailing quantitative patterns, previous technical puzzles, and HR round expectations for top tech companies.
-                    </p>
-                    <button
-                      onClick={() => setActiveTab('billing')}
-                      className="px-6 py-2.5 text-xs font-bold bg-accent hover:bg-accent/90 text-white rounded-lg transition-all shadow-[0_4px_12px_rgba(var(--accent),0.15)]"
-                    >
-                      View Billing Options
-                    </button>
-                  </div>
-                ) : loadingCompany ? (
+                {loadingCompany ? (
                   <div className="text-center py-16 text-lightGray/50 text-xs">
                     Loading company portfolio files...
                   </div>
