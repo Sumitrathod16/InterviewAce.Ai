@@ -74,22 +74,31 @@ export const AuthProvider = ({ children }) => {
   };
 
   useEffect(() => {
+    // Optimistically load cached user profile from localStorage so initial render is instantaneous (0ms delay)
+    const savedUserStr = localStorage.getItem('interviewace_user');
+    if (savedUserStr) {
+      try {
+        const parsed = JSON.parse(savedUserStr);
+        setUserProfile(parsed);
+      } catch (e) {}
+    }
+
     if (!isFirebaseConfigured) {
-      // In offline mock mode, check if we have a saved mock user in localStorage
-      const savedUser = localStorage.getItem('interviewace_user');
-      if (savedUser) {
-        setUserProfile(JSON.parse(savedUser));
-      }
       setLoading(false);
       return;
     }
 
     // Subscribe to Firebase auth updates
+    let isInitial = true;
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
       try {
         if (firebaseUser) {
-          const token = await firebaseUser.getIdToken();
           setCurrentUser(firebaseUser);
+          // If we had a cached profile, we can release loading immediately while syncing in background
+          if (isInitial && savedUserStr) {
+            setLoading(false);
+          }
+          const token = await firebaseUser.getIdToken();
           await syncWithBackend(firebaseUser, token);
         } else {
           setCurrentUser(null);
@@ -101,6 +110,7 @@ export const AuthProvider = ({ children }) => {
         console.error('onAuthStateChanged sync error:', err.message);
       } finally {
         setLoading(false);
+        isInitial = false;
       }
     });
 

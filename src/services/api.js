@@ -60,4 +60,15 @@ API.interceptors.response.use(
   }
 );
 
+// Fire an immediate, non-blocking background ping to wake up the backend server (e.g. Render free tier cold-start)
+if (typeof window !== 'undefined') {
+  setTimeout(() => {
+    const healthUrl = getBaseURL().replace(/\/api$/, '') + '/health';
+    axios.get(healthUrl, { timeout: 15000 }).catch(() => {
+      // Ignore background ping errors silently
+    });
+  }, 100);
+}
+
 export default API;
+

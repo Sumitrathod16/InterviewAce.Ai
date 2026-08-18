@@ -1,39 +1,41 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import Navbar from './components/Navbar';
 import Hero from './components/Hero';
 import Features from './components/Features';
 import HowItWorks from './components/HowItWorks';
-import MockInterviewDemo from './components/MockInterviewDemo';
-import ResumeAnalyzer from './components/ResumeAnalyzer';
-import CodingAssessment from './components/CodingAssessment';
-import DashboardPreview from './components/DashboardPreview';
 import Pricing from './components/Pricing';
 import FAQ from './components/FAQ';
 import Footer from './components/Footer';
-import DashboardPortal from './components/DashboardPortal';
 import AuthScreen from './components/AuthScreen';
-import AdminDashboard from './components/AdminDashboard';
-import { PaymentSuccess, PaymentCancel } from './components/CheckoutStatus';
 import { useAuth } from './context/AuthContext';
-import FeaturesPage from './components/FeaturesPage';
-import PricingPage from './components/PricingPage';
-import CheckoutPage from './components/CheckoutPage';
-import TrialCheckoutPage from './components/TrialCheckoutPage';
-import TrialSuccessPage from './components/TrialSuccessPage';
-import ResetPasswordPage from './components/ResetPasswordPage';
 
-// Import footer subpages
-import PrivacyPolicy from './components/footer_pages/PrivacyPolicy';
-import TermsOfService from './components/footer_pages/TermsOfService';
-import SecurityPolicy from './components/footer_pages/SecurityPolicy';
-import CookiePolicy from './components/footer_pages/CookiePolicy';
-import AboutUs from './components/footer_pages/AboutUs';
-import Careers from './components/footer_pages/Careers';
-import Blog from './components/footer_pages/Blog';
-import Contact from './components/footer_pages/Contact';
-import FeedbackPage from './components/footer_pages/FeedbackPage';
+// Dynamic lazy imports for heavy subpages and dashboards
+const DashboardPortal = lazy(() => import('./components/DashboardPortal'));
+const AdminDashboard = lazy(() => import('./components/AdminDashboard'));
+const FeaturesPage = lazy(() => import('./components/FeaturesPage'));
+const PricingPage = lazy(() => import('./components/PricingPage'));
+const ResetPasswordPage = lazy(() => import('./components/ResetPasswordPage'));
+
+// Lazy import footer subpages
+const PrivacyPolicy = lazy(() => import('./components/footer_pages/PrivacyPolicy'));
+const TermsOfService = lazy(() => import('./components/footer_pages/TermsOfService'));
+const SecurityPolicy = lazy(() => import('./components/footer_pages/SecurityPolicy'));
+const CookiePolicy = lazy(() => import('./components/footer_pages/CookiePolicy'));
+const AboutUs = lazy(() => import('./components/footer_pages/AboutUs'));
+const Careers = lazy(() => import('./components/footer_pages/Careers'));
+const Contact = lazy(() => import('./components/footer_pages/Contact'));
+const FeedbackPage = lazy(() => import('./components/footer_pages/FeedbackPage'));
+
+function ComponentLoader() {
+  return (
+    <div className="min-h-[60vh] flex flex-col items-center justify-center py-12">
+      <div className="w-8 h-8 rounded-full border-2 border-indigo-500/20 border-t-indigo-500 animate-spin mb-3" />
+      <span className="text-xs font-mono text-slate-400">Loading component...</span>
+    </div>
+  );
+}
 
 function MainAppLayout({
   solvedProblems,
@@ -325,86 +327,88 @@ export default function App() {
           }}
         />
 
-        <Routes>
-          <Route 
-            path="/" 
-            element={
-              <MainAppLayout
-                solvedProblems={new Set(solvedProblems.map(p => p.problemId))}
-                solvedProblemsDetail={solvedProblems}
-                handleSolveProblem={handleSolveProblem}
-                atsScore={atsScore}
-                handleAtsScoreChange={handleAtsScoreChange}
-                handleInterviewComplete={handleInterviewComplete}
-                selectedProblemIndex={selectedProblemIndex}
-                setSelectedProblemIndex={setSelectedProblemIndex}
-                currentView={currentView}
-                setCurrentView={setCurrentView}
-                activeTab={activeTab}
-                setActiveTab={setActiveTab}
-                theme={theme}
-                onRefreshProfile={refreshUserProfile}
-                onOpenAuth={() => setShowAuthModal(true)}
-              />
-            } 
-          />
-          <Route path="/checkout" element={<Navigate to="/" replace />} />
-          <Route path="/checkout/success" element={<Navigate to="/" replace />} />
-          <Route path="/checkout/cancel" element={<Navigate to="/" replace />} />
-          <Route path="/trial-checkout" element={<Navigate to="/" replace />} />
-          <Route path="/trial/success" element={<Navigate to="/" replace />} />
-          <Route 
-            path="/features" 
-            element={
-              <FeaturesPage 
-                hasUser={!!userProfile}
-                onViewChange={(view) => {
-                  if (view === 'dashboard-portal' && !userProfile) {
-                    setShowAuthModal(true);
-                  } else {
-                    setCurrentView(view);
-                    navigate('/');
-                  }
-                }}
-                onTabChange={setActiveTab}
-              />
-            } 
-          />
-          <Route 
-            path="/pricing" 
-            element={
-              <PricingPage 
-                onViewChange={(view) => {
-                  if (view === 'dashboard-portal' && !userProfile) {
-                    setShowAuthModal(true);
-                  } else {
-                    setCurrentView(view);
-                    navigate('/');
-                  }
-                }}
-              />
-            } 
-          />
-          <Route 
-            path="/admin" 
-            element={
-              userProfile && userProfile.role === 'Admin' ? (
-                <AdminDashboard onLogout={handleLogout} />
-              ) : (
-                <Navigate to="/" replace />
-              )
-            } 
-          />
-          <Route path="/privacy" element={<PrivacyPolicy />} />
-          <Route path="/terms" element={<TermsOfService />} />
-          <Route path="/security" element={<SecurityPolicy />} />
-          <Route path="/cookie-policy" element={<CookiePolicy />} />
-          <Route path="/about" element={<AboutUs />} />
-          <Route path="/careers" element={<Careers />} />
-          <Route path="/contact" element={<Contact />} />
-          <Route path="/feedback" element={<FeedbackPage />} />
-          <Route path="/reset-password" element={<ResetPasswordPage onOpenAuth={() => setShowAuthModal(true)} />} />
-        </Routes>
+        <Suspense fallback={<ComponentLoader />}>
+          <Routes>
+            <Route 
+              path="/" 
+              element={
+                <MainAppLayout
+                  solvedProblems={new Set(solvedProblems.map(p => p.problemId))}
+                  solvedProblemsDetail={solvedProblems}
+                  handleSolveProblem={handleSolveProblem}
+                  atsScore={atsScore}
+                  handleAtsScoreChange={handleAtsScoreChange}
+                  handleInterviewComplete={handleInterviewComplete}
+                  selectedProblemIndex={selectedProblemIndex}
+                  setSelectedProblemIndex={setSelectedProblemIndex}
+                  currentView={currentView}
+                  setCurrentView={setCurrentView}
+                  activeTab={activeTab}
+                  setActiveTab={setActiveTab}
+                  theme={theme}
+                  onRefreshProfile={refreshUserProfile}
+                  onOpenAuth={() => setShowAuthModal(true)}
+                />
+              } 
+            />
+            <Route path="/checkout" element={<Navigate to="/" replace />} />
+            <Route path="/checkout/success" element={<Navigate to="/" replace />} />
+            <Route path="/checkout/cancel" element={<Navigate to="/" replace />} />
+            <Route path="/trial-checkout" element={<Navigate to="/" replace />} />
+            <Route path="/trial/success" element={<Navigate to="/" replace />} />
+            <Route 
+              path="/features" 
+              element={
+                <FeaturesPage 
+                  hasUser={!!userProfile}
+                  onViewChange={(view) => {
+                    if (view === 'dashboard-portal' && !userProfile) {
+                      setShowAuthModal(true);
+                    } else {
+                      setCurrentView(view);
+                      navigate('/');
+                    }
+                  }}
+                  onTabChange={setActiveTab}
+                />
+              } 
+            />
+            <Route 
+              path="/pricing" 
+              element={
+                <PricingPage 
+                  onViewChange={(view) => {
+                    if (view === 'dashboard-portal' && !userProfile) {
+                      setShowAuthModal(true);
+                    } else {
+                      setCurrentView(view);
+                      navigate('/');
+                    }
+                  }}
+                />
+              } 
+            />
+            <Route 
+              path="/admin" 
+              element={
+                userProfile && userProfile.role === 'Admin' ? (
+                  <AdminDashboard onLogout={handleLogout} />
+                ) : (
+                  <Navigate to="/" replace />
+                )
+              } 
+            />
+            <Route path="/privacy" element={<PrivacyPolicy />} />
+            <Route path="/terms" element={<TermsOfService />} />
+            <Route path="/security" element={<SecurityPolicy />} />
+            <Route path="/cookie-policy" element={<CookiePolicy />} />
+            <Route path="/about" element={<AboutUs />} />
+            <Route path="/careers" element={<Careers />} />
+            <Route path="/contact" element={<Contact />} />
+            <Route path="/feedback" element={<FeedbackPage />} />
+            <Route path="/reset-password" element={<ResetPasswordPage onOpenAuth={() => setShowAuthModal(true)} />} />
+          </Routes>
+        </Suspense>
       </div>
 
       <Footer />

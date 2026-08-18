@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Award, FileText, CheckSquare, Calendar, ChevronRight, Activity, 
@@ -9,10 +9,20 @@ import {
 import { toast } from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
 import API from '../services/api';
-import MockInterviewDemo from './MockInterviewDemo';
-import ResumeAnalyzer from './ResumeAnalyzer';
-import CodingAssessment from './CodingAssessment';
-import AnalyticsTab from './AnalyticsTab';
+
+const MockInterviewDemo = lazy(() => import('./MockInterviewDemo'));
+const ResumeAnalyzer = lazy(() => import('./ResumeAnalyzer'));
+const CodingAssessment = lazy(() => import('./CodingAssessment'));
+const AnalyticsTab = lazy(() => import('./AnalyticsTab'));
+
+function TabLoader() {
+  return (
+    <div className="py-20 flex flex-col items-center justify-center space-y-3">
+      <div className="w-8 h-8 rounded-full border-2 border-accent/20 border-t-accent animate-spin" />
+      <span className="text-xs font-mono text-lightGray/60">Loading workspace tool...</span>
+    </div>
+  );
+}
 
 export default function DashboardPortal({ 
   solvedProblems, 
@@ -558,7 +568,8 @@ export default function DashboardPortal({
               </button>
             </motion.div>
           ) : (
-            <AnimatePresence mode="wait">
+            <Suspense fallback={<TabLoader />}>
+              <AnimatePresence mode="wait">
             
             {/* OVERVIEW TAB */}
             {activeTab === 'overview' && (
@@ -1493,6 +1504,7 @@ export default function DashboardPortal({
             )}
 
           </AnimatePresence>
+          </Suspense>
           )}
         </div>
 
