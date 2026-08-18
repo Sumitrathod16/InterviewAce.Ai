@@ -435,13 +435,13 @@ export default function DashboardPortal({
   ];
 
   return (
-    <div className="pt-28 pb-20 bg-background min-h-screen">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
+    <div className="pt-24 sm:pt-28 md:pt-32 pb-16 sm:pb-24 bg-background min-h-screen">
+      <div className="max-w-7xl mx-auto px-3.5 sm:px-6 lg:px-8 space-y-8 min-w-0 w-full overflow-hidden">
         
         {/* Candidate Profile Summary card - Nordic Redesign */}
-        <div className="p-6 bg-secondaryBg/80 dark:bg-secondaryBg/45 border border-slate-200/50 dark:border-white/5 shadow-[0_8px_30px_rgb(0,0,0,0.015)] dark:shadow-none hover:shadow-[0_8px_30px_rgb(0,0,0,0.035)] transition-all duration-300 rounded-2xl flex flex-col md:flex-row items-center justify-between gap-6">
+        <div className="p-4 sm:p-6 bg-secondaryBg/80 dark:bg-secondaryBg/45 border border-slate-200/50 dark:border-white/5 shadow-[0_8px_30px_rgb(0,0,0,0.015)] dark:shadow-none hover:shadow-[0_8px_30px_rgb(0,0,0,0.035)] transition-all duration-300 rounded-2xl flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="flex flex-col sm:flex-row items-center gap-4 text-center sm:text-left">
-            <div className="w-16 h-16 rounded-full overflow-hidden bg-gradient-to-br from-accent to-secondary text-white flex items-center justify-center font-bold text-xl select-none shadow-[0_4px_16px_rgba(var(--accent),0.25)]">
+            <div className="w-16 h-16 rounded-full overflow-hidden bg-gradient-to-br from-accent to-secondary text-white flex items-center justify-center font-bold text-xl select-none shadow-[0_4px_16px_rgba(var(--accent),0.25)] flex-shrink-0">
               {userProfile?.profilePic ? (
                 <img src={userProfile.profilePic} alt="Profile" className="w-full h-full object-cover" />
               ) : (
@@ -464,7 +464,7 @@ export default function DashboardPortal({
                 )}
               </div>
               <p className="text-sm text-lightGray/60 mt-0.5">{userProfile?.targetRole || 'Technical Preparation Track'}</p>
-              <div className="flex flex-wrap items-center gap-3 mt-2 text-xs text-lightGray/40">
+              <div className="flex flex-wrap items-center gap-3 mt-2 text-xs text-lightGray/40 justify-center sm:justify-start">
                 <span className="flex items-center gap-1">
                   <Award size={12} className="text-secondary animate-bounce" />
                   <span className="text-secondary font-bold">{totalXp - (userProfile?.spentXp || 0)} XP Balance</span> (Total Earned: {totalXp} XP)
@@ -482,7 +482,7 @@ export default function DashboardPortal({
             </div>
           </div>
           
-          <div className="flex flex-wrap gap-2.5">
+          <div className="flex flex-wrap gap-2.5 justify-center sm:justify-end w-full sm:w-auto">
             <button
               onClick={() => setActiveTab('profile')}
               className={`px-4 py-2 text-xs font-semibold rounded-lg flex items-center gap-1.5 border transition-all ${
@@ -502,8 +502,8 @@ export default function DashboardPortal({
           </div>
         </div>
 
-        {/* Dashboard Navigation Tabs */}
-        <div className="flex border-b border-slate-200/60 dark:border-white/5 overflow-x-auto gap-2 pb-1">
+        {/* Dashboard Navigation Tabs - Horizontal Scroll on Mobile */}
+        <div className="flex border-b border-slate-200/60 dark:border-white/5 overflow-x-auto scrollbar-none gap-2 pb-1 -mx-3.5 px-3.5 sm:mx-0 sm:px-0">
           {[
             { id: 'overview', name: 'Workspace Overview', icon: Activity },
             { id: 'analytics', name: 'Performance Analytics', icon: BarChart3 },
@@ -519,7 +519,7 @@ export default function DashboardPortal({
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center gap-2 px-4 py-3 text-xs font-bold uppercase tracking-wider border-b-2 whitespace-nowrap transition-all ${
+                className={`flex items-center gap-2 px-4 py-3 text-xs font-bold uppercase tracking-wider border-b-2 whitespace-nowrap transition-all flex-shrink-0 ${
                   activeTab === tab.id
                     ? 'border-accent text-accent'
                     : 'border-transparent text-lightGray/40 hover:text-lightGray'

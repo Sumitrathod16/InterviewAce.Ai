@@ -767,17 +767,17 @@ export default function CodingAssessment({
           </div>
 
           {/* Right panel: Editor and compilation results */}
-          <div className="lg:col-span-7 flex flex-col h-[600px] rounded-2xl bg-secondaryBg/20 border border-white/5 shadow-2xl relative overflow-hidden group/editor">
+          <div className="lg:col-span-7 flex flex-col h-[520px] sm:h-[600px] rounded-2xl bg-secondaryBg/20 border border-white/5 shadow-2xl relative overflow-hidden group/editor min-w-0 w-full">
             
             {/* Glowing editor accent line */}
             <div className="absolute inset-x-0 top-0 h-[1px] bg-gradient-to-r from-transparent via-accent/20 to-transparent pointer-events-none" />
 
             {/* Header controls */}
-            <div className="px-6 py-4 border-b border-white/5 bg-secondaryBg/40 flex items-center justify-between z-10">
-              <div className="flex items-center gap-4 text-white">
+            <div className="px-3.5 sm:px-6 py-3 sm:py-4 border-b border-white/5 bg-secondaryBg/40 flex flex-wrap sm:flex-nowrap items-center justify-between gap-2 z-10">
+              <div className="flex items-center gap-2 sm:gap-4 text-white">
                 <div className="flex items-center gap-2">
                   <Code size={15} className="text-accent" />
-                  <span className="text-xs font-bold uppercase tracking-widest">Monaco IDE</span>
+                  <span className="text-[11px] sm:text-xs font-bold uppercase tracking-widest">Monaco IDE</span>
                 </div>
                 
                 {/* Languages selection */}
@@ -803,7 +803,7 @@ export default function CodingAssessment({
                 <button
                   type="button"
                   onClick={resetCode}
-                  className="px-3.5 py-1.5 text-xs text-lightGray/50 hover:text-white border border-white/5 rounded-lg flex items-center gap-1.5 transition-all duration-200 active:scale-95"
+                  className="px-3 py-1.5 text-xs text-lightGray/50 hover:text-white border border-white/5 rounded-lg flex items-center gap-1.5 transition-all duration-200 active:scale-95"
                 >
                   <RefreshCw size={12} className="transition-transform duration-300 hover:rotate-180" />
                   Reset
@@ -812,7 +812,7 @@ export default function CodingAssessment({
                   type="button"
                   onClick={runCode}
                   disabled={testingStatus === 'running'}
-                  className={`px-5 py-1.5 text-xs font-bold rounded-lg flex items-center gap-1.5 transition-all duration-200 shadow-lg active:scale-[0.98] ${
+                  className={`px-4 sm:px-5 py-1.5 text-xs font-bold rounded-lg flex items-center gap-1.5 transition-all duration-200 shadow-lg active:scale-[0.98] ${
                     testingStatus === 'running'
                       ? 'bg-accent/50 text-white cursor-not-allowed'
                       : 'bg-white hover:bg-lightGray text-background hover:shadow-white/5'

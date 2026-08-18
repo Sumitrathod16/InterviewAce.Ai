@@ -78,9 +78,12 @@ export default function Navbar({ currentView, onViewChange, onTabChange, hasUser
   };
 
   return (
-    <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-      scrolled || currentView !== 'landing' ? 'glassmorphism py-4 shadow-xl' : 'bg-transparent py-6'
-    }`}>
+    <nav 
+      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
+        scrolled || currentView !== 'landing' ? 'glassmorphism py-3 sm:py-4 shadow-xl' : 'bg-transparent py-4 sm:py-6'
+      }`}
+      style={{ paddingTop: 'max(0.75rem, env(safe-area-inset-top))' }}
+    >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between">
           {/* Logo */}
@@ -188,7 +191,10 @@ export default function Navbar({ currentView, onViewChange, onTabChange, hasUser
  
       {/* Mobile Drawer */}
       {isOpen && (
-        <div className="md:hidden bg-secondaryBg border-b border-white/10 py-6 px-6 space-y-4 absolute top-full left-0 right-0 shadow-2xl border-t border-white/5 animate-in fade-in slide-in-from-top-5 duration-200 z-50">
+        <div 
+          className="md:hidden bg-secondaryBg/95 backdrop-blur-xl border-b border-white/10 py-6 px-6 space-y-4 absolute top-full left-0 right-0 shadow-2xl border-t border-white/5 animate-in fade-in slide-in-from-top-5 duration-200 z-50 max-h-[calc(85vh-4rem)] overflow-y-auto"
+          style={{ paddingBottom: 'max(2rem, env(safe-area-inset-bottom))' }}
+        >
           {navLinks.map((link) => (
             <a
               key={link.name}

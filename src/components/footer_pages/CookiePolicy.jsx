@@ -8,11 +8,11 @@ export default function CookiePolicy() {
   }, []);
 
   return (
-    <div className="relative pt-32 pb-24 bg-background min-h-[80vh] overflow-hidden">
+    <div className="relative pt-24 sm:pt-28 md:pt-32 pb-16 sm:pb-24 bg-background min-h-[80vh] overflow-hidden">
       {/* Ambient background glow */}
       <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-96 h-96 rounded-full bg-white/5 blur-[120px] pointer-events-none z-0" />
 
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 relative z-10">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 relative z-10 w-full min-w-0">
         {/* Back Button */}
         <Link 
           to="/" 

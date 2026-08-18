@@ -101,8 +101,8 @@ export default function FeedbackPage() {
   }
 
   return (
-    <div className="min-h-[85vh] py-12 px-4 flex items-center justify-center">
-      <div className="w-full max-w-xl p-8 bg-secondaryBg rounded-2xl border border-white/5 shadow-2xl space-y-6 relative animate-in fade-in zoom-in-95 duration-200">
+    <div className="min-h-[85vh] pt-24 sm:pt-28 md:pt-32 pb-16 sm:pb-24 px-4 flex items-center justify-center">
+      <div className="w-full max-w-xl p-5 sm:p-8 bg-secondaryBg rounded-2xl border border-white/5 shadow-2xl space-y-6 relative animate-in fade-in zoom-in-95 duration-200 min-w-0">
         
         {/* Header Section */}
         <div className="flex flex-col items-center text-center space-y-2">

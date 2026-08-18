@@ -124,8 +124,14 @@ export default function AuthScreen({ onAuthSuccess, onClose }) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-md">
-      <div className="w-full max-w-md p-8 bg-secondaryBg rounded-2xl border border-white/5 shadow-2xl relative animate-in fade-in zoom-in-95 duration-200">
+    <div 
+      className="fixed inset-0 z-50 flex items-center justify-center p-3.5 sm:p-4 bg-background/80 backdrop-blur-md overflow-y-auto"
+      style={{
+        paddingTop: 'max(1rem, env(safe-area-inset-top))',
+        paddingBottom: 'max(1rem, env(safe-area-inset-bottom))'
+      }}
+    >
+      <div className="w-full max-w-md p-5 sm:p-8 bg-secondaryBg rounded-2xl border border-white/5 shadow-2xl relative animate-in fade-in zoom-in-95 duration-200 max-h-[88vh] overflow-y-auto my-auto">
         
         {/* Close Button */}
         {onClose && (

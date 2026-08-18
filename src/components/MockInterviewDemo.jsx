@@ -461,7 +461,10 @@ export default function MockInterviewDemo({ onInterviewComplete }) {
             </div>
 
             {/* Input Form or Start Button */}
-            <div className="p-4 border-t border-white/5 bg-secondaryBg/20">
+            <div 
+              className="p-3.5 sm:p-4 border-t border-white/5 bg-secondaryBg/20"
+              style={{ paddingBottom: 'max(1rem, env(safe-area-inset-bottom))' }}
+            >
               {activeInterview === null && !isCompleted ? (
                 <button
                   onClick={startInterviewSession}

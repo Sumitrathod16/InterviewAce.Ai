@@ -980,7 +980,7 @@ ${edu.degree || ''} - ${edu.school || ''} (${edu.dates || ''})
               {/* Left Pane: Structured Form Editor */}
               <div className="xl:col-span-6 bg-background/30 p-6 rounded-xl border border-white/5 space-y-6">
                 {/* Tab buttons */}
-                <div className="flex flex-wrap gap-1.5 border-b border-white/5 pb-3">
+                <div className="flex overflow-x-auto scrollbar-none gap-1.5 border-b border-white/5 pb-3 -mx-2 px-2 sm:mx-0 sm:px-0">
                   {[
                     { id: 'contact', label: 'Contact & Summary' },
                     { id: 'skills', label: 'Skills' },
